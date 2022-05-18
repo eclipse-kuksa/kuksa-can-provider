@@ -5,6 +5,8 @@
 # accompanies this distribution, and is available at
 # http://www.eclipse.org/org/documents/edl-v10.php
 #
+# SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
+
 
 FROM python:3.8-alpine
 ADD . /kuksa_dbc_feeder

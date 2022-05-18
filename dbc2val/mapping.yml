@@ -5,6 +5,9 @@
 # terms and conditions of the Eclipse Distribution License v1.0 which
 # accompanies this distribution, and is available at
 # http://www.eclipse.org/org/documents/edl-v10.php
+#
+# SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
+
 ###############################################################################
 # This is a mapping of some Tesla Model 3 signals to VSS.
 # The CAN trace is from the vehicle CAN of a 2018 M3 with software  2021.40.6
