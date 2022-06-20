@@ -18,9 +18,10 @@
 # SPDX-License-Identifier: Apache-2.0
 ########################################################################
 
-
-import os,sys
-import serial, can
+import os
+import sys
+import serial
+import can
 import threading
 from multiprocessing import Queue, Process
 

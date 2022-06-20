@@ -20,11 +20,10 @@
 
 from py_expression_eval import Parser
 
-class math:
 
+class math:
     def __init__(self):
-        self.parser=Parser()
-        
+        self.parser = Parser()
+
     def transform(self, spec, value):
-        return self.parser.parse(spec).evaluate({'x': value})
-        
+        return self.parser.parse(spec).evaluate({"x": value})

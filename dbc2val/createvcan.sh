@@ -23,8 +23,7 @@
 # for the elm2canbridge
 #
 
-
-#Default dev, can be overriden by commandline
+#Default dev, can be overridden by commandline
 DEV=elmcan
 
 if [ -n "$1" ]

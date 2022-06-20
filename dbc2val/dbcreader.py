@@ -18,37 +18,51 @@
 # SPDX-License-Identifier: Apache-2.0
 ########################################################################
 
-
-import can, cantools
+import can
+import cantools
 import threading
-
 import time
+import logging
+
+log = logging.getLogger(__name__)
+
 
 class DBCReader:
-    def __init__(self, cfg, rxqueue, mapper):
-        self.queue=rxqueue
-        self.mapper=mapper
-        self.cfg=cfg
-        print("Reading dbc file")
-        self.db = cantools.database.load_file(cfg['dbcfile'])
-
+    def __init__(self, rxqueue, dbcfile, mapper):
+        self.queue = rxqueue
+        self.mapper = mapper
+        log.info("Reading DBC file {}".format(dbcfile))
+        self.db = cantools.database.load_file(dbcfile)
         self.canidwl = self.get_whitelist()
-
+        log.info("CAN ID whitelist={}".format(self.canidwl))
         self.parseErr = 0
         self.run = True
 
-    def start_listening(self):
-        print("Open CAN device {}".format(self.cfg['port']))
-        self.bus = can.interface.Bus(self.cfg['port'], bustype='socketcan')
+    def start_listening(self, *args, **kwargs):
+        """Start listening to CAN bus
+
+        Arguments are passed directly to :class:`can.BusABC`. Typically these
+        may include:
+
+        :param channel:
+            Backend specific channel for the CAN interface.
+        :param str bustype:
+            Name of the interface. See
+            `python-can manual <https://python-can.readthedocs.io/en/latest/configuration.html#interface-names>`__
+            for full list of supported interfaces.
+        :param int bitrate:
+            Bitrate in bit/s.
+        """
+        self.bus = can.interface.Bus(*args, **kwargs)
         rxThread = threading.Thread(target=self.rxWorker)
         rxThread.start()
 
     def get_whitelist(self):
-        print("Collecting signals, generating CAN ID whitelist")
+        log.info("Collecting signals, generating CAN ID whitelist")
         wl = []
         for entry in self.mapper.map():
-            canid=self.get_canid_for_signal(entry[0])
-            if canid != None and canid not in wl:
+            canid = self.get_canid_for_signal(entry[0])
+            if canid is not None and canid not in wl:
                 wl.append(canid)
         return wl
 
@@ -57,33 +71,38 @@ class DBCReader:
             for signal in msg.signals:
                 if signal.name == sig_to_find:
                     id = msg.frame_id
-                    print("Found signal {} in CAN frame id 0x{:02x}".format(signal.name, id))
+                    log.info(
+                        "Found signal in DBC file {} in CAN frame id 0x{:02x}".format(
+                            signal.name, id
+                        )
+                    )
                     return id
-        print("Signal {} not found in DBC file".format(sig_to_find))
+        log.warning("Signal {} not found in DBC file".format(sig_to_find))
         return None
 
-
     def rxWorker(self):
-        print("Starting thread")
+        log.info("Starting Rx thread")
         while self.run:
-            msg=self.bus.recv(timeout=1)
-            if msg:
+            msg = self.bus.recv(timeout=1)
+            if msg and msg.arbitration_id in self.canidwl:
                 try:
-                    decode=self.db.decode_message(msg.arbitration_id, msg.data)
-                    #print("Decod" +str(decode))
-                except Exception as e:
-                    self.parseErr+=1
-                    #print("Error Decoding: "+str(e))
+                    decode = self.db.decode_message(msg.arbitration_id, msg.data)
+                    # log.debug("Decoded message: %s", str(decode))
+                except Exception:
+                    self.parseErr += 1
+                    log.warning(
+                        "Error Decoding: ID:{}".format(msg.arbitration_id),
+                        exc_info=True,
+                    )
                     continue
-                rxTime=time.time()
-                for k,v in decode.items():
+                rxTime = time.time()
+                for k, v in decode.items():
                     if k in self.mapper:
                         if self.mapper.minUpdateTimeElapsed(k, rxTime):
-                            self.queue.put((k,v))
-
+                            log.debug("* Handling Singal:{}, Value:{}".format(k, v))
+                            self.queue.put((k, v))
+        log.info("Stopped Rx thread")
 
     def stop(self):
         self.run = False
-
-
 

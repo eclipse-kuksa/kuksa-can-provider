@@ -27,13 +27,13 @@ class mapping:
     # setting discard_non_matching_items to false will return values for
     # which no match exists unmodified
     def __init__(self, discard_non_matching_items):
-        self.discard_non_matching_items=discard_non_matching_items
+        self.discard_non_matching_items = discard_non_matching_items
 
     def transform(self, spec, value):
-        for k,v in spec.items():
-            if value==k:
+        for k, v in spec.items():
+            if value == k:
                 return v
-        #no match
+        # no match
         if self.discard_non_matching_items:
             return None
         else:
