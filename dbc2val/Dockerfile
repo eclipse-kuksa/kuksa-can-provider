@@ -62,7 +62,7 @@ COPY --from=builder /data/ ./
 ENV PATH="/dist:$PATH"
 
 # useful dumps about feeding values
-ENV LOG_LEVEL="info,databroker=debug,dbcfeeder=debug,dbcfeeder.broker_client=debug"
+ENV LOG_LEVEL="info,databroker=error,dbcfeeder=error,dbcfeeder.broker_client=error"
 
 # Vehicle Data Broker host:port
 #ENV VDB_ADDRESS="localhost:55555"
