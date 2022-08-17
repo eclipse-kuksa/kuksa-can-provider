@@ -65,7 +65,6 @@ See "Steps for a local test with replaying a can dump file"
 1. Run the dbcfeeder.py
 
    ```bash
-   cd feeder_can
    ./dbcfeeder.py
    ```
 
@@ -78,7 +77,6 @@ See "Steps for a local test with replaying a can dump file"
 1. Run the dbcfeeder.py
 
    ```bash
-   cd feeder_can
    ./dbcfeeder.py
    ```
 
