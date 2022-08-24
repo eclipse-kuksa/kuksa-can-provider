@@ -171,22 +171,22 @@ VCFRONT_brakeFluidLevel:
     changetype: 2 # ON_CHANGE number taken from types_pb2.py
   minupdatedelay: 1000
   targets:
-    Vehicle.Chassis.Axle.Row1.Wheel.Left.Brake.FluidLevelLow:
+    Vehicle.Chassis.Axle.Row1.Wheel.Left.Brake.IsFluidLevelLow:
       transform:
         fullmapping:
           LOW: "true"
           NORMAL: "false"
-    Vehicle.Chassis.Axle.Row1.Wheel.Right.Brake.FluidLevelLow:
+    Vehicle.Chassis.Axle.Row1.Wheel.Right.Brake.IsFluidLevelLow:
       transform:
         fullmapping:
           LOW: "true"
           NORMAL: "false"
-    Vehicle.Chassis.Axle.Row2.Wheel.Left.Brake.FluidLevelLow:
+    Vehicle.Chassis.Axle.Row2.Wheel.Left.Brake.IsFluidLevelLow:
       transform:
         fullmapping:
           LOW: "true"
           NORMAL: "false"
-    Vehicle.Chassis.Axle.Row2.Wheel.Right.Brake.FluidLevelLow:
+    Vehicle.Chassis.Axle.Row2.Wheel.Right.Brake.IsFluidLevelLow:
       transform:
         fullmapping:
           LOW: "true"
@@ -394,6 +394,7 @@ VCLEFT_frontDoorState:
         fullmapping:
           DOOR_STATE_CLOSED: "false"
           DOOR_STATE_OPEN_OR_AJAR: "true"
+          DOOR_STATE_RELEASING_LATCH: "true"
 
 VCLEFT_rearDoorState:
   vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Cabin/SingleDoor.vspec
@@ -411,6 +412,7 @@ VCLEFT_rearDoorState:
         fullmapping:
           DOOR_STATE_CLOSED: "false"
           DOOR_STATE_OPEN_OR_AJAR: "true"
+          DOOR_STATE_RELEASING_LATCH: "true"
 
 
 # For some reason nothing for right in DBC
@@ -422,6 +424,7 @@ VCLEFT_rearDoorState:
 #         fullmapping:
 #           DOOR_STATE_CLOSED: "false"
 #           DOOR_STATE_OPEN_OR_AJAR: "true"
+#           DOOR_STATE_RELEASING_LATCH: "true"
 
 # VCRIGHT_rearDoorState:
 #   minupdatedelay: 500
@@ -431,6 +434,7 @@ VCLEFT_rearDoorState:
 #         fullmapping:
 #           DOOR_STATE_CLOSED: "false"
 #           DOOR_STATE_OPEN_OR_AJAR: "true"
+#           DOOR_STATE_RELEASING_LATCH: "true"
 
 
 VCFRONT_driverBuckleStatus:
