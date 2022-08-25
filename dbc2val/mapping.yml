@@ -106,7 +106,7 @@ DIR_torqueActual:
     changetype: 2 # ON_CHANGE number taken from types_pb2.py
   minupdatedelay: 100
   targets:
-    Vehicle.Powertrain.ElectricMotor.Motor.Torque: {}
+    Vehicle.Powertrain.ElectricMotor.Torque: {}
 
 
 # HV System Voltage
