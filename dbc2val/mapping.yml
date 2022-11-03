@@ -53,7 +53,8 @@ DI_uiSpeed:
   minupdatedelay: 100
   targets: 
     Vehicle.Speed: {}
-    Vehicle.OBD.Speed: {}
+    # Commented out, because mapping to multiple targets is not supported currently
+    # Vehicle.OBD.Speed: {}
 
 #"DI_GEAR_D" 0 "DI_GEAR_INVALID" 3 "DI_GEAR_N" 1 "DI_GEAR_P" 2 "DI_GEAR_R" 7 "DI_GEAR_SNA" ;
 DI_gear:
