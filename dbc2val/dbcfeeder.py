@@ -87,7 +87,7 @@ class ColorFormatter(logging.Formatter):
 
 
 class Feeder:
-    def __init__(self):
+    def __init__(self, kuksa_client_config):
         self._shutdown = False
         self._reader = None
         self._player = None
@@ -96,10 +96,10 @@ class Feeder:
         self._connected = False
         self._registered = False
         self._can_queue = queue.Queue()
+        self._kuksa_client_config = kuksa_client_config
 
     def start(
         self,
-        databroker_address,
         canport,
         dbcfile,
         mappingfile,
@@ -138,9 +138,10 @@ class Feeder:
             # use socketCAN
             log.info("Using socket CAN device '%s'", canport)
             self._reader.start_listening(bustype="socketcan", channel=canport)
-       
+
         # databroker related
         if USE_CASE=="databroker":
+            databroker_address = f"{self._kuksa_client_config['ip']}:{self._kuksa_client_config['port']}"
             log.info("Connecting to Data Broker using %s", databroker_address)
             channel = grpc.insecure_channel(databroker_address)
             channel.subscribe(
@@ -202,15 +203,14 @@ class Feeder:
                 self._mapper.mapping[entry]["databroker"]["changetype"],
                 self._mapper.mapping[entry]["vss"]["description"],
             )
-        
+
     def _run(self):
         # kuksa related
         if USE_CASE=="kuksa":
-            global kuksaconfig
-            kuksa = KuksaClientThread(kuksaconfig)
+            kuksa = KuksaClientThread(self._kuksa_client_config)
             kuksa.start()
             kuksa.authorize()
-        
+
         while self._shutdown is False:
             # databroker related
             if USE_CASE=="databroker":
@@ -260,7 +260,7 @@ class Feeder:
                         elif USE_CASE=="kuksa":
                             resp=json.loads(kuksa.setValue(target, str(value)))
                             if "error" in resp:
-                                if "message" in resp["error"]: 
+                                if "message" in resp["error"]:
                                    log.error("Error setting {}: {}".format(target, resp["error"]["message"]))
                                 else:
                                    log.error("Unknown error setting {}: {}".format(target, resp))
@@ -328,7 +328,6 @@ def main(argv):
         action="store_true",
         help="Use SocketCAN (overriding any use of --dumpfile)",
     )
-    parser.add_argument("--address", metavar="ADDR", help="Address of databroker")
     parser.add_argument(
         "--mapping",
         metavar="FILE",
@@ -339,7 +338,7 @@ def main(argv):
     args = parser.parse_args()
 
     config = parse_config(args.config)
-    
+
     if args.usecase:
         usecase = args.usecase
     elif os.environ.get("USECASE"):
@@ -348,27 +347,33 @@ def main(argv):
         usecase = config["general"]["usecase"]
     else:
         usecase = "databroker"
-                  
-    global USE_CASE 
+
+    global USE_CASE
     USE_CASE = usecase
 
     # kuksa related
-    if USE_CASE=="kuksa":
-        global kuksaconfig
-        kuksaconfig = config
-        if "kuksa_val" in config:  
-            kuksaconfig = config["kuksa_val"]
+    if USE_CASE == "kuksa":
+        config.setdefault("kuksa_val_server", {})
+        config["kuksa_val_server"].setdefault("ip", "localhost")
+        config["kuksa_val_server"].setdefault("port", "8090")
+        config["kuksa_val_server"].setdefault("protocol", "ws")
+        config["kuksa_val_server"].setdefault("insecure", "False")
+        kuksa_client_config = config["kuksa_val_server"]
+    else:  # USE_CASE == "databroker"
+        config.setdefault("kuksa_databroker", {})
+        config["kuksa_databroker"].setdefault("ip", "127.0.0.1")
+        config["kuksa_databroker"].setdefault("port", "55555")
+        config["kuksa_databroker"].setdefault("protocol", "grpc")
+        config["kuksa_databroker"].setdefault("insecure", "True")
+        kuksa_client_config = config["kuksa_databroker"]
 
-    if args.address:
-        databroker_address = args.address
-    elif os.environ.get("DAPR_GRPC_PORT"):
-        databroker_address = "127.0.0.1:{}".format(os.environ.get("DAPR_GRPC_PORT"))
-    elif os.environ.get("VDB_ADDRESS"):
-        databroker_address = os.environ.get("VDB_ADDRESS")
-    elif "databroker" in config and "address" in config["databroker"]:
-        databroker_address = config["databroker"]["address"]
-    else:
-        databroker_address = "127.0.0.1:55555"  # default
+        if os.environ.get("DAPR_GRPC_PORT"):
+            kuksa_client_config["ip"] = "127.0.0.1"
+            kuksa_client_config["port"] = os.environ.get("DAPR_GRPC_PORT")
+        elif os.environ.get("VDB_ADDRESS"):
+            vdb_address, vdb_port = os.environ.get("VDB_ADDRESS").split(':', maxsplit=1)
+            kuksa_client_config["ip"] = vdb_address
+            kuksa_client_config["port"] = vdb_port
 
     if args.mapping:
         mappingfile = args.mapping
@@ -427,7 +432,7 @@ def main(argv):
     else:
         grpc_metadata = None
 
-    feeder = Feeder()
+    feeder = Feeder(kuksa_client_config)
 
     def signal_handler(signal_received, frame):
         log.info(f"Received signal {signal_received}, stopping...")
@@ -444,7 +449,6 @@ def main(argv):
 
     log.info("Starting CAN feeder")
     feeder.start(
-        databroker_address=databroker_address,
         canport=canport,
         dbcfile=dbcfile,
         mappingfile=mappingfile,
