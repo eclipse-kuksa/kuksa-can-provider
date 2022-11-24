@@ -20,6 +20,7 @@
 
 import argparse
 import configparser
+import contextlib
 import logging
 import os
 import queue
@@ -34,9 +35,8 @@ import dbcreader
 import grpc
 import j1939reader
 
-# kuksa related
-from kuksa_viss_client import KuksaClientThread
-# databroker related
+from kuksa_client import KuksaClientThread
+import kuksa_client.grpc
 import databroker
 
 # global variable for usecase, default databroker
@@ -97,6 +97,7 @@ class Feeder:
         self._registered = False
         self._can_queue = queue.Queue()
         self._kuksa_client_config = kuksa_client_config
+        self._exit_stack = contextlib.ExitStack()
 
     def start(
         self,
@@ -143,12 +144,15 @@ class Feeder:
         if USE_CASE=="databroker":
             databroker_address = f"{self._kuksa_client_config['ip']}:{self._kuksa_client_config['port']}"
             log.info("Connecting to Data Broker using %s", databroker_address)
-            channel = grpc.insecure_channel(databroker_address)
-            channel.subscribe(
+            vss_client = self._exit_stack.enter_context(kuksa_client.grpc.VSSClient(
+                host=self._kuksa_client_config['ip'],
+                port=self._kuksa_client_config['port'],
+            ))
+            vss_client.channel.subscribe(
                 lambda connectivity: self.on_broker_connectivity_change(connectivity),
                 try_to_connect=False,
             )
-            self._provider = databroker.Provider(channel, grpc_metadata)
+            self._provider = databroker.Provider(vss_client, grpc_metadata)
         self._run()
 
     def stop(self):
@@ -159,6 +163,7 @@ class Feeder:
             self._reader.stop()
         if self._player is not None:
             self._player.stop()
+        self._exit_stack.close()
 
     def is_stopping(self):
         return self._shutdown
@@ -193,14 +198,13 @@ class Feeder:
         for entry in self._mapper.mapping:
             if len(self._mapper.mapping[entry]["targets"]) != 1:
                 log.warning(
-                    "Singal %s has multiple targets: %s",
+                    "Signal %s has multiple targets: %s",
                     entry,
                     list(self._mapper.mapping[entry]["targets"].keys()),
                 )
             self._provider.register(
                 next(iter(self._mapper.mapping[entry]["targets"])),
                 self._mapper.mapping[entry]["databroker"]["datatype"],
-                self._mapper.mapping[entry]["databroker"]["changetype"],
                 self._mapper.mapping[entry]["vss"]["description"],
             )
 
@@ -247,14 +251,6 @@ class Feeder:
                         log.debug("Updating DataPoint(%s, %s)", target, value)
                         # databroker related
                         if USE_CASE=="databroker":
-                            # kuksa needs "false" and databroker False
-                            if value == "false":
-                                value = False
-                            # kuksa needs "true" and databroker True
-                            elif value == "true":
-                                value = True
-                            else:
-                                pass
                             self._provider.update_datapoint(target, value)
                         # kuksa related
                         elif USE_CASE=="kuksa":
@@ -267,7 +263,7 @@ class Feeder:
                         else:
                             log.error("USE_CASE is not set to databroker or kuksa", exc_info=True)
 
-            except grpc.RpcError:
+            except kuksa_client.grpc.VSSClientError:
                 log.error("Failed to update datapoints", exc_info=True)
             except queue.Empty:
                 pass

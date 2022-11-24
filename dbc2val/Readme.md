@@ -9,18 +9,18 @@ See "Steps for a local test with replaying a can dump file"
 ```bash
                              +-------------+
                              |   DBCFile   |
-                             +-------------+            +-------------+         
+                             +-------------+            +-------------+
                                     |                   |             |
                                     |              |--->|  VSS Server |
                                     |              |    |             |
-                                    |              |    +-------------+ 
-+-----------------+                 |              | 
+                                    |              |    +-------------+
++-----------------+                 |              |
 |                 |         +-------|------+       |
 |  CAN Interface  |         |              |       |
 |       or        |------- >|  DBCFeeder   | --OR--|
-| dumpfile replay |         |              |       | 
-|                 |         +--------------+       | 
-+-----------------+                 |              |    +-------------+ 
+| dumpfile replay |         |              |       |
+|                 |         +--------------+       |
++-----------------+                 |              |    +-------------+
                                     |              |    |             |
                              +-------------+       |--->|  Databroker |
                              | mapping.yml |            |             |
@@ -90,7 +90,7 @@ See "Steps for a local test with replaying a can dump file"
 Is a CAN trace from  2018 Tesla M3 with software 2021.40.6.
 This data is interpreted using the [Model3CAN.dbc](./Model3CAN.dbc) [maintained by Josh Wardell](https://github.com/joshwardell/model3dbc).
 
-The canlog in the repo is compressed, to uncompress it (will be around 150MB) do 
+The canlog in the repo is compressed, to uncompress it (will be around 150MB) do
 ```
 unxz candump-2021-12-08_151848.log.xz
 ```
@@ -163,6 +163,10 @@ VERBOSE: SubscriptionHandler::publishForVSSPath: set value true for path Vehicle
    2022-03-04T17:59:01.770144Z  INFO vehicle_data_broker: Listening on 127.0.0.1:55555
    ```
 
+> **Warning**
+> Automatic data entry registration is not yet supported so you **do need** to specify a metadata path using `--metadata`.
+> If you don't, running `./dbcfeeder.py` against databroker will raise ``2022-12-05 18:10:18,226 ERROR dbcfeeder: Failed to register datapoints``.
+
 1. Start the vehicle data client cli
 
    ```bash
@@ -215,7 +219,7 @@ xxx: # CAN signal name taken from the used dbc file
     changetype: xxx # The value ist taken from ../swdc-os-vehicleapi/feeder_can/gen_proto/sdv/databroker/v1/types_pb2.py
  targets:
     xxx: {} # Name of the VSS signal
-      transform: {}  # which (math) transformations to apply to the signal 
+      transform: {}  # which (math) transformations to apply to the signal
 ```
 
 example:
@@ -235,7 +239,7 @@ UIspeed_signed257: # CAN signal name taken from the used dbc file
     Vehicle.OBD.Speed: {} # Name of the VSS signal
 ```
 
-Please note, the minimal set to map a signal for KUKSA.val server, where all data model knwoledge is in the data server itself,  is just a CAN signal name and at least one target. 
+Please note, the minimal set to map a signal for KUKSA.val server, where all data model knwoledge is in the data server itself,  is just a CAN signal name and at least one target.
 For KUKSA.val databroker, an architecture that requires Clients to know somehting about the VSS model, a CAN signal name, a target and at least a datatype in the vss section is required. In most cases, you would probably require a `transform`, unless the DBC already describes the exact semantics and/or scaling of a VSS signal.
 
 ### Mapping examples
@@ -337,30 +341,30 @@ Available loggers:
 
 ## ELM/OBDLink support
 
-The feeder works best with a real CAN interface. If you use an OBD Dongle the feeder can configure it to use it as a CAN Sniffer 
-(using  `STM` or `STMA` mode). The elmbridge will talk to the OBD Adapter using its custom AT protocol, parse the received CAN frames, 
+The feeder works best with a real CAN interface. If you use an OBD Dongle the feeder can configure it to use it as a CAN Sniffer
+(using  `STM` or `STMA` mode). The elmbridge will talk to the OBD Adapter using its custom AT protocol, parse the received CAN frames,
 and put them into a virtual CAN device. The DBC feeder can not tell the differenc
 
 There are some limitations in this mode
- * Does not support generic ELM327 adapters but needs to have the ST commands from the OBDLink Devices available: 
+ * Does not support generic ELM327 adapters but needs to have the ST commands from the OBDLink Devices available:
  This code has been tested with the STN2120 that is available on the KUKSA dongle, but should work on other STN chips too
- * Bandwidth/buffer overrun on Raspberry Pi internal UARTs:When connecting the STN to one of the Pis internal UARTs you will 
- loose messages on fully loaded CAN busses (500kbit does not work when it is very loaded). The problem is not the raw bandwith 
- (The Pi `/dev/ttyAMA0` UART can go up to 4 MBit when configured accordingly), but rather that the Pi UART IP block does not support 
- DMA and has only an 8 bytes buffer. If the system is loaded, and you get scheduled a little too late, the overrun already occuured. 
- While this makes this setup a little useless for a generic sniffer, in most use cases it is fine, as the code configures a dynamic 
+ * Bandwidth/buffer overrun on Raspberry Pi internal UARTs:When connecting the STN to one of the Pis internal UARTs you will
+ loose messages on fully loaded CAN busses (500kbit does not work when it is very loaded). The problem is not the raw bandwith
+ (The Pi `/dev/ttyAMA0` UART can go up to 4 MBit when configured accordingly), but rather that the Pi UART IP block does not support
+ DMA and has only an 8 bytes buffer. If the system is loaded, and you get scheduled a little too late, the overrun already occuured.
+ While this makes this setup a little useless for a generic sniffer, in most use cases it is fine, as the code configures a dynamic
  whitelist according to the confgured signals, i.e. the STN is instructed to only let CAN messages containing signals of interest pass.
 
-When using the OBD chipset, take special attention to the `obdcanack` configuration option: On a CAN bus there needs to be _some_ device 
-to acknowledge CAN frames. The STN2120 can do this. However, when tapping a vehicle bus, you probbably do not want it (as there are otehr 
-ECUs on the bus doing it, and we want to be as passive as possible). On theother hand, on a desk setup where you have one CAN sender and 
-the OBD chipst, you need to enable Acks, otherwise the CAN sender will go into error mode, if no acknowledgement is received. 
+When using the OBD chipset, take special attention to the `obdcanack` configuration option: On a CAN bus there needs to be _some_ device
+to acknowledge CAN frames. The STN2120 can do this. However, when tapping a vehicle bus, you probbably do not want it (as there are otehr
+ECUs on the bus doing it, and we want to be as passive as possible). On theother hand, on a desk setup where you have one CAN sender and
+the OBD chipst, you need to enable Acks, otherwise the CAN sender will go into error mode, if no acknowledgement is received.
 
 ## SAE-J1939 support
 
-When the target DBC file and ECU follow the SAE-J1939 standard, the CAN reader application of the feeder should read 
-PGN(Parameter Group Number)-based Data rather than CAN frames directly. Otherwise it is possible to miss signals from 
-large-sized messages that are delivered with more than one CAN frame because the size of each of these messages is bigger 
+When the target DBC file and ECU follow the SAE-J1939 standard, the CAN reader application of the feeder should read
+PGN(Parameter Group Number)-based Data rather than CAN frames directly. Otherwise it is possible to miss signals from
+large-sized messages that are delivered with more than one CAN frame because the size of each of these messages is bigger
 than a CAN frame's maximum payload of 8 bytes. To enable the J1939 mode, simply put `--j1939` in the command when running `dbcfeeder.py`.
 Prior to using this feature, j1939 and the relevant wheel-packages should be installed first:
 

@@ -14,168 +14,80 @@
 #################################################################################
 
 import logging
+from typing import Any
+from typing import Optional
+from typing import Union
 
-import grpc
-from gen_proto.sdv.databroker.v1 import (
-    broker_pb2,
-    broker_pb2_grpc,
-    collector_pb2,
-    collector_pb2_grpc,
-)
-from gen_proto.sdv.databroker.v1 import types_pb2 as types  # for export
+import grpc.aio
+
+import kuksa_client.grpc
+from kuksa_client.grpc import Datapoint
+from kuksa_client.grpc import DataEntry
+from kuksa_client.grpc import DataType
+from kuksa_client.grpc import EntryUpdate
+from kuksa_client.grpc import Field
+from kuksa_client.grpc import Metadata
+from kuksa_client.grpc import VSSClient
 
 log = logging.getLogger(__name__)
 
 
-class BrokerClient:
-    def __init__(self, channel, grpc_metadata=None):
-        self._stub = broker_pb2_grpc.BrokerStub(channel)
-        self._grpc_meta_data = grpc_metadata
-
-    def get_datapoints(self, datapoints):
-        if type(datapoints) is str:
-            datapoints = [datapoints]
-
-        request = broker_pb2.GetDatapointsRequest()
-        request.datapoints.extend(datapoints)
-        return self._stub.GetDatapoints(
-            request, metadata=self._grpc_meta_data
-        ).datapoints
-
-    def get_metadata(self, datapoints=[]):
-        if type(datapoints) is str:
-            datapoints = [datapoints]
-        request = broker_pb2.GetMetadataRequest()
-        request.names.extend(datapoints)
-        return self._stub.GetMetadata(request, metadata=self._grpc_meta_data).list
-
-    def subscribe(self, query):
-        request = broker_pb2.SubscribeRequest()
-        request.query = query
-        return self._stub.Subscribe(request, metadata=self._grpc_meta_data)
-
-
 class Provider:
-    def __init__(self, channel, grpc_metadata=None):
-        self._name_to_id = {}
+    def __init__(self, vss_client: VSSClient, grpc_metadata: Optional[grpc.aio.Metadata] = None):
         self._name_to_type = {}
-        self._grpc_meta_data = grpc_metadata
-        log.info("Using metadata: {}".format(self._grpc_meta_data))
-        self._stub = collector_pb2_grpc.CollectorStub(channel)
-        self._broker = BrokerClient(channel, self._grpc_meta_data)
+        self._rpc_kwargs = {'metadata': grpc_metadata}
+        log.info("Using %s", self._rpc_kwargs)
+        self._vss_client = vss_client
 
-    def register(self, name, data_type, change_type, description):
+    def register(self, name: str, data_type: Union[str, DataType], description: str):
+        if isinstance(data_type, str):
+            data_type = getattr(DataType, data_type)
         try:
             log.debug(
-                "register(%s, data_type: %d, change: %d, '%s')",
+                "register(%s, data_type: %s, '%s')",
                 name,
-                data_type,
-                change_type,
+                data_type.name,
                 description,
             )
-            metadata = self._broker.get_metadata(name)
+            metadata = self._vss_client.get_metadata((name,), **self._rpc_kwargs)
             if len(metadata) == 1:
-                self._name_to_id[name] = metadata[0].id
-                self._name_to_type[name] = metadata[0].data_type
+                self._name_to_type[name] = metadata[name].data_type
                 log.info(
-                    "%s was already registered with id %d, type %d",
+                    "%s was already registered with type %s",
                     name,
-                    self._name_to_id[name],
-                    metadata[0].data_type,
+                    metadata[name].data_type.name,
                 )
                 return
-        except grpc.RpcError:
+        except kuksa_client.grpc.VSSClientError:
             log.debug("Failed to get metadata", exc_info=True)
 
-        self._register(name, data_type, change_type, description)
+        self._register(name, data_type, description)
 
-    def _register(self, name, data_type, change_type, description):
-        request = collector_pb2.RegisterDatapointsRequest()
-        request.list.append(
-            collector_pb2.RegistrationMetadata(
-                name=name,
-                data_type=data_type,
-                change_type=change_type,
-                description=description,
-            )
-        )
-
-        # Error handling for grpc connection to the databroker
-        # https://github.com/avinassh/grpc-errors/blob/master/python/client.py
+    def _register(self, name: str, data_type: DataType, description: str):
         try:
-            response = self._stub.RegisterDatapoints(
-                request, metadata=self._grpc_meta_data
+            self._vss_client.set_metadata(
+                updates={name: Metadata(data_type=data_type, description=description)},
+                **self._rpc_kwargs,
             )
             # Store datapoint IDs
-            self._name_to_id[name] = response.results[name]
             self._name_to_type[name] = data_type
             log.info(
-                "%s was registered with id %d, type %d",
+                "%s was registered with type %s",
                 name,
-                response.results[name],
-                data_type,
+                data_type.name,
             )
-        except grpc.RpcError:
-            log.warning("Failed to register datapoint {}".format(name), exc_info=True)
+        except kuksa_client.grpc.VSSClientError:
+            log.warning("Failed to register datapoint %s", name, exc_info=True)
             raise
 
-    def update_with_failure(self, name, reason="INVALID_VALUE"):
-        request = collector_pb2.UpdateDatapointsRequest()
+    def update_datapoint(self, name: str, value: Any):
+        updates = (EntryUpdate(DataEntry(
+            name,
+            value=Datapoint(value=value),
+            # Specifying data_type removes the need for the client to query data_type from the server before
+            # issuing every set() call.
+            metadata=Metadata(data_type=self._name_to_type[name]),
+        ), (Field.VALUE,)),)
 
-        id = self._name_to_id[name]
-        request.datapoints[id].failure_value = types.Datapoint.Failure.Value(reason)
-
-        self._stub.UpdateDatapoints(request, metadata=self._grpc_meta_data)
-        log.debug("[%d] %s => Failure(%s)", id, name, reason)
-
-    def update_datapoint(self, name, value):
-        request = collector_pb2.UpdateDatapointsRequest()
-        id = self._name_to_id[name]
-        type = self._name_to_type[name]
-        if type == types.STRING:
-            request.datapoints[id].string_value = value
-        elif type == types.BOOL:
-            request.datapoints[id].bool_value = value
-        elif type == types.INT8 or type == types.INT16 or type == types.INT32:
-            request.datapoints[id].int32_value = value
-        elif type == types.INT64:
-            request.datapoints[id].int64_value = value
-        elif type == types.UINT8 or type == types.UINT16 or type == types.UINT32:
-            request.datapoints[id].uint32_value = value
-        elif type == types.UINT64:
-            request.datapoints[id].uint64_value = value
-        elif type == types.FLOAT:
-            request.datapoints[id].float_value = value
-        elif type == types.DOUBLE:
-            request.datapoints[id].double_value = value
-        elif type == types.STRING_ARRAY:
-            request.datapoints[id].string_array.values.extend(value)
-        elif type == types.BOOL_ARRAY:
-            request.datapoints[id].bool_array.values.extend(value)
-        elif (
-            type == types.INT8_ARRAY
-            or type == types.INT16_ARRAY
-            or type == types.INT32_ARRAY
-        ):
-            request.datapoints[id].int32_array.values.extend(value)
-        elif type == types.INT64_ARRAY:
-            request.datapoints[id].int64_array.values.extend(value)
-        elif (
-            type == types.UINT8_ARRAY
-            or type == types.UINT16_ARRAY
-            or type == types.UINT32_ARRAY
-        ):
-            request.datapoints[id].uint32_array.values.extend(value)
-        elif type == types.UINT64_ARRAY:
-            request.datapoints[id].uint64_array.values.extend(value)
-        elif type == types.FLOAT_ARRAY:
-            request.datapoints[id].float_array.values.extend(value)
-        elif type == types.DOUBLE_ARRAY:
-            request.datapoints[id].double_array.values.extend(value)
-        else:
-            raise Exception("Unknown datapoint")
-
-        # log.debug(request)
-        # Send the data to the databroker
-        self._stub.UpdateDatapoints(request, metadata=self._grpc_meta_data)
-        log.debug("[%d] %s => %s", id, name, value)
+        self._vss_client.set(updates=updates, **self._rpc_kwargs)
+        log.debug("%s => %s", name, value)

@@ -4,8 +4,8 @@ python-can
 pyyaml
 j1939
 py_expression_eval
-kuksa-viss-client
+kuksa-client
 grpcio
 protobuf
-types-PyYAML 
+types-PyYAML
 types-protobuf

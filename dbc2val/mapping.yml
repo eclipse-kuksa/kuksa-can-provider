@@ -17,7 +17,7 @@
 # There is a lot more to be found in the traces. Feel free to suggest PRs
 #
 # This maps to VSS 3.0
-# 
+#
 # Uses model 3 DBC by Josh Wardell  https://github.com/joshwardell/model3dbc
 #
 
@@ -28,13 +28,12 @@
 # Converting to int
 SteeringAngle129:
   vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Chassis/Chassis.vspec
-    datatype: int16 
+    datatype: int16
     type: sensor
     unit: degrees
     description: Steering wheel angle. Positive = degrees to the left. Negative = degrees to the right.
   databroker:
-    datatype: 3 # INT16 number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: INT16
   minupdatedelay: 100
   targets:
     Vehicle.Chassis.SteeringWheel.Angle:
@@ -48,10 +47,9 @@ DI_uiSpeed:
     unit: km/h
     description: Vehicle speed
   databroker:
-    datatype: 10 # FLOAT number taken from types_pb2.py
-    changetype: 1 # CONTINUOUS number taken from types_pb2.py
+    datatype: FLOAT
   minupdatedelay: 100
-  targets: 
+  targets:
     Vehicle.Speed: {}
     # Commented out, because mapping to multiple targets currently not supported in databroker
     # Vehicle.OBD.Speed: {}
@@ -64,8 +62,7 @@ DI_gear:
     unit: none
     description: The current gear. 0=Neutral, 1/2/..=Forward, -1/-2/..=Reverse
   databroker:
-    datatype: 2 # INT8 number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: INT8
   minupdatedelay: 100
   targets:
     Vehicle.Powertrain.Transmission.CurrentGear:
@@ -84,8 +81,7 @@ DI_gear:
     unit: none
     description: Is the transmission park lock engaged or not. False = Disengaged. True = Engaged.
   databroker:
-    datatype:  1 # BOOL number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: BOOLEAN
   minupdatedelay: 100
   targets:
     Vehicle.Powertrain.Transmission.IsParkLockEngaged:
@@ -103,8 +99,7 @@ DIR_torqueActual:
     unit: Nm
     description: Current motor torque. Negative values indicate regen mode.
   databroker:
-    datatype: 3 # INT16 number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: INT16
   minupdatedelay: 100
   targets:
     Vehicle.Powertrain.ElectricMotor.Torque: {}
@@ -124,8 +119,7 @@ PCS_dcdcLvBusVolt:
     unit: V
     description: PID 42 - Control module voltage
   databroker:
-    datatype: 10 # FLOAT number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: FLOAT
   minupdatedelay: 1000
   targets:
     Vehicle.OBD.ControlModuleVoltage: {}
@@ -141,11 +135,10 @@ CP_hvChargeStatus:
   vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Powertrain/Battery.vspec
     datatype: boolean
     type: sensor
-    unit: none 
-    description:  
+    unit: none
+    description:
   databroker:
-    datatype: 1 # BOOL number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: BOOLEAN
   minupdatedelay: 1000
   targets:
     Vehicle.Powertrain.TractionBattery.Charging.IsCharging:
@@ -168,8 +161,7 @@ VCFRONT_brakeFluidLevel:
     unit: none
     description: Brake fluid level status. True = Brake fluid level low. False = Brake fluid level OK.
   databroker:
-    datatype: 1 # BOOL number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: BOOLEAN
   minupdatedelay: 1000
   targets:
     Vehicle.Chassis.Axle.Row1.Wheel.Left.Brake.IsFluidLevelLow:
@@ -204,11 +196,10 @@ VCFRONT_tempAmbientFiltered:
     unit: celsius
     description: PID 46 - Ambient air temperature
   databroker:
-    datatype: 10 # FLOAT number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: FLOAT
   minupdatedelay: 1000
   targets:
-    Vehicle.OBD.AmbientAirTemperature: 
+    Vehicle.OBD.AmbientAirTemperature:
       transform: {}
 
 
@@ -219,8 +210,7 @@ VCFRONT_washerFluidLevel:
     unit: none
     description: Low level indication for washer fluid. True = Level Low. False = Level OK.
   databroker:
-    datatype: 1 # BOOL number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: BOOLEAN
   minupdatedelay: 1000
   targets:
     Vehicle.Body.Windshield.Front.WasherFluid.IsLevelLow:
@@ -229,7 +219,7 @@ VCFRONT_washerFluidLevel:
           LOW: "true"
           NORMAL: "false"
 
-#CM_ SG_ 306 SmoothBattCurrent132 "HV Battery Current";  
+#CM_ SG_ 306 SmoothBattCurrent132 "HV Battery Current";
 #Alternate signal: PTC_voltageHV
 # Not in VSS 2.2
 
@@ -257,13 +247,12 @@ VCFRONT_washerFluidLevel:
 #VCRIGHT_mirrorHeatState not in DBC, assuming this signal signal for both sides
 VCLEFT_mirrorHeatState:
   vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Body/ExteriorMirrors.vspec
-    datatype: boolean 
+    datatype: boolean
     type: actuator
     unit: none
     description: Mirror Heater on or off. True = Heater On. False = Heater Off.
   databroker:
-    datatype: 1 # BOOL number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: BOOLEAN
   minupdatedelay: 1000
   targets:
     Vehicle.Body.Mirrors.Left.IsHeatingOn:
@@ -284,8 +273,7 @@ VCLEFT_mirrorTiltYPosition:
     unit: percent
     description: Mirror tilt as a percent. 0 = Center Position. 100 = Fully Upward Position. -100 = Fully Downward Position.
   databroker:
-    datatype: 2 # INT8 number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: INT8
   minupdatedelay: 100
   targets:
     Vehicle.Body.Mirrors.Left.Tilt:
@@ -299,8 +287,7 @@ VCLEFT_mirrorTiltXPosition:
     unit: percent
     description: Mirror pan as a percent. 0 = Center Position. 100 = Fully Left Position. -100 = Fully Right Position.
   databroker:
-    datatype: 2 # INT8 number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: INT8
   minupdatedelay: 100
   targets:
     Vehicle.Body.Mirrors.Left.Pan:
@@ -315,8 +302,7 @@ VCRIGHT_mirrorTiltYPosition:
     unit: percent
     description: Mirror tilt as a percent. 0 = Center Position. 100 = Fully Upward Position. -100 = Fully Downward Position.
   databroker:
-    datatype: 2 # INT8 number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: INT8
   minupdatedelay: 100
   targets:
     Vehicle.Body.Mirrors.Right.Tilt:
@@ -330,8 +316,7 @@ VCRIGHT_mirrorTiltXPosition:
     unit: percent
     description: Mirror pan as a percent. 0 = Center Position. 100 = Fully Left Position. -100 = Fully Right Position.
   databroker:
-    datatype: 2 # INT8 number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: INT8
   minupdatedelay: 100
   targets:
     Vehicle.Body.Mirrors.Right.Pan:
@@ -347,8 +332,7 @@ VCRIGHT_trunkLatchStatus:
     unit: none
     description: Trunk open or closed. True = Open. False = Closed
   databroker:
-    datatype: 1 # BOOL number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: BOOLEAN
   minupdatedelay: 1000
   targets:
     Vehicle.Body.Trunk.Rear.IsOpen:
@@ -360,18 +344,16 @@ VCRIGHT_trunkLatchStatus:
           LATCH_FAULT: "true"
           LATCH_OPENED: "true"
           LATCH_OPENING: "true"
-          
 
 # IGBT temperature is not "Motor" temperature, but let's use it, as that might be the more critical temp anyway
 PTC_rightTempIGBT:
   vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Powertrain/ElectricMotor.vspec
-    datatype: int16 
+    datatype: int16
     type: sensor
     unit: celsius
     description: Motor temperature.
   databroker:
-    datatype: 3 # INT16 number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: INT16
   minupdatedelay: 1000
   targets:
     Vehicle.Powertrain.ElectricMotor.Temperature:
@@ -381,13 +363,12 @@ PTC_rightTempIGBT:
 #VAL_ 290 VCLEFT_frontDoorState 1 "DOOR_STATE_CLOSED" 4 "DOOR_STATE_OPEN_OR_AJAR" 3 "DOOR_STATE_RELEASING_LATCH" 0 "DOOR_STATE_UNKNOWN" 2 "DOOR_STATE_WAIT_FOR_SHORT_DROP" ;
 VCLEFT_frontDoorState:
   vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Cabin/SingleDoor.vspec
-    datatype: boolean 
+    datatype: boolean
     type: actuator
     unit: none
     description: Is door open or closed
   databroker:
-    datatype: 1 # BOOL number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: BOOLEAN
   minupdatedelay: 500
   targets:
     Vehicle.Cabin.Door.Row1.Left.IsOpen:
@@ -399,13 +380,12 @@ VCLEFT_frontDoorState:
 
 VCLEFT_rearDoorState:
   vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Cabin/SingleDoor.vspec
-    datatype: boolean 
+    datatype: boolean
     type: actuator
     unit: none
     description: Is door open or closed
   databroker:
-    datatype: 1 # BOOL number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: BOOLEAN
   minupdatedelay: 500
   targets:
     Vehicle.Cabin.Door.Row2.Left.IsOpen:
@@ -440,13 +420,12 @@ VCLEFT_rearDoorState:
 
 VCFRONT_driverBuckleStatus:
   vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Cabin/SingleSeat.vspec
-    datatype: boolean 
+    datatype: boolean
     type: sensor
     unit: none
     description: Is the belt engaged.
   databroker:
-    datatype: 1 # BOOL number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: BOOLEAN
   minupdatedelay: 1000
   targets:
     Vehicle.Cabin.Seat.Row1.Pos1.IsBelted:
@@ -457,13 +436,12 @@ VCFRONT_driverBuckleStatus:
 
 VCFRONT_passengerPresent:
   vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Cabin/SingleSeat.vspec
-    datatype: boolean 
+    datatype: boolean
     type: sensor
     unit: none
     description: Does the seat have a passenger in it.
   databroker:
-    datatype: 1 # BOOL number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: BOOLEAN
   minupdatedelay: 1000
   targets:
     Vehicle.Cabin.Seat.Row1.Pos2.IsOccupied:
@@ -474,15 +452,14 @@ VCFRONT_passengerPresent:
 
 VCRIGHT_brakeLightStatus:
   vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Body/ExteriorLights.vspec
-    datatype: boolean 
+    datatype: boolean
     type: actuator
     unit: none
-    description: Is brake light on 
+    description: Is brake light on
   databroker:
-    datatype: 1 # BOOL number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: BOOLEAN
   minupdatedelay: 100
-  targets: 
+  targets:
     Vehicle.Body.Lights.IsBrakeOn:
       transform:
         fullmapping:
@@ -498,12 +475,11 @@ VCRIGHT_rearFogLightStatus:
     datatype: boolean
     type: actuator
     unit: none
-    description: Is rear fog light on 
+    description: Is rear fog light on
   databroker:
-    datatype: 1 # BOOL number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: BOOLEAN
   minupdatedelay: 100
-  targets: 
+  targets:
     Vehicle.Body.Lights.IsRearFogOn:
       transform:
         fullmapping:
@@ -517,12 +493,11 @@ VCRIGHT_reverseLightStatus:
     datatype: boolean
     type: actuator
     unit: none
-    description: Is backup (reverse) light on 
+    description: Is backup (reverse) light on
   databroker:
-    datatype: 1 # BOOL number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: BOOLEAN
   minupdatedelay: 100
-  targets: 
+  targets:
     Vehicle.Body.Lights.IsBackupOn:
       transform:
         fullmapping:
@@ -538,10 +513,9 @@ VCRIGHT_turnSignalStatus:
     unit: none
     description: Is right indicator flashing
   databroker:
-    datatype: 1 # BOOL number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: BOOLEAN
   minupdatedelay: 100
-  targets: 
+  targets:
     Vehicle.Body.Lights.IsRightIndicatorOn:
       transform:
         fullmapping:
@@ -557,10 +531,9 @@ VCLEFT_turnSignalStatus:
     unit: none
     description: Is left indicator flashing
   databroker:
-    datatype: 1 # BOOL number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: BOOLEAN
   minupdatedelay: 100
-  targets: 
+  targets:
     Vehicle.Body.Lights.IsLeftIndicatorOn:
       transform:
         fullmapping:
@@ -573,13 +546,12 @@ VCLEFT_turnSignalStatus:
 # The values really called "TRAILER_LIGHT_XXX", in DBC, probably a typo
 VCLEFT_trailerDetected:
   vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Vehicle/Vehicle.vspec
-    datatype: boolean 
+    datatype: boolean
     type: sensor
     unit: none
     description: Signal indicating if trailer is connected or not.
   databroker:
-    datatype: 1 # BOOL number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: BOOLEAN
   minupdatedelay: 3000
   targets:
     Vehicle.Trailer.IsConnected:
@@ -590,7 +562,7 @@ VCLEFT_trailerDetected:
           TRAILER_LIGHT_DETECTION_FAULT: "false"
           TRAILER_LIGHT_DETECTION_NOT_DETECTED: "false"
 
-# Mapping RearPower to EngineLoad 
+# Mapping RearPower to EngineLoad
 RearPower266:
   vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/OBD/OBD.vspec
     datatype: float
@@ -598,8 +570,7 @@ RearPower266:
     unit: percent
     description: PID 04 - Engine load in percent - 0 = no load, 100 = full load
   databroker:
-    datatype: 10 # FLOAT number taken from types_pb2.py
-    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+    datatype: FLOAT
   minupdatedelay: 100
   targets:
     Vehicle.OBD.EngineLoad:
