@@ -209,16 +209,13 @@ Please replace the values xxx with our content for a new signal template:
 ```bash
 xxx: # CAN signal name taken from the used dbc file
   minupdatedelay: xxx # update interval of the signal in ms, if no delay given default is 1000ms
-  vss: # vss definition
-    datatype: xxx # type of the data
-    type: xxx # type of the value
-    unit: xxx # unit of the value
-    description: # description of the value
-  databroker:
-    datatype: xxx # The value ist taken from ../swdc-os-vehicleapi/feeder_can/gen_proto/sdv/databroker/v1/types_pb2.py
-    changetype: xxx # The value ist taken from ../swdc-os-vehicleapi/feeder_can/gen_proto/sdv/databroker/v1/types_pb2.py
- targets:
+  targets:
     xxx: {} # Name of the VSS signal
+      vss: # vss definition
+        datatype: xxx # type of the data
+        type: xxx # type of the value
+        unit: xxx # unit of the value
+        description: # description of the value
       transform: {}  # which (math) transformations to apply to the signal
 ```
 
@@ -227,16 +224,13 @@ example:
 ```bash
 UIspeed_signed257: # CAN signal name taken from the used dbc file
   minupdatedelay: 100 # 100ms update interval of the signal
-  vss: # vss definition
-    datatype: float # type of the data
-    type: sensor # type of the value
-    unit: km/h # unit of the value
-    description: vehicle speed # description of the value
- databroker:
-    datatype: 10 # FLOAT The value ist taken from ../swdc-os-vehicleapi/feeder_can/gen_proto/sdv/databroker/v1/types_pb2.py
-    changetype: 1 # CONTINUOUS The value ist taken from ../swdc-os-vehicleapi/feeder_can/gen_proto/sdv/databroker/v1/types_pb2.py
- targets:
-    Vehicle.OBD.Speed: {} # Name of the VSS signal
+  targets:
+    Vehicle.OBD.Speed:  # Name of the VSS signal
+      vss: # vss definition
+        datatype: float # type of the data
+        type: sensor # type of the value
+        unit: km/h # unit of the value
+        description: vehicle speed # description of the value
 ```
 
 Please note, the minimal set to map a signal for KUKSA.val server, where all data model knwoledge is in the data server itself,  is just a CAN signal name and at least one target.

@@ -196,17 +196,12 @@ class Feeder:
     def _register_datapoints(self):
         log.info("Register datapoints")
         for entry in self._mapper.mapping:
-            if len(self._mapper.mapping[entry]["targets"]) != 1:
-                log.warning(
-                    "Signal %s has multiple targets: %s",
-                    entry,
-                    list(self._mapper.mapping[entry]["targets"].keys()),
+            for target_name, target_attr in self._mapper.mapping[entry]["targets"].items():
+                self._provider.register(
+                    target_name,
+                    target_attr["vss"]["datatype"].upper(),
+                    target_attr["vss"]["description"],
                 )
-            self._provider.register(
-                next(iter(self._mapper.mapping[entry]["targets"])),
-                self._mapper.mapping[entry]["databroker"]["datatype"],
-                self._mapper.mapping[entry]["vss"]["description"],
-            )
 
     def _run(self):
         # kuksa related
