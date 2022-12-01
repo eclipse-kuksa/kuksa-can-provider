@@ -60,7 +60,7 @@ See "Steps for a local test with replaying a can dump file"
    canplayer vcan0=vcan0 -v -I candump.log -l i -g 1
    ```
 
-1. Start the kuksa val server or the databroker, for further infomation see UseCase kuksa or UseCase Databroker
+1. Start the kuksa val server or the databroker, for further infomation see [Using kuksa-val-server](#using-kuksa-val-server) or [Using kuksa-databroker](#using-kuksa-databroker).
 
 1. Run the dbcfeeder.py
 
@@ -72,7 +72,7 @@ See "Steps for a local test with replaying a can dump file"
 
 1. Set the a path to a dumpfile e.g. candump.log in the config file `config/dbc_feeder.ini` or use the argument --dumpfile to use a different dumpfile
 
-1. Start the kuksa val server or the databroker, for further infomation see UseCase kuksa or UseCase Databroker
+1. Start the kuksa val server or the databroker, for further infomation see [Using kuksa-val-server](#using-kuksa-val-server) or [Using kuksa-databroker](#using-kuksa-databroker).
 
 1. Run the dbcfeeder.py
 
@@ -110,7 +110,7 @@ A smaller excerpt from the above sample, with less signals.
 | use-socketcan                 | False           | -                    | -                             | `--use-socketcan`     | Use SocketCAN (overriding any use of --dumpfile)                                                        |
 | mapping                       | mapping.yml     | [general].mapping    | MAPPING_FILE                  | `--mapping`           | Mapping file used to map CAN signals to databroker datapoints. Take a look on usage of the mapping file |
 | address                       | 127.0.0.1:55555 | [databroker].address | VDB_ADDRESS                   | `--address`           | Connect to data broker instance                                                                         |
-| usecase                       | kuksa      | [general].usecase    | USECASE                       | `--usecase`           | Switch between kuksa and databroker usecase                                                             |
+| server-type                   | kuksa_val_server | [general].server_type | SERVER_TYPE                 | `--server-type`       | Which type of server the feeder should connect to (kuksa_val_server or kuksa_databroker |
 | DAPR_GRPC_PORT                | -               | -                    | DAPR_GRPC_PORT                | -                     | Override broker address & connect to DAPR sidecar @ 127.0.0.1:DAPR_GRPC_PORT                            |
 | VEHICLEDATABROKER_DAPR_APP_ID | -               | -                    | VEHICLEDATABROKER_DAPR_APP_ID | -                     | Add dapr-app-id metadata                                                                                |
 
@@ -121,9 +121,9 @@ Configuration options have the following priority (highest at top).
 3. configuration file
 4. default value
 
-## UseCase kuksa
+## Using kuksa-val-server
 
-1. In General you can select this usecase via command line argument or set it in the config ini file. The default UseCase is kuksa.
+1. To make the feeder communicate with this server, use the `--server-type kuksa_val_server` CLI option or refer to [Configuration](#configuration) for `server-type`.
 
 1. Use the latest release from here:
 https://github.com/eclipse/kuksa.val/tree/master/kuksa-val-server
@@ -146,9 +146,9 @@ VERBOSE: SubscriptionHandler::publishForVSSPath: set value true for path Vehicle
 
 ```
 
-## UseCase Databroker
+## Using kuksa-databroker
 
-1. In General you can select this usecase via command line argument or set it in the config ini file. The default UseCase is kuksa.
+1. To make the feeder communicate with this server, use the `--server-type kuksa_databroker` CLI option or refer to [Configuration](#configuration) for `server-type`.
 
 1. Start the vehicle databroker server
 
