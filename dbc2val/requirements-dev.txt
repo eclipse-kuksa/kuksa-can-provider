@@ -5,7 +5,5 @@ pyyaml
 j1939
 py_expression_eval
 grpcio
-protobuf
 types-PyYAML
 types-protobuf
-grpcio-tools

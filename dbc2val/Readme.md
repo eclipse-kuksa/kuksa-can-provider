@@ -273,35 +273,6 @@ This can be used if the scale of a signal as described in the DBC is not compati
 Take a look at the [mapping.yml](./mapping.yml) to see more examples.
 
 
-## gRPC related for local testing (should be implemented via git actions)
-
-1. Need to use the proto files
-   ../vehicle_data_broker/proto/sdv/edge/databroker/broker/v1/broker.proto
-   ../vehicle_data_broker/proto/sdv/edge/databroker/collector/v1/collector.proto
-
-1. Generate python files from grpc.proto file:
-   First, install the grpcio-tools package:
-
-   ```bash
-   pip install grpcio-tools
-   ```
-
-   Use the following command to generate the Python code:
-
-   ```bash
-   mkdir gen_proto
-   python -m grpc_tools.protoc -I../vehicle_data_broker/proto --python_out=gen_proto --grpc_python_out=gen_proto \
-     ../vehicle_data_broker/proto/sdv/databroker/v1/collector.proto \
-     ../vehicle_data_broker/proto/sdv/databroker/v1/broker.proto \
-     ../vehicle_data_broker/proto/sdv/databroker/v1/types.proto
-   ```
-
-1. The output files are:
-   collector_pb2_grpc.py
-   collector_pb2.py
-   databroker_pb2_grpc.py
-   databroker_pb2.py
-
 ## Logging
 
 The log level of `dbcfeeder.py` can be set using the LOG_LEVEL environment variable

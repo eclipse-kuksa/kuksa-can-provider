@@ -32,7 +32,7 @@ RUN /opt/venv/bin/python3 -m pip install --upgrade pip \
 
 RUN pip3 install wheel && pip3 install scons && pip3 install pyinstaller && pip3 install patchelf && pip3 install staticx
 
-RUN pyinstaller --paths gen_proto --clean -F -s dbcfeeder.py
+RUN pyinstaller --clean -F -s dbcfeeder.py
 #   --debug=imports
 
 WORKDIR /dist

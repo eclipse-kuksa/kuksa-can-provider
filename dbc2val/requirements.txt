@@ -6,6 +6,5 @@ j1939
 py_expression_eval
 kuksa-client
 grpcio
-protobuf
 types-PyYAML
 types-protobuf
