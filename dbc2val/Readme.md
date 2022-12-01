@@ -6,7 +6,7 @@ should be matched to which part in the VSS tree. The respective data point can t
 It is also possible to replay CAN dumpfiles without the SocketCAN interface being available, e.g. in a CI test environment.
 See "Steps for a local test with replaying a can dump file"
 
-```bash
+```console
                              +-------------+
                              |   DBCFile   |
                              +-------------+            +-------------+
@@ -30,55 +30,55 @@ See "Steps for a local test with replaying a can dump file"
 
 ## Prerequisites for using socket CAN or virtual socket CAN
 
-1. Install can utils, e.g. in Ubuntu doe
+1. Install can utils, e.g. in Ubuntu do:
 
-   ```bash
-   sudo apt update
-   sudo apt install can-utils
-   ```
+```console
+$ sudo apt update
+$ sudo apt install can-utils
+```
 
-1. Check that at least python version 3 is installed
+2. Check that at least python version 3 is installed
 
-   ```bash
-      python -V
-   ```
+```console
+$ python -V
+```
 
-1. Install the needed python packages
+3. Install the needed python packages
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+```console
+$ pip install -r requirements.txt
+```
 
 ## Steps for a local test with socket can or virtual socket can
 
 1. Use the argument --use-socketcan or you can remove the line with the dumpfile in `config/dbc_feeder.ini`
 
-1. Start the can player
+2. Start the can player
 
-   ```bash
-   ./createvcan.sh vcan0
-   canplayer vcan0=vcan0 -v -I candump.log -l i -g 1
-   ```
+```console
+$ ./createvcan.sh vcan0
+$ canplayer vcan0=elmcan -v -I candump.log -l i -g 1
+```
 
-1. Start the kuksa val server or the databroker, for further infomation see [Using kuksa-val-server](#using-kuksa-val-server) or [Using kuksa-databroker](#using-kuksa-databroker).
+3. Start the kuksa val server or the databroker, for further infomation see [Using kuksa-val-server](#using-kuksa-val-server) or [Using kuksa-databroker](#using-kuksa-databroker).
 
-1. Run the dbcfeeder.py
+4. Run the dbcfeeder.py
 
-   ```bash
-   ./dbcfeeder.py
-   ```
+```console
+$ ./dbcfeeder.py
+```
 
 ## Steps for a local test with replaying a can dump file
 
 1. Set the a path to a dumpfile e.g. candump.log in the config file `config/dbc_feeder.ini` or use the argument --dumpfile to use a different dumpfile
 
-1. Start the kuksa val server or the databroker, for further infomation see [Using kuksa-val-server](#using-kuksa-val-server) or [Using kuksa-databroker](#using-kuksa-databroker).
+2. Start the kuksa val server or the databroker, for further infomation see [Using kuksa-val-server](#using-kuksa-val-server) or [Using kuksa-databroker](#using-kuksa-databroker).
 
-1. Run the dbcfeeder.py
+3. Run the dbcfeeder.py
 
-   ```bash
-   ./dbcfeeder.py
-   ```
+```console
+$ ./dbcfeeder.py
+```
 
 ## Provided can-dump files
 
@@ -109,7 +109,6 @@ A smaller excerpt from the above sample, with less signals.
 | use-j1939                     | False           | [can].j1939          | USE_J1939                     | `--use-j1939`         | Use J1939                                                                                               |
 | use-socketcan                 | False           | -                    | -                             | `--use-socketcan`     | Use SocketCAN (overriding any use of --dumpfile)                                                        |
 | mapping                       | mapping.yml     | [general].mapping    | MAPPING_FILE                  | `--mapping`           | Mapping file used to map CAN signals to databroker datapoints. Take a look on usage of the mapping file |
-| address                       | 127.0.0.1:55555 | [databroker].address | VDB_ADDRESS                   | `--address`           | Connect to data broker instance                                                                         |
 | server-type                   | kuksa_val_server | [general].server_type | SERVER_TYPE                 | `--server-type`       | Which type of server the feeder should connect to (kuksa_val_server or kuksa_databroker |
 | DAPR_GRPC_PORT                | -               | -                    | DAPR_GRPC_PORT                | -                     | Override broker address & connect to DAPR sidecar @ 127.0.0.1:DAPR_GRPC_PORT                            |
 | VEHICLEDATABROKER_DAPR_APP_ID | -               | -                    | VEHICLEDATABROKER_DAPR_APP_ID | -                     | Add dapr-app-id metadata                                                                                |
@@ -125,88 +124,84 @@ Configuration options have the following priority (highest at top).
 
 1. To make the feeder communicate with this server, use the `--server-type kuksa_val_server` CLI option or refer to [Configuration](#configuration) for `server-type`.
 
-1. Use the latest release from here:
+2. Use the latest release from here:
 https://github.com/eclipse/kuksa.val/tree/master/kuksa-val-server
 
 After you download for example the relase 0.21 you can run it with this command, this is also described in the kuksa val server readme:
 
-```bash
-docker run -it --rm -v $HOME/kuksaval.config:/config  -p 127.0.0.1:8090:8090 -e LOG_LEVEL=ALL ghcr.io/eclipse/kuksa.val/kuksa-val:0.2.1-amd64
+```console
+$ docker run -it --rm -v $HOME/kuksaval.config:/config  -p 127.0.0.1:8090:8090 -e LOG_LEVEL=ALL ghcr.io/eclipse/kuksa.val/kuksa-val:0.2.1-amd64
 ```
 
-1. After server is started also start the dbcfeeder you should got some similar output in the kuksa val server terminal
+3. After server is started also start the dbcfeeder you should got some similar output in the kuksa val server terminal
 
-```bash
-ERBOSE: Receive action: set
+```console
+VERBOSE: Receive action: set
 VERBOSE: Set request with id 05dd9d59-c9a7-4073-9d86-69c8cee85d4c for path: Vehicle.OBD.EngineLoad
 VERBOSE: SubscriptionHandler::publishForVSSPath: set value "0" for path Vehicle.OBD.EngineLoad
 VERBOSE: Receive action: set
 VERBOSE: Set request with id cbde247f-944a-4335-ad87-1062a6d7f28b for path: Vehicle.Chassis.ParkingBrake.IsEngaged
 VERBOSE: SubscriptionHandler::publishForVSSPath: set value true for path Vehicle.Chassis.ParkingBrake.IsEngaged
-
 ```
 
 ## Using kuksa-databroker
 
 1. To make the feeder communicate with this server, use the `--server-type kuksa_databroker` CLI option or refer to [Configuration](#configuration) for `server-type`.
 
-1. Start the vehicle databroker server
+2. Start kuksa_databroker server:
 
-   ```bash
-   cd vehicle_data_broker
-   cargo run --bin vehicle-data-broker
-   Output:
-   Finished dev [unoptimized + debuginfo] target(s) in 0.51s
-   Running `target/debug/vehicle-data-broker`
-   2022-03-04T17:59:01.766338Z  INFO vehicle_data_broker: Init logging from RUST_LOG (environment variable not found)
-   2022-03-04T17:59:01.766403Z  INFO vehicle_data_broker: Starting Vehicle Data Broker
-   2022-03-04T17:59:01.770144Z  INFO vehicle_data_broker: Listening on 127.0.0.1:55555
-   ```
+```console
+$ cd kuksa.val/kuksa_databroker
+$ cargo run --bin databroker -- --metadata ../data/vss-core/vss_release_3.0.json
+    Finished dev [unoptimized + debuginfo] target(s) in 0.07s
+     Running `/home/ler2so/Repo/kuksa.val/target/debug/databroker --metadata ../data/vss-core/vss_release_3.0.json`
+2022-12-01T13:53:58.933749Z  INFO databroker: Init logging from RUST_LOG (environment variable not found)
+2022-12-01T13:53:58.933781Z  INFO databroker: Starting Kuksa Data Broker 0.17.0
+2022-12-01T13:53:58.933865Z  INFO databroker: Populating metadata... from file '../data/vss-core/vss_release_3.0.json'
+2022-12-01T13:53:58.944068Z  INFO databroker: Listening on 127.0.0.1:55555
+2022-12-01T13:53:58.944095Z  INFO databroker::broker: Starting housekeeping task
+```
 
 > **Warning**
 > Automatic data entry registration is not yet supported so you **do need** to specify a metadata path using `--metadata`.
 > If you don't, running `./dbcfeeder.py` against databroker will raise ``2022-12-05 18:10:18,226 ERROR dbcfeeder: Failed to register datapoints``.
 
-1. Start the vehicle data client cli
+3. Start the vehicle data client cli
 
-   ```bash
-   cd vehicle_data_broker
-   cargo run --bin vehicle-data-cli
-   Output:
-      Finished dev [unoptimized + debuginfo] target(s) in 0.09s
-      Running `target/debug/vehicle-data-cli`
+```console
+$ cd kuksa.val/kuksa_databroker
+$ cargo run --bin databroker-cli
+    Finished dev [unoptimized + debuginfo] target(s) in 0.06s
+     Running `/home/ler2so/Repo/kuksa.val/target/debug/databroker-cli`
+client>
+```
 
-   client> metadata
-      Output:
-      ->
-   ```
+4. After dbcfeeder is running use vehicle data client cli to subcribe to datapoints
 
-1. After dbcfeeder is running use vehicle data client cli to subcribe to datapoints
+```console
+client> subscribe SELECT Vehicle.OBD.Speed
 
-   ```bash
-   client> metadata
-      Output:
-      Vehicle.OBD.Speed -> id(0)
-      ...
+# press 2 times Enter
 
+-> status: OK
+-> subscription1:
+Vehicle.OBD.Speed: 14.00
 
-   client> subscribe SELECT Vehicle.OBD.Speed
-   press 2 times enter
+-> subscription1:
+Vehicle.OBD.Speed: 13.00
 
-      Example Output:
-      -> subscription1:
-      Vehicle.OBD.Speed: 177.12
-      ...
+-> subscription1:
+Vehicle.OBD.Speed: 12.00
+```
 
-      Note:
-      To end the subscribiton currently you have to stop the client cli via 'quit' and enter
-   ```
+> **Note**
+> To end the subscription currently you have to stop the client cli via 'quit' and Enter.
 
-## usage of the file mapping.yml
+## Using mapping.yml
 
 Please replace the values xxx with our content for a new signal template:
 
-```bash
+```yaml
 xxx: # CAN signal name taken from the used dbc file
   minupdatedelay: xxx # update interval of the signal in ms, if no delay given default is 1000ms
   targets:
@@ -221,7 +216,7 @@ xxx: # CAN signal name taken from the used dbc file
 
 example:
 
-```bash
+```yaml
 UIspeed_signed257: # CAN signal name taken from the used dbc file
   minupdatedelay: 100 # 100ms update interval of the signal
   targets:
@@ -279,20 +274,20 @@ The log level of `dbcfeeder.py` can be set using the LOG_LEVEL environment varia
 
 To set the log level to DEBUG
 
-```shell
-LOG_LEVEL=debug ./dbcfeeder.py
+```console
+$ LOG_LEVEL=debug ./dbcfeeder.py
 ```
 
 Set log level to INFO, but for dbcfeeder.broker set it to DEBUG
 
-```shell
-LOG_LEVEL=info,dbcfeeder.broker_client=debug ./dbcfeeder.py
+```console
+$ LOG_LEVEL=info,dbcfeeder.broker_client=debug ./dbcfeeder.py
 ```
 
 or, since INFO is the default log level, this is equivalent to:
 
-```shell
-LOG_LEVEL=dbcfeeder.broker_client=debug ./dbcfeeder.py
+```console
+$ LOG_LEVEL=dbcfeeder.broker_client=debug ./dbcfeeder.py
 ```
 
 Available loggers:
@@ -333,11 +328,11 @@ large-sized messages that are delivered with more than one CAN frame because the
 than a CAN frame's maximum payload of 8 bytes. To enable the J1939 mode, simply put `--j1939` in the command when running `dbcfeeder.py`.
 Prior to using this feature, j1939 and the relevant wheel-packages should be installed first:
 
-```bash
-pip install j1939
-git clone https://github.com/benkfra/j1939.git
-cd j1939
-pip install .
+```console
+$ pip install j1939
+$ git clone https://github.com/benkfra/j1939.git
+$ cd j1939
+$ pip install .
 ```
 
 The detailed documentation to this feature can be found here https://dias-kuksa-doc.readthedocs.io/en/latest/contents/j1939.html
