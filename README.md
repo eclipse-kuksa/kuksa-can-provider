@@ -5,7 +5,7 @@ This are data feeders for VSS based systems. The feeders here work with [KUKSA.v
 
 Name | Description
 ---- | -----------
-[GPS feeder](./gps2val)        | GPS data source for `kuksa.val` server
+[GPS feeder](./gps2val)        | GPS data source for `kuksa.val` server/databroker
 [DBC feeder](./dbc2val)        | DBC feeder for `kuksa.val` server
 [SOME/IP feeder](./someip2val) | SOME/IP feeder for `kuksa.val` databroker
 [Replay](./replay)             | Replay script for previously recorded files when providing `kuksa.val` with --record argument
