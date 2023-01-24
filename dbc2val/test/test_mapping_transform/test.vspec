@@ -1,0 +1,139 @@
+#
+# Source file for tests
+# Generate file used by test (test.json) with help of vss-tools
+# https://github.com/COVESA/vss-tools
+# When cloned execute something like this from this folder:
+# ~/vss-tools/vspec2json.py -e dbc --json-pretty test.vspec test.json
+#
+A:
+  type: branch
+  description: Branch A.
+
+# Part 1 - signals with no transformation using different types of conditions
+
+# Default i.e. 1000 ms interval
+
+A.NoTransformDefault:
+  datatype: uint8
+  type: sensor
+  unit: km
+  description: "..."
+  dbc:
+    signal: S1
+
+A.NoTransformInterval500:
+  datatype: uint8
+  type: sensor
+  unit: km
+  description: "..."
+  dbc:
+    signal: S1
+    interval_ms: 500
+
+A.NoTransformOnChangeTrue:
+  datatype: uint8
+  type: sensor
+  unit: km
+  description: "..."
+  dbc:
+    signal: S1
+    on_change: True
+
+# Shall behave as default
+A.NoTransformOnChangeFalse:
+  datatype: uint8
+  type: sensor
+  unit: km
+  description: "..."
+  dbc:
+    signal: S1
+    on_change: False
+
+A.NoTransformOnChangeInterval500:
+  datatype: uint8
+  type: sensor
+  unit: km
+  description: "..."
+  dbc:
+    signal: S1
+    interval_ms: 500
+    on_change: True
+
+A.NoTransformAlways:
+  datatype: uint8
+  type: sensor
+  unit: km
+  description: "..."
+  dbc:
+    signal: S1
+    interval_ms: 0
+
+A.Math:
+  type: sensor
+  datatype: float
+  dbc:
+    signal: S2
+    on_change: True
+    transform:
+      math: "floor(abs(x/5))"
+      
+
+A.MappingStringInt:
+  type: sensor
+  datatype: int8
+  dbc:
+    signal: S3
+    on_change: True
+    transform:
+       mapping:
+        - from: DI_GEAR_D
+          to: 1
+        - from: DI_GEAR_P
+          to: 0
+        - from: DI_GEAR_INVALID
+          to: 0
+        - from: DI_GEAR_R
+          to: -1
+
+A.MappingStringString:
+  type: sensor
+  datatype: string
+  dbc:
+    signal: S4
+    on_change: True
+    transform:
+       mapping:
+        - from: "schwarz"
+          to: "black"
+        - from: "weiss"
+          to: "white"
+
+A.MappingIntInt:
+  type: sensor
+  datatype: string
+  dbc:
+    signal: S5
+    on_change: True
+    transform:
+       mapping:
+        - from: 3
+          to: 7
+        - from: 4
+          to: 4
+
+# Duplicate mappings for 3, that is not an error (as of now)
+# but undefined if 3 shall result in 7 or 8
+A.MappingIntIntDuplicate:
+  type: sensor
+  datatype: string
+  dbc:
+    signal: S5
+    on_change: True
+    transform:
+       mapping:
+        - from: 3
+          to: 7
+        - from: 4
+          to: 4
+        - from: 3
+          to: 8

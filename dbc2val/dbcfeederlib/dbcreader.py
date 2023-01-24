@@ -23,6 +23,7 @@ import cantools
 import threading
 import time
 import logging
+from dbcfeederlib import dbc2vssmapper
 
 log = logging.getLogger(__name__)
 
@@ -53,7 +54,7 @@ class DBCReader:
         :param int bitrate:
             Bitrate in bit/s.
         """
-        self.bus = can.interface.Bus(*args, **kwargs)
+        self.bus = can.interface.Bus(*args, **kwargs) # pylint: disable=abstract-class-instantiated
         rxThread = threading.Thread(target=self.rxWorker)
         rxThread.start()
 
@@ -63,6 +64,7 @@ class DBCReader:
         for entry in self.mapper.map():
             canid = self.get_canid_for_signal(entry[0])
             if canid is not None and canid not in wl:
+                log.info(f"Adding {entry[0]} to white list, canid is {canid}")
                 wl.append(canid)
         return wl
 
@@ -71,7 +73,7 @@ class DBCReader:
             for signal in msg.signals:
                 if signal.name == sig_to_find:
                     id = msg.frame_id
-                    log.info(
+                    log.debug(
                         "Found signal in DBC file {} in CAN frame id 0x{:02x}".format(
                             signal.name, id
                         )
@@ -87,7 +89,7 @@ class DBCReader:
             if msg and msg.arbitration_id in self.canidwl:
                 try:
                     decode = self.db.decode_message(msg.arbitration_id, msg.data)
-                    # log.debug("Decoded message: %s", str(decode))
+                    log.debug("Decoded message: %s", str(decode))
                 except Exception:
                     self.parseErr += 1
                     log.warning(
@@ -98,11 +100,14 @@ class DBCReader:
                 rxTime = time.time()
                 for k, v in decode.items():
                     if k in self.mapper:
-                        if self.mapper.minUpdateTimeElapsed(k, rxTime):
-                            log.debug("* Handling Singal:{}, Value:{}".format(k, v))
-                            self.queue.put((k, v))
+                        # Now time is defined per VSS signal, so handling needs to be different
+                        for signal in self.mapper[k]:
+                            if signal.time_condition_fulfilled(rxTime):
+                                log.debug(f"Queueing {signal.vss_name}, triggered by {k}, raw value {v} ")
+                                self.queue.put(dbc2vssmapper.VSSObservation(k, signal.vss_name, v, rxTime))
+                            else:
+                                log.debug(f"Ignoring {signal.vss_name}, triggered by {k}, raw value {v} ")
         log.info("Stopped Rx thread")
 
     def stop(self):
         self.run = False
-

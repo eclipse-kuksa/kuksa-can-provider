@@ -1,8 +1,8 @@
 # Feeder CAN for real CAN interface or dumpfile replay
 
 This is an a DBC CAN feeder for the [KUKSA.val](https://github.com/eclipse/kuksa.val) server and databroker. The basic operation is as follows:
-The feeder connects to a socket CAN interface and reads raw CAN data, that will be parsed based on a DBC file. The mapping file describes which DBC signal
-should be matched to which part in the VSS tree. The respective data point can then be sent to the kuksa.val databroker or kuksa.val server.
+The feeder connects to a socket CAN interface and reads raw CAN data, that will be parsed based on a DBC file.
+The mapping file (called `vss_dbc.json` in the picture) describes mappings between VSS signals and DBC signals. The respective data point can then be sent to the kuksa.val databroker or kuksa.val server.
 It is also possible to replay CAN dumpfiles without the SocketCAN interface being available, e.g. in a CI test environment.
 See "Steps for a local test with replaying a can dump file"
 
@@ -22,13 +22,13 @@ See "Steps for a local test with replaying a can dump file"
 |                 |         +--------------+       |
 +-----------------+                 |              |    +-------------+
                                     |              |    |             |
-                             +-------------+       |--->|  Databroker |
-                             | mapping.yml |            |             |
-                             +-------------+            +-------------+
+                            +--------------+       |--->|  Databroker |
+                            | vss_dbc.json |            |             |
+                            +--------------+            +-------------+
 
 ```
 
-## Prerequisites for using socket CAN or virtual socket CAN
+## General Setup Requirements
 
 1. Install can utils, e.g. in Ubuntu do:
 
@@ -37,7 +37,7 @@ $ sudo apt update
 $ sudo apt install can-utils
 ```
 
-2. Check that at least python version 3 is installed
+2. Check that at least Python version 3.8 is installed
 
 ```console
 $ python -V
@@ -55,7 +55,7 @@ $ pip install -r requirements.txt
 
 2. Start the can player
 
-If you want to simulate CAN traffic on vcan0 by replaying a can dump file you can use the canplayer.
+_This is only needed if you want feed data from a dumpfile!_
 
 ```console
 $ ./createvcan.sh vcan0
@@ -84,12 +84,8 @@ $ ./dbcfeeder.py
 
 ## Provided can-dump files
 
-<!--
-[candump_Manual_SOC_DogMode_CabinTemp.log](./candump_Manual_SOC_DogMode_CabinTemp.log): Contains state-of-charge, dog mode, and cabin temperature signals. Take this if using the [dog mode example in the vehicle-app-python-sdk repo](https://github.com/SoftwareDefinedVehicle/vehicle-app-python-sdk/tree/main/examples).
--->
-
 [candump-2021-12-08_151848.log.xz](./candump-2021-12-08_151848.log.xz)
-Is a CAN trace from  2018 Tesla M3 with software 2021.40.6.
+is a CAN trace from  2018 Tesla M3 with software 2021.40.6.
 This data is interpreted using the [Model3CAN.dbc](./Model3CAN.dbc) [maintained by Josh Wardell](https://github.com/joshwardell/model3dbc).
 
 The canlog in the repo is compressed, to uncompress it (will be around 150MB) do
@@ -110,8 +106,8 @@ A smaller excerpt from the above sample, with less signals.
 | canport                       | -               | [can].port           | CAN_PORT                      | `--canport`           | Read from this CAN interface                                                                            |
 | use-j1939                     | False           | [can].j1939          | USE_J1939                     | `--use-j1939`         | Use J1939                                                                                               |
 | use-socketcan                 | False           | -                    | -                             | `--use-socketcan`     | Use SocketCAN (overriding any use of --dumpfile)                                                        |
-| mapping                       | mapping.yml     | [general].mapping    | MAPPING_FILE                  | `--mapping`           | Mapping file used to map CAN signals to databroker datapoints. Take a look on usage of the mapping file |
-| server-type                   | kuksa_val_server | [general].server_type | SERVER_TYPE                 | `--server-type`       | Which type of server the feeder should connect to (kuksa_val_server or kuksa_databroker |
+| mapping                       | vss_dbc.json    | [general].mapping    | MAPPING_FILE                  | `--mapping`           | Mapping file used to map CAN signals to databroker datapoints. Take a look on usage of the mapping file |
+| server-type                   | kuksa_databroker | [general].server_type | SERVER_TYPE                 | `--server-type`       | Which type of server the feeder should connect to (kuksa_val_server or kuksa_databroker |
 | DAPR_GRPC_PORT                | -               | -                    | DAPR_GRPC_PORT                | -                     | Override broker address & connect to DAPR sidecar @ 127.0.0.1:DAPR_GRPC_PORT                            |
 | VEHICLEDATABROKER_DAPR_APP_ID | -               | -                    | VEHICLEDATABROKER_DAPR_APP_ID | -                     | Add dapr-app-id metadata                                                                                |
 
@@ -129,7 +125,7 @@ Configuration options have the following priority (highest at top).
 2. Use the latest release from here:
 https://github.com/eclipse/kuksa.val/tree/master/kuksa-val-server
 
-After you download for example the relase 0.21 you can run it with this command, this is also described in the kuksa val server readme:
+After you download for example the release 0.2.1 you can run it with this command, this is also described in the kuksa val server [readme](https://github.com/eclipse/kuksa.val/blob/master/kuksa-val-server/README.md):
 
 ```console
 $ docker run -it --rm -v $HOME/kuksaval.config:/config  -p 127.0.0.1:8090:8090 -e LOG_LEVEL=ALL ghcr.io/eclipse/kuksa.val/kuksa-val:0.2.1-amd64
@@ -199,76 +195,27 @@ Vehicle.OBD.Speed: 12.00
 > **Note**
 > To end the subscription currently you have to stop the client cli via 'quit' and Enter.
 
-## Using mapping.yml
+## Using Docker
 
-Please replace the values xxx with our content for a new signal template:
+It is possible to build dbcfeeder as a Docker container
 
-```yaml
-xxx: # CAN signal name taken from the used dbc file
-  minupdatedelay: xxx # update interval of the signal in ms, if no delay given default is 1000ms
-  targets:
-    xxx: {} # Name of the VSS signal
-      vss: # vss definition
-        datatype: xxx # type of the data
-        type: xxx # type of the value
-        unit: xxx # unit of the value
-        description: # description of the value
-      transform: {}  # which (math) transformations to apply to the signal
+```console
+docker build -f Dockerfile --progress=plain --build-arg TARGETPLATFORM=linux/amd64 -t dbcfeeder:latest .
 ```
 
-example:
+The same container can be used for both connecting to Databroker and Server:
 
-```yaml
-UIspeed_signed257: # CAN signal name taken from the used dbc file
-  minupdatedelay: 100 # 100ms update interval of the signal
-  targets:
-    Vehicle.OBD.Speed:  # Name of the VSS signal
-      vss: # vss definition
-        datatype: float # type of the data
-        type: sensor # type of the value
-        unit: km/h # unit of the value
-        description: vehicle speed # description of the value
+```console
+docker run  --net=host -e LOG_LEVEL=INFO dbcfeeder:latest --server-type kuksa_databroker
+
+docker run  --net=host -e LOG_LEVEL=INFO dbcfeeder:latest --server-type kuksa_val_server
 ```
 
-Please note, the minimal set to map a signal for KUKSA.val server, where all data model knwoledge is in the data server itself,  is just a CAN signal name and at least one target.
-For KUKSA.val databroker, an architecture that requires Clients to know somehting about the VSS model, a CAN signal name, a target and at least a datatype in the vss section is required. In most cases, you would probably require a `transform`, unless the DBC already describes the exact semantics and/or scaling of a VSS signal.
+## Mapping file
 
-### Mapping examples
-
-
-```yaml
-VCFRONT_brakeFluidLevel:
-  minupdatedelay: 1000
-  targets:
-    Vehicle.Chassis.Axle.Row1.Wheel.Left.Brake.FluidLevelLow:
-      transform:
-        fullmapping:
-          LOW: "true"
-          NORMAL: "false"
-    Vehicle.Chassis.Axle.Row1.Wheel.Right.Brake.FluidLevelLow:
-      transform:
-        fullmapping:
-          LOW: "true"
-          NORMAL: "false"
-```
-Here the same DBC signal `VCFRONT_brakeFluidLevel`is mapped to different VSS path. Also _fullmapping_ transform is applied. The value `LOW` from the DBC is mapped to the value `true` in the VSS path and `NORMAL`is mapped to `false`. In the _fullmapping_ transform, if no match is found, the value will be ignored. There also exists a _partialmapping_ transform, which works similarly, with the difference, that if no match is found the value from the DBC will be written as-is to KUKSA.val.
-
-Another transform is the _math_ transform
-
-```yaml
-VCLEFT_mirrorTiltXPosition:
-   minupdatedelay: 100
-   targets:
-    Vehicle.Body.Mirrors.Left.Pan:
-      transform: #scale 0..5 to -100..100
-        math: floor((x*40)-100)
-```
-
-This can be used if the scale of a signal as described in the DBC is not compatible with the VSS model.  The value - with all transforms described in the DBC -  is used as `x` on the formula given by the _math_ transform. For available operators, functions and constants supported by the _math_ transform check https://pypi.org/project/py-expression-eval/.
-
-
-Take a look at the [mapping.yml](./mapping.yml) to see more examples.
-
+The mapping file describes mapping between VSS signals and DBC signals.
+It shall be a JSON file with VSS syntax with metadata for dbc information.
+Please see [mapping documentation](mapping.md) for more information.
 
 ## Logging
 
@@ -318,8 +265,8 @@ There are some limitations in this mode
  whitelist according to the configured signals, i.e. the STN is instructed to only let CAN messages containing signals of interest pass.
 
 When using the OBD chipset, take special attention to the `obdcanack` configuration option: On a CAN bus there needs to be _some_ device
-to acknowledge CAN frames. The STN2120 can do this. However, when tapping a vehicle bus, you probbably do not want it (as there are otehr
-ECUs on the bus doing it, and we want to be as passive as possible). On theother hand, on a desk setup where you have one CAN sender and
+to acknowledge CAN frames. The STN2120 can do this. However, when tapping a vehicle bus, you probably do not want it (as there are other
+ECUs on the bus doing it, and we want to be as passive as possible). On the other hand, on a desk setup where you have one CAN sender and
 the OBD chipset, you need to enable Acks, otherwise the CAN sender will go into error mode, if no acknowledgement is received.
 
 ## SAE-J1939 support
@@ -337,5 +284,5 @@ $ cd j1939
 $ pip install .
 ```
 
-The detailed documentation to this feature can be found here https://dias-kuksa-doc.readthedocs.io/en/latest/contents/j1939.html
+The detailed documentation to this feature can be found [here](https://dias-kuksa-doc.readthedocs.io/en/latest/contents/j1939.html).
 

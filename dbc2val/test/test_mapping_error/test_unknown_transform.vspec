@@ -1,0 +1,30 @@
+#
+# Source file for tests
+# Generate file used by test (test.json) with help of vss-tools
+# https://github.com/COVESA/vss-tools
+# When cloned execute something like this from this folder:
+# ~/vss-tools/vspec2json.py -e dbc --json-pretty <name>.vspec <name>.json
+#
+A:
+  type: branch
+  description: Branch A.
+
+
+A.B:
+  datatype: uint8
+  type: sensor
+  unit: km
+  description: "..."
+  dbc:
+    signal: S3
+    on_change: True
+    transform:
+       something_else:
+        - from: DI_GEAR_D
+          to: 1
+        - from: DI_GEAR_P
+          to: 0
+        - from: DI_GEAR_INVALID
+          to: 0
+        - from: DI_GEAR_R
+          to: -1

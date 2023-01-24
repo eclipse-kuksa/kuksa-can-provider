@@ -11,6 +11,7 @@
 # * SPDX-License-Identifier: Apache-2.0
 # ********************************************************************************/
 
+
 # Build stage, to create a Virtual Environent
 FROM --platform=$TARGETPLATFORM python:3.9-slim-bullseye as builder
 
@@ -32,7 +33,8 @@ RUN /opt/venv/bin/python3 -m pip install --upgrade pip \
 
 RUN pip3 install wheel scons && pip3 install pyinstaller patchelf==0.17.0.0 staticx
 
-RUN pyinstaller --clean -F -s dbcfeeder.py
+# By default we use certificates and tokens from kuksa_certificates, so they must be included
+RUN pyinstaller --collect-data kuksa_certificates --clean -F -s dbcfeeder.py
 #   --debug=imports
 
 WORKDIR /dist
@@ -40,7 +42,7 @@ RUN staticx dbcfeeder dbcfeeder-exe
 
 WORKDIR /data
 COPY ./config/* ./config/
-COPY ./*.yml ./*.dbc ./candump*.log ./
+COPY ./*.json ./*.dbc ./candump*.log ./
 
 # Runner stage, to copy in the virtual environment and the app
 FROM scratch
@@ -62,7 +64,7 @@ COPY --from=builder /data/ ./
 ENV PATH="/dist:$PATH"
 
 # useful dumps about feeding values
-ENV LOG_LEVEL="info,databroker=error,dbcfeeder=error,dbcfeeder.broker_client=error"
+ENV LOG_LEVEL="info"
 
 # Vehicle Data Broker host:port
 #ENV VDB_ADDRESS="localhost:55555"

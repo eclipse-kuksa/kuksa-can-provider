@@ -1,0 +1,242 @@
+{
+  "A": {
+    "children": {
+      "MappingIntInt": {
+        "datatype": "string",
+        "dbc": {
+          "$file_name$": "test.vspec",
+          "$line$": 114,
+          "on_change": true,
+          "signal": "S5",
+          "transform": {
+            "$file_name$": "test.vspec",
+            "$line$": 117,
+            "mapping": [
+              {
+                "$file_name$": "test.vspec",
+                "$line$": 119,
+                "from": 3,
+                "to": 7
+              },
+              {
+                "$file_name$": "test.vspec",
+                "$line$": 121,
+                "from": 4,
+                "to": 4
+              }
+            ]
+          }
+        },
+        "description": null,
+        "type": "sensor",
+        "uuid": "87c645c8268c582fa56e6dea0311b9ac"
+      },
+      "MappingIntIntDuplicate": {
+        "datatype": "string",
+        "dbc": {
+          "$file_name$": "test.vspec",
+          "$line$": 127,
+          "on_change": true,
+          "signal": "S5",
+          "transform": {
+            "$file_name$": "test.vspec",
+            "$line$": 130,
+            "mapping": [
+              {
+                "$file_name$": "test.vspec",
+                "$line$": 132,
+                "from": 3,
+                "to": 7
+              },
+              {
+                "$file_name$": "test.vspec",
+                "$line$": 134,
+                "from": 4,
+                "to": 4
+              },
+              {
+                "$file_name$": "test.vspec",
+                "$line$": 136,
+                "from": 3,
+                "to": 8
+              }
+            ]
+          }
+        },
+        "description": null,
+        "type": "sensor",
+        "uuid": "390cc72e9e1d507dbfef2ec409aae4b7"
+      },
+      "MappingStringInt": {
+        "datatype": "int8",
+        "dbc": {
+          "$file_name$": "test.vspec",
+          "$line$": 84,
+          "on_change": true,
+          "signal": "S3",
+          "transform": {
+            "$file_name$": "test.vspec",
+            "$line$": 87,
+            "mapping": [
+              {
+                "$file_name$": "test.vspec",
+                "$line$": 89,
+                "from": "DI_GEAR_D",
+                "to": 1
+              },
+              {
+                "$file_name$": "test.vspec",
+                "$line$": 91,
+                "from": "DI_GEAR_P",
+                "to": 0
+              },
+              {
+                "$file_name$": "test.vspec",
+                "$line$": 93,
+                "from": "DI_GEAR_INVALID",
+                "to": 0
+              },
+              {
+                "$file_name$": "test.vspec",
+                "$line$": 95,
+                "from": "DI_GEAR_R",
+                "to": -1
+              }
+            ]
+          }
+        },
+        "description": null,
+        "type": "sensor",
+        "uuid": "5d1d39773c7c5fa5b3c9e8648551a78d"
+      },
+      "MappingStringString": {
+        "datatype": "string",
+        "dbc": {
+          "$file_name$": "test.vspec",
+          "$line$": 101,
+          "on_change": true,
+          "signal": "S4",
+          "transform": {
+            "$file_name$": "test.vspec",
+            "$line$": 104,
+            "mapping": [
+              {
+                "$file_name$": "test.vspec",
+                "$line$": 106,
+                "from": "schwarz",
+                "to": "black"
+              },
+              {
+                "$file_name$": "test.vspec",
+                "$line$": 108,
+                "from": "weiss",
+                "to": "white"
+              }
+            ]
+          }
+        },
+        "description": null,
+        "type": "sensor",
+        "uuid": "05511986699c5e938c869bc85b76a02d"
+      },
+      "Math": {
+        "datatype": "float",
+        "dbc": {
+          "$file_name$": "test.vspec",
+          "$line$": 74,
+          "on_change": true,
+          "signal": "S2",
+          "transform": {
+            "$file_name$": "test.vspec",
+            "$line$": 77,
+            "math": "floor(abs(x/5))"
+          }
+        },
+        "description": null,
+        "type": "sensor",
+        "uuid": "599f1c78db1a566a92bfc62df9bcc017"
+      },
+      "NoTransformAlways": {
+        "datatype": "uint8",
+        "dbc": {
+          "$file_name$": "test.vspec",
+          "$line$": 67,
+          "interval_ms": 0,
+          "signal": "S1"
+        },
+        "description": "...",
+        "type": "sensor",
+        "unit": "km",
+        "uuid": "acd29f85ab585e0fac2ade79781d1758"
+      },
+      "NoTransformDefault": {
+        "datatype": "uint8",
+        "dbc": {
+          "$file_name$": "test.vspec",
+          "$line$": 21,
+          "signal": "S1"
+        },
+        "description": "...",
+        "type": "sensor",
+        "unit": "km",
+        "uuid": "6c1698cab06a5163bb21315643249844"
+      },
+      "NoTransformInterval500": {
+        "datatype": "uint8",
+        "dbc": {
+          "$file_name$": "test.vspec",
+          "$line$": 29,
+          "interval_ms": 500,
+          "signal": "S1"
+        },
+        "description": "...",
+        "type": "sensor",
+        "unit": "km",
+        "uuid": "762e9d430dea520d9a98e433e7b7a20e"
+      },
+      "NoTransformOnChangeFalse": {
+        "datatype": "uint8",
+        "dbc": {
+          "$file_name$": "test.vspec",
+          "$line$": 48,
+          "on_change": false,
+          "signal": "S1"
+        },
+        "description": "...",
+        "type": "sensor",
+        "unit": "km",
+        "uuid": "7c1c9d8fc1f45405995a1a6496e17ac5"
+      },
+      "NoTransformOnChangeInterval500": {
+        "datatype": "uint8",
+        "dbc": {
+          "$file_name$": "test.vspec",
+          "$line$": 57,
+          "interval_ms": 500,
+          "on_change": true,
+          "signal": "S1"
+        },
+        "description": "...",
+        "type": "sensor",
+        "unit": "km",
+        "uuid": "44a50cf3b0595d80b15b280e8a16cbf8"
+      },
+      "NoTransformOnChangeTrue": {
+        "datatype": "uint8",
+        "dbc": {
+          "$file_name$": "test.vspec",
+          "$line$": 38,
+          "on_change": true,
+          "signal": "S1"
+        },
+        "description": "...",
+        "type": "sensor",
+        "unit": "km",
+        "uuid": "2e1a1060b354518484ebcbab8e42ebcd"
+      }
+    },
+    "description": "Branch A.",
+    "type": "branch",
+    "uuid": "6342f7c4796a5f78a93bff040a974d02"
+  }
+}

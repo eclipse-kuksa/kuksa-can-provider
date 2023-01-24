@@ -1,0 +1,40 @@
+{
+  "A": {
+    "children": {
+      "B": {
+        "datatype": "uint8",
+        "dbc": {
+          "on_change": true,
+          "signal": "S3",
+          "transform": {
+            "something_else": [
+              {
+                "from": "DI_GEAR_D",
+                "to": 1
+              },
+              {
+                "from": "DI_GEAR_P",
+                "to": 0
+              },
+              {
+                "from": "DI_GEAR_INVALID",
+                "to": 0
+              },
+              {
+                "from": "DI_GEAR_R",
+                "to": -1
+              }
+            ]
+          }
+        },
+        "description": "...",
+        "type": "sensor",
+        "unit": "km",
+        "uuid": "bccc5ae20fe351e085cb5e0592f3438e"
+      }
+    },
+    "description": "Branch A.",
+    "type": "branch",
+    "uuid": "6342f7c4796a5f78a93bff040a974d02"
+  }
+}

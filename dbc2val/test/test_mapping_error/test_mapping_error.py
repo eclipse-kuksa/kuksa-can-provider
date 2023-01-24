@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
-#########################################################################
-# Copyright (c) 2021 Robert Bosch GmbH
+########################################################################
+# Copyright (c) 2023 Robert Bosch GmbH
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,12 +18,18 @@
 # SPDX-License-Identifier: Apache-2.0
 ########################################################################
 
-from py_expression_eval import Parser
 
 
-class math:
-    def __init__(self):
-        self.parser = Parser()
+from dbcfeederlib import dbc2vssmapper
+import os
+import pytest
+import logging
 
-    def transform(self, spec, value):
-        return self.parser.parse(spec).evaluate({"x": value})
+
+def test_unknown_transform(caplog, capsys):
+    path = os.path.dirname(os.path.abspath(__file__)) + "/test_unknown_transform.json"
+    with pytest.raises(SystemExit) as excinfo:
+        mapper : dbc2vssmapper.Mapper = dbc2vssmapper.Mapper(path)
+    out, err = capsys.readouterr()
+    assert excinfo.value.code == -1
+    assert caplog.record_tuples == [("dbcfeederlib.dbc2vssmapper", logging.ERROR, "Unsupported transform for A.B")]

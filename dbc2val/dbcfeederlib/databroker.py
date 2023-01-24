@@ -34,7 +34,7 @@ log = logging.getLogger(__name__)
 
 class Provider:
     def __init__(self, vss_client: VSSClient, grpc_metadata: Optional[grpc.aio.Metadata] = None):
-        self._name_to_type = {}
+        self._name_to_type : dict[str, DataType]= {}
         self._rpc_kwargs = {'metadata': grpc_metadata}
         log.info("Using %s", self._rpc_kwargs)
         self._vss_client = vss_client

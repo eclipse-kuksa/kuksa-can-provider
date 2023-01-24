@@ -200,7 +200,7 @@ class elm2canbridge:
 
     #open vcan where we mirror the elmcan monitor output
     def initcan(self, cfg):
-        return can.interface.Bus(self.canport, bustype='socketcan')
+        return can.interface.Bus(self.canport, bustype='socketcan')  # pylint: disable=abstract-class-instantiated
 
     def waitforprompt(self,elm):
         while elm.read() != b'>':
