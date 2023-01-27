@@ -30,7 +30,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN /opt/venv/bin/python3 -m pip install --upgrade pip \
     && pip3 install --no-cache-dir -r requirements.txt
 
-RUN pip3 install wheel && pip3 install scons && pip3 install pyinstaller && pip3 install patchelf && pip3 install staticx
+RUN pip3 install wheel scons && pip3 install pyinstaller patchelf==0.17.0.0 staticx
 
 RUN pyinstaller --clean -F -s dbcfeeder.py
 #   --debug=imports
@@ -73,4 +73,4 @@ ENV VEHICLEDATABROKER_DAPR_APP_ID=vehicledatabroker
 
 ENV PYTHONUNBUFFERED=yes
 
-CMD ["./dbcfeeder-exe"]
+ENTRYPOINT ["./dbcfeeder-exe"]
