@@ -35,7 +35,10 @@ class elm2canbridge:
     def __init__(self, canport, cfg, whitelist=None):
         print("Try setting up elm2can bridge")
         print("Creating virtual CAN interface")
-        os.system("./createelmcanvcan.sh")
+        result = os.system("./createvcan.sh")
+        if (not os.WIFEXITED(result)) or os.WEXITSTATUS(result) != 0:
+            print(f"Calling createvcan.sh failed with error code {os.WEXITSTATUS(result)}")
+            sys.exit(-1)
 
         self.canport = canport
         self.whitelist=whitelist
@@ -43,13 +46,17 @@ class elm2canbridge:
         elm.baudrate = cfg['baud']
         elm.port = cfg['port']
         elm.timeout = 10
-        elm.open()
+        try:
+            elm.open()
+        except Exception as e:
+            print(f"Could not open elm port, exception {e}")
+            sys.exit(-1)
 
         if not elm.is_open:
             print("elm2canbridge: Can not open serial port")
             sys.exit(-1)
 
-        self.initelm(elm,cfg['canspeed'], cfg['canack'])
+        self.initelm(elm,cfg['speed'], cfg['canack'])
         can = self.initcan(cfg)
 
         serQueue = Queue(QUEUE_MAX_ELEMENTS)

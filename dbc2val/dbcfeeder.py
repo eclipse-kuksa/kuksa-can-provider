@@ -37,6 +37,7 @@ import dbc2vssmapper
 import dbcreader
 import grpc
 import j1939reader
+import elm2canbridge
 
 from kuksa_client import KuksaClientThread
 import kuksa_client.grpc
@@ -94,7 +95,8 @@ class ColorFormatter(logging.Formatter):
 
 
 class Feeder:
-    def __init__(self, server_type: ServerType, kuksa_client_config: Dict[str, Any]):
+    def __init__(self, server_type: ServerType, kuksa_client_config: Dict[str, Any],
+                 elmcan_config: Dict[str, Any]):
         self._shutdown = False
         self._reader = None
         self._player = None
@@ -105,6 +107,7 @@ class Feeder:
         self._can_queue = queue.Queue()
         self._server_type = server_type
         self._kuksa_client_config = kuksa_client_config
+        self._elmcan_config = elmcan_config
         self._exit_stack = contextlib.ExitStack()
 
     def start(
@@ -144,6 +147,12 @@ class Feeder:
             )
             self._player.start_replaying(canport=canport)
         else:
+
+            if canport == 'elmcan':
+
+                log.info("Using elmcan. Trying to set up elm2can bridge")
+                elmbr = elm2canbridge.elm2canbridge(canport, self._elmcan_config, self._reader.canidwl)
+
             # use socketCAN
             log.info("Using socket CAN device '%s'", canport)
             self._reader.start_listening(bustype="socketcan", channel=canport)
@@ -431,7 +440,17 @@ def main(argv):
     else:
         grpc_metadata = None
 
-    feeder = Feeder(server_type, kuksa_client_config)
+    elmcan_config = []
+    if canport == "elmcan":
+        if candumpfile != None:
+            log.error("It is a contradiction specifying both elmcan and candumpfile!")
+            sys.exit(-1)
+        if not "elmcan" in config:
+            log.error("Cannot use elmcan without elmcan config!")
+            sys.exit(-1)
+        elmcan_config = config["elmcan"]
+
+    feeder = Feeder(server_type, kuksa_client_config, elmcan_config)
 
     def signal_handler(signal_received, frame):
         log.info(f"Received signal {signal_received}, stopping...")

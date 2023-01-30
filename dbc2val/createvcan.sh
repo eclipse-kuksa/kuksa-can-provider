@@ -31,15 +31,15 @@ then
     DEV=$1
 fi
 
-echo "Preparing to bring up vcan interface $DEV"
+echo "createvcan: Preparing to bring up vcan interface $DEV"
 
 virtualCanConfigure() {
-	echo "Setting up VIRTUAL CAN"
+	echo "createvcan: Setting up VIRTUAL CAN"
 	sudo  modprobe -n --first-time vcan &> /dev/null
 	loadmod=$?
 	if [ $loadmod -eq 0 ]
 	then
-		echo "Virtual CAN module not yet loaded. Loading......"
+		echo "createvcan: Virtual CAN module not yet loaded. Loading......"
 		sudo modprobe vcan
 	fi
 
@@ -48,7 +48,7 @@ virtualCanConfigure() {
 	noif=$?
 	if [ $noif -eq 1 ]
 	then
-		echo "Virtual CAN interface not yet existing. Creating..."
+		echo "createvcan: Virtual CAN interface not yet existing. Creating..."
 		sudo ip link add dev "$DEV" type vcan
 	fi
 	sudo ip link set "$DEV" up
@@ -61,12 +61,12 @@ up=$(ifconfig "$DEV" 2> /dev/null | grep NOARP | grep -c RUNNING)
 
 if [ $up -eq 1 ]
 then
-   echo "Interface already up. Exiting"
+   echo "createvcan: Interface already up. Exiting"
    exit
 fi
 
 virtualCanConfigure
 
-echo "Done."
+echo "createvcan: Done."
 
 
