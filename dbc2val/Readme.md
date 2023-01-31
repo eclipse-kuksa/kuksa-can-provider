@@ -325,7 +325,7 @@ the OBD chipst, you need to enable Acks, otherwise the CAN sender will go into e
 When the target DBC file and ECU follow the SAE-J1939 standard, the CAN reader application of the feeder should read
 PGN(Parameter Group Number)-based Data rather than CAN frames directly. Otherwise it is possible to miss signals from
 large-sized messages that are delivered with more than one CAN frame because the size of each of these messages is bigger
-than a CAN frame's maximum payload of 8 bytes. To enable the J1939 mode, simply put `--j1939` in the command when running `dbcfeeder.py`.
+than a CAN frame's maximum payload of 8 bytes. To enable the J1939 mode, simply put `--use-j1939` in the command when running `dbcfeeder.py`.
 Prior to using this feature, j1939 and the relevant wheel-packages should be installed first:
 
 ```console

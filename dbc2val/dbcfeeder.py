@@ -392,7 +392,9 @@ def main(argv):
         print("ERROR:\nNo CAN port specified")
         return -1
 
-    if os.environ.get("USE_J1939"):
+    if args.use_j1939:
+        use_j1939 = True
+    elif os.environ.get("USE_J1939"):
         use_j1939 = os.environ.get("USE_J1939") == "1"
     elif "can" in config:
         use_j1939 = config["can"].getboolean("j1939", False)
