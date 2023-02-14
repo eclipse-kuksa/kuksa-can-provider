@@ -1,0 +1,25 @@
+# This file contains top level dependencies pinning a major version.
+# For developing the dbc2val package it makes sense to use this file
+# with 'pip install -r requirements.in' in order to benefit from more
+# recent minor versions of the dependencies.
+#
+# For creating/distributing a binary, all dependencies should
+# be pinned to specific versions in order to provide for a reproducible
+# build.
+# 
+# The 'pip-tools' package's 'pip-compile' command can be used for that
+# purpose. The following command will take the inputs from this file
+# and create a 'requirements.txt' file with pinned versions of all
+# dependencies:
+#
+# pip-compile requirements.in
+#
+
+pyserial ~= 3.5
+cantools ~= 38.0
+pyyaml ~= 6.0
+can-j1939 ~= 2.0
+py_expression_eval ~= 0.3
+kuksa-client ~= 0.3.0
+types-PyYAML ~= 6.0
+types-protobuf ~= 4.21
