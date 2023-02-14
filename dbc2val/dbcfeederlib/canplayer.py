@@ -1,5 +1,5 @@
 ########################################################################
-# Copyright (c) 2022 Contributors to the Eclipse Foundation
+# Copyright (c) 2022,2023 Contributors to the Eclipse Foundation
 #
 # See the NOTICE file(s) distributed with this work for additional
 # information regarding copyright ownership.
@@ -24,6 +24,21 @@ log = logging.getLogger(__name__)
 
 
 class CANplayer:
+    """
+    Replay logged CAN messages from a file.
+
+    The format is determined from the file suffix which can be one of:
+      * .asc
+      * .blf
+      * .csv
+      * .db
+      * .log
+      * .trc
+
+    Gzip compressed files can be used as long as the original
+    files suffix is one of the above (e.g. filename.asc.gz).
+    """
+
     def __init__(self, dumpfile):
         self.run = True
         self.index = 0
@@ -33,7 +48,7 @@ class CANplayer:
 
         # open the file for reading can messages
         log.info("Replaying candump from {}".format(dumpfile))
-        log_reader = can.CanutilsLogReader(dumpfile)
+        log_reader = can.LogReader(dumpfile)
         # get all messages out of the dumpfile and store into array of can messages
         for msg in log_reader:
             # store the sum of messages
@@ -65,7 +80,6 @@ class CANplayer:
             msg = can.Message(
                 arbitration_id=next_message.arbitration_id,
                 data=next_message.data,
-                is_extended_id=False,
                 timestamp=next_message.timestamp,
             )
             if msg:

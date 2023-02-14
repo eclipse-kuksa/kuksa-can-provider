@@ -15,6 +15,7 @@
 # pip-compile requirements.in
 #
 
+python-can ~= 4.1
 pyserial ~= 3.5
 cantools ~= 38.0
 pyyaml ~= 6.0

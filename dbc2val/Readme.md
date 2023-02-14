@@ -49,6 +49,12 @@ $ python -V
 $ pip install -r requirements.txt
 ```
 
+4. If you want to run tests and linters, you will also need to install development dependencies
+
+```console
+$ pip install -r requirements-dev.txt
+```
+
 ## Steps for a local test with socket can or virtual socket can
 
 1. Use the argument --use-socketcan or you can remove the line with the dumpfile in `config/dbc_feeder.ini`

@@ -1,12 +1,9 @@
-pyserial
-cantools
-python-can
-pyyaml
-j1939
-py_expression_eval
-grpcio
-types-PyYAML
-types-protobuf
+# Additional dependencies needed for build and test only
+#
+# For build and test install both dependencies in this file as well as dependencies in requirements.txt
+#
+# Example: 
+# pip3 install --no-cache-dir -r requirements.txt -r requirements-dev.txt
+#
 pytest
 pylint
-kuksa-client

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ########################################################################
-# Copyright (c) 2020 Robert Bosch GmbH
+# Copyright (c) 2020,2023 Robert Bosch GmbH
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -122,6 +122,7 @@ class Feeder:
         mappingfile,
         candumpfile=None,
         use_j1939=False,
+        use_strict_parsing=False,
         grpc_metadata=None,
     ):
         log.info("Using mapping: {}".format(mappingfile))
@@ -133,11 +134,15 @@ class Feeder:
                 rxqueue=self._can_queue,
                 dbcfile=dbcfile,
                 mapper=self._mapper,
+                use_strict_parsing=use_strict_parsing,
             )
         else:
             log.info("Using DBC reader")
             self._reader = dbcreader.DBCReader(
-                rxqueue=self._can_queue, dbcfile=dbcfile, mapper=self._mapper
+                rxqueue=self._can_queue,
+                dbcfile=dbcfile,
+                mapper=self._mapper,
+                use_strict_parsing=use_strict_parsing,
             )
 
         if candumpfile:
@@ -146,10 +151,12 @@ class Feeder:
                 "Using virtual bus to replay CAN messages (channel: %s)",
                 canport,
             )
-            self._player = canplayer.CANplayer(dumpfile=candumpfile)
             self._reader.start_listening(
-                bustype="virtual", channel=canport, bitrate=500000
+                bustype="virtual",
+                channel=canport,
+                bitrate=500000
             )
+            self._player = canplayer.CANplayer(dumpfile=candumpfile)
             self._player.start_replaying(canport=canport)
         else:
 
@@ -192,7 +199,7 @@ class Feeder:
         return self._shutdown
 
     def on_broker_connectivity_change(self, connectivity):
-        log.info("Connectivity changed to: %s", connectivity)
+        log.info("Connectivity to data broker changed to: %s", connectivity)
         if (
             connectivity == grpc.ChannelConnectivity.READY or
             connectivity == grpc.ChannelConnectivity.IDLE
@@ -364,7 +371,18 @@ def main(argv):
         choices=[server_type.value for server_type in ServerType],
         type=ServerType,
     )
-
+    parser.add_argument(
+        "--lax-dbc-parsing",
+        dest="strict",
+        help="""
+          Disable strict parsing of DBC files. This is helpful if the DBC file contains
+          message length definitions that do not match the signals' bit-offsets and lengths.
+          Processing DBC frames based on such DBC message definitions might still work, so
+          providing this switch might allow using the (erroneous) DBC file without having to
+          fix it first.
+          """,
+        action="store_false",
+    )
     args = parser.parse_args()
 
     config = parse_config(args.config)
@@ -494,6 +512,7 @@ def main(argv):
         mappingfile=mappingfile,
         candumpfile=candumpfile,
         use_j1939=use_j1939,
+        use_strict_parsing=args.strict,
         grpc_metadata=grpc_metadata,
     )
 
