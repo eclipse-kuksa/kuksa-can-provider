@@ -39,46 +39,34 @@ class Provider:
         log.info("Using %s", self._rpc_kwargs)
         self._vss_client = vss_client
 
-    def register(self, name: str, data_type: Union[str, DataType], description: str):
+    def check_registered(self, name: str, data_type: Union[str, DataType], description: str) -> bool:
+        """
+        Check if the signal is registered. If not raise an exception.
+        In the future this method may try register signals that are not yet registered.
+        The arguments data_type and description are kept for that purpose.
+        Returns True if check succeeds.
+        """
         if isinstance(data_type, str):
             data_type = getattr(DataType, data_type)
         try:
-            log.debug(
-                "register(%s, data_type: %s, '%s')",
-                name,
-                data_type.name,
-                description,
-            )
+            log.debug("Checking if signal %s is registered",name)
             metadata = self._vss_client.get_metadata((name,), **self._rpc_kwargs)
             if len(metadata) == 1:
                 self._name_to_type[name] = metadata[name].data_type
                 log.info(
-                    "%s was already registered with type %s",
+                    "%s is already registered with type %s",
                     name,
                     metadata[name].data_type.name,
                 )
-                return
-        except kuksa_client.grpc.VSSClientError:
-            log.debug("Failed to get metadata", exc_info=True)
-
-        self._register(name, data_type, description)
-
-    def _register(self, name: str, data_type: DataType, description: str):
-        try:
-            self._vss_client.set_metadata(
-                updates={name: Metadata(data_type=data_type, description=description)},
-                **self._rpc_kwargs,
-            )
-            # Store datapoint IDs
-            self._name_to_type[name] = data_type
-            log.info(
-                "%s was registered with type %s",
-                name,
-                data_type.name,
-            )
-        except kuksa_client.grpc.VSSClientError:
-            log.warning("Failed to register datapoint %s", name, exc_info=True)
-            raise
+                return True
+            log.error("Unexpected metadata response when checking for %s: %s", name, metadata)
+        except kuksa_client.grpc.VSSClientError as client_error:
+            code = client_error.error.get('code')
+            if code == 404:
+                log.error("Signal %s is not registered", name)
+            else:
+                log.error("Error checking registration of %s", name, exc_info=True)
+        return False
 
     def update_datapoint(self, name: str, value: Any):
         updates = (EntryUpdate(DataEntry(

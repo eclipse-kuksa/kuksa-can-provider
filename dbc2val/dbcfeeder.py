@@ -208,11 +208,6 @@ class Feeder:
             # unconnected state
             if not self._connected:
                 log.info("Connected to data broker")
-                try:
-                    self._register_datapoints()
-                    self._registered = True
-                except Exception:
-                    log.error("Failed to register datapoints", exc_info=True)
                 self._connected = True
                 self._disconnect_time = 0.0
         else:
@@ -224,16 +219,25 @@ class Feeder:
             self._connected = False
             self._registered = False
 
-    def _register_datapoints(self):
-        log.info("Register datapoints")
+    def _register_datapoints(self) -> bool:
+        """
+        Check that data points are registered.
+        May in the future also register missing datapoints.
+        Returns True on success.
+        """
+        log.info("Check that datapoints are registered")
+        all_registered = True
         for entry in self._mapper.mapping.values():
             for vss_mapping in entry:
                 #for target_name, target_attr in self._mapper.mapping[entry]["targets"].items():
-                self._provider.register(
+                registered = self._provider.check_registered(
                     vss_mapping.vss_name,
                     vss_mapping.datatype.upper(),
                     vss_mapping.description,
                 )
+                if not registered:
+                    all_registered = False
+        return all_registered
 
     def _run(self):
         if self._server_type is ServerType.KUKSA_VAL_SERVER:
@@ -243,8 +247,8 @@ class Feeder:
 
         processing_started = False
         messages_sent = 0
-        last_sent_log_entry = 0;
-        queue_max_size = 0;
+        last_sent_log_entry = 0
+        queue_max_size = 0
         while self._shutdown is False:
             if self._server_type is ServerType.KUKSA_DATABROKER:
                 if not self._connected:
@@ -257,12 +261,11 @@ class Feeder:
                     continue
                 if not self._registered:
                     time.sleep(1)
-                    try:
-                        self._register_datapoints()
-                        self._registered = True
-                    except Exception:
-                        log.error("Failed to register datapoints", exc_info=True)
+                    if not self._register_datapoints():
+                        log.error("Not all datapoints registered, exiting!")
+                        self.stop()
                         continue
+                    self._registered = True
             try:
                 if not processing_started:
                     processing_started = True
