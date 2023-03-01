@@ -29,12 +29,10 @@
         },
         "description": "...",
         "type": "sensor",
-        "unit": "km",
-        "uuid": "bccc5ae20fe351e085cb5e0592f3438e"
+        "unit": "km"
       }
     },
     "description": "Branch A.",
-    "type": "branch",
-    "uuid": "6342f7c4796a5f78a93bff040a974d02"
+    "type": "branch"
   }
 }

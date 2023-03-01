@@ -292,7 +292,13 @@ class Feeder:
                             log.error(f"Error sending {target} to databroker", exc_info=True)
                             success = False
                     else:
-                        resp=json.loads(kuksa.setValue(target, str(value)))
+                        # KUKSA server expects a string value without quotes
+                        if isinstance(value,bool):
+                            # For bool KUKSA server expects lower case (true/false) rather than Python case (True/False)
+                            send_value = json.dumps(value)
+                        else:
+                            send_value = str(value)
+                        resp = json.loads(kuksa.setValue(target, send_value))
                         if "error" in resp:
                             log.error(f"Error sending {target} to kuksa-val-server: {resp['error']}")
                             success = False
@@ -431,7 +437,7 @@ def main(argv):
     elif "general" in config and "mapping" in config["general"]:
         mappingfile = config["general"]["mapping"]
     else:
-        mappingfile = "vss_dbc.json"
+        mappingfile = "mapping/vss_3.1.1/vss_dbc.json"
 
     if args.canport:
         canport = args.canport

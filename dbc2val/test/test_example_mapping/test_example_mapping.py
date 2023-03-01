@@ -24,7 +24,7 @@ from dbcfeederlib import dbc2vssmapper
 import os
 
 # read config only once
-path = os.path.dirname(os.path.abspath(__file__)) + "/../../vss_dbc.json"
+path = os.path.dirname(os.path.abspath(__file__)) + "/../../mapping/vss_3.1.1/vss_dbc.json"
 mapper : dbc2vssmapper.Mapper = dbc2vssmapper.Mapper(path)
 
 def test_current_gear():

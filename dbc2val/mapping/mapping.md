@@ -23,7 +23,12 @@ for the DBC feeder, like in the example below.
       },
 ```
 
-An example VSS JSON file can be seen in [vss_dbc.json](vss_dbc.json).
+## Example mapping files
+
+Example mapping files for various VSS versions can be found in the [mapping](mapping) folder.
+By default dbc2val uses the `vss_dbc.json` file for the newest available VSS release.
+If your KUKSA.val Server or Databroker use a different VSS-version then you should select a mapping file matching
+that version.
 
 ## Creating a mapping file
 
@@ -64,14 +69,14 @@ you must clone the repository, update submodules and then generate VSS JSON like
 
 ```
 git submodule update --init
-vss-tools/vspec2json.py -e dbc -o dbc_overlay.vspec --no-uuid ./spec/VehicleSignalSpecification.vspec vss_dbc.json
+vss-tools/vspec2json.py -e dbc -o dbc_overlay.vspec --no-uuid  --json-pretty ./spec/VehicleSignalSpecification.vspec vss_dbc.json
 ```
 
 An alternative approach is download a tar archive from an [official VSS release](https://github.com/COVESA/vehicle_signal_specification/releases)
 and use the included Yaml file as base.
 
 ```
-vss-tools/vspec2json.py -e dbc -o dbc_overlay.vspec --no-uuid vss_rel_3.0.yaml vss_dbc.json
+vss-tools/vspec2json.py -e dbc -o dbc_overlay.vspec --no-uuid  --json-pretty vss_rel_3.1.1.yaml vss_dbc.json
 ```
 
 _Note: The dbc feeder relies on correct VSS information in the JSON file. This means that if KUKSA.val Databroker VSS JSON file updated, then the file used in DBC-feeder possibly needs to be updated as well._
@@ -81,7 +86,7 @@ _Note: The dbc feeder relies on correct VSS information in the JSON file. This m
 
 The syntax for a DBC definition of a signal in an overlay is specified below.
 The syntax if information instead is added directly to a VSS JSON file is similar, but not described here.
-See [vss_dbc.json](vss_dbc.json) for examples on DBC specification in JSON format.
+See `vss_dbc.json` in mapping folder for examples on DBC specification in JSON format.
 Search for `dbc` to find the signals where DBC mapping has been defined.
 If a signal does not have DBC mapping it will be ignored by the DBC feeder.
 
@@ -94,7 +99,7 @@ Syntax
   dbc:
     signal: <DBC signal name>
     [interval_ms: <interval in milliseconds>]
-    [on_change: {True|False}]
+    [on_change: {true|false}]
     [transform: ...]
 ```
 
@@ -103,9 +108,9 @@ By default the DBC feeder use the [Model3CAN.dbc](Model3CAN.dbc) example file.
 
 `interval_ms` and `on_change` are optional and control under which conditions a value shall be forwarded.
 The `interval_ms` value indicates the minimum interval between signals in milliseconds.
-The `on_change: True` argument specifies that the VSS signal only shall be sent if the DBC value has changed.
-If none of them are specified it corresponds to `interval_ms: 1000, on_change: False`.
-If only `on_change: True` is specified it corresponds to `interval_ms: 0, on_change: True`
+The `on_change: true` argument specifies that the VSS signal only shall be sent if the DBC value has changed.
+If none of them are specified it corresponds to `interval_ms: 1000, on_change: false`.
+If only `on_change: true` is specified it corresponds to `interval_ms: 0, on_change: true`
 
 The `transform` entry can be used to specify how DBC values shall be mapped to VSS values.
 If transform is not specified values will be transformed as is.
@@ -160,6 +165,14 @@ If no matching value is found the signal will be ignored.
 It is allowed (but not recommended) to have multiple entries for the same from-value.
 In that case the feeder will arbitrarily select one of the mappings.
 
+The from/to values must be compatible with DBC and VSS type respectively.
+Numerical values must be written without quotes.
+For boolean signals `true` and `false` without quotes is recommended, as that is valid values in both Yaml and JSON.
+If using Yaml (*.vspec) as source format quoting string values is optional.
+Quotes may however be needed if the value otherwise could be misinterpreted as a [Yaml 1.1](https://yaml.org/type/bool.html)
+literal. Typical examples are values like `yes` which is a considered as a synonym to `true`.
+If using JSON all strings must be quoted.
+
 ## Evaluation Logics
 
 For each VSS-DBC combination the feeder stores a timestamp and a value.
@@ -186,7 +199,7 @@ Previously DBC feeder used a different configuration format no longer supported.
 If you use the old Yaml format you must convert it to the new format.
 Below are examples on how that can be done.
 All examples are shown as if using vspec overlays to define the mapping.
-If adding mapping directly to JSON see examples in [vss_dbc.json](vss_dbc.json), search for `dbc`.
+If adding mapping directly to JSON see examples in `vss_dbc.json` in mapping folder, search for `dbc`.
 
 ### Limitations
 
@@ -299,11 +312,11 @@ Vehicle.Powertrain.Transmission.IsParkLockEngaged:
     transform:
        mapping:
         - from: DI_GEAR_D
-          to: False
+          to: false
         - from: DI_GEAR_P
-          to: True
+          to: true
         - from: DI_GEAR_INVALID
-          to: False
+          to: false
         - from: DI_GEAR_R
-          to: False
+          to: false
 ```

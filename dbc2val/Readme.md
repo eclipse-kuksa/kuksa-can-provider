@@ -112,7 +112,7 @@ A smaller excerpt from the above sample, with less signals.
 | canport                       | -               | [can].port           | CAN_PORT                      | `--canport`           | Read from this CAN interface                                                                            |
 | use-j1939                     | False           | [can].j1939          | USE_J1939                     | `--use-j1939`         | Use J1939                                                                                               |
 | use-socketcan                 | False           | -                    | -                             | `--use-socketcan`     | Use SocketCAN (overriding any use of --dumpfile)                                                        |
-| mapping                       | vss_dbc.json    | [general].mapping    | MAPPING_FILE                  | `--mapping`           | Mapping file used to map CAN signals to databroker datapoints. Take a look on usage of the mapping file |
+| mapping                       | mapping/vss_3.1.1/vss_dbc.json    | [general].mapping    | MAPPING_FILE                  | `--mapping`           | Mapping file used to map CAN signals to databroker datapoints. Take a look on usage of the mapping file |
 | server-type                   | kuksa_databroker | [general].server_type | SERVER_TYPE                 | `--server-type`       | Which type of server the feeder should connect to (kuksa_val_server or kuksa_databroker |
 | DAPR_GRPC_PORT                | -               | -                    | DAPR_GRPC_PORT                | -                     | Override broker address & connect to DAPR sidecar @ 127.0.0.1:DAPR_GRPC_PORT                            |
 | VEHICLEDATABROKER_DAPR_APP_ID | -               | -                    | VEHICLEDATABROKER_DAPR_APP_ID | -                     | Add dapr-app-id metadata                                                                                |
@@ -221,7 +221,7 @@ docker run  --net=host -e LOG_LEVEL=INFO dbcfeeder:latest --server-type kuksa_va
 
 The mapping file describes mapping between VSS signals and DBC signals.
 It shall be a JSON file with VSS syntax with metadata for dbc information.
-Please see [mapping documentation](mapping.md) for more information.
+Please see [mapping documentation](mapping/mapping.md) for more information.
 
 ## Logging
 

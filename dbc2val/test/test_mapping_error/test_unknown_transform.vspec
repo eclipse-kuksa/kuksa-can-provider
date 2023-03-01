@@ -17,7 +17,7 @@ A.B:
   description: "..."
   dbc:
     signal: S3
-    on_change: True
+    on_change: true
     transform:
        something_else:
         - from: DI_GEAR_D

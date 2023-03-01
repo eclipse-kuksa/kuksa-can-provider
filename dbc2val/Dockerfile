@@ -42,7 +42,8 @@ RUN staticx dbcfeeder dbcfeeder-exe
 
 WORKDIR /data
 COPY ./config/* ./config/
-COPY ./*.json ./*.dbc ./candump*.log ./
+COPY ./mapping/ ./mapping/
+COPY ./*.dbc ./candump*.log ./
 
 # Runner stage, to copy in the virtual environment and the app
 FROM scratch

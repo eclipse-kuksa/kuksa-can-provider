@@ -37,7 +37,7 @@ A.NoTransformOnChangeTrue:
   description: "..."
   dbc:
     signal: S1
-    on_change: True
+    on_change: true
 
 # Shall behave as default
 A.NoTransformOnChangeFalse:
@@ -47,7 +47,7 @@ A.NoTransformOnChangeFalse:
   description: "..."
   dbc:
     signal: S1
-    on_change: False
+    on_change: false
 
 A.NoTransformOnChangeInterval500:
   datatype: uint8
@@ -57,7 +57,7 @@ A.NoTransformOnChangeInterval500:
   dbc:
     signal: S1
     interval_ms: 500
-    on_change: True
+    on_change: true
 
 A.NoTransformAlways:
   datatype: uint8
@@ -71,9 +71,10 @@ A.NoTransformAlways:
 A.Math:
   type: sensor
   datatype: float
+  description: "..."
   dbc:
     signal: S2
-    on_change: True
+    on_change: true
     transform:
       math: "floor(abs(x/5))"
       
@@ -81,9 +82,10 @@ A.Math:
 A.MappingStringInt:
   type: sensor
   datatype: int8
+  description: "..."
   dbc:
     signal: S3
-    on_change: True
+    on_change: true
     transform:
        mapping:
         - from: DI_GEAR_D
@@ -98,9 +100,10 @@ A.MappingStringInt:
 A.MappingStringString:
   type: sensor
   datatype: string
+  description: "..."
   dbc:
     signal: S4
-    on_change: True
+    on_change: true
     transform:
        mapping:
         - from: "schwarz"
@@ -111,9 +114,10 @@ A.MappingStringString:
 A.MappingIntInt:
   type: sensor
   datatype: string
+  description: "..."
   dbc:
     signal: S5
-    on_change: True
+    on_change: true
     transform:
        mapping:
         - from: 3
@@ -126,9 +130,10 @@ A.MappingIntInt:
 A.MappingIntIntDuplicate:
   type: sensor
   datatype: string
+  description: "..."
   dbc:
     signal: S5
-    on_change: True
+    on_change: true
     transform:
        mapping:
         - from: 3
@@ -137,3 +142,24 @@ A.MappingIntIntDuplicate:
           to: 4
         - from: 3
           to: 8
+
+# Note how these mappings will be transformed to JSON
+# If Yaml parser use Yaml 1.1 (which seems to be default) they will be transformed to true/false
+# in JSON.
+A.IsMappingBool:
+  type: sensor
+  datatype: boolean
+  description: "..."
+  dbc:
+    signal: S6
+    on_change: true
+    transform:
+       mapping:
+        - from: 1
+          to: True
+        - from: 2
+          to: On
+        - from: 3
+          to: No
+        - from: 4
+          to: true
