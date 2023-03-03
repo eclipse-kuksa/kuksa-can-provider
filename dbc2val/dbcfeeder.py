@@ -114,6 +114,7 @@ class Feeder:
         self._elmcan_config = elmcan_config
         self._exit_stack = contextlib.ExitStack()
         self._disconnect_time = 0.0
+        self._kuksa = None
 
     def start(
         self,
@@ -193,6 +194,9 @@ class Feeder:
             self._reader.stop()
         if self._player is not None:
             self._player.stop()
+        if self._kuksa is not None:
+            self._kuksa.stop()
+
         self._exit_stack.close()
 
     def is_stopping(self):
@@ -241,9 +245,9 @@ class Feeder:
 
     def _run(self):
         if self._server_type is ServerType.KUKSA_VAL_SERVER:
-            kuksa = KuksaClientThread(self._kuksa_client_config)
-            kuksa.start()
-            kuksa.authorize()
+            self._kuksa = KuksaClientThread(self._kuksa_client_config)
+            self._kuksa.start()
+            self._kuksa.authorize()
 
         processing_started = False
         messages_sent = 0
@@ -298,7 +302,7 @@ class Feeder:
                             send_value = json.dumps(value)
                         else:
                             send_value = str(value)
-                        resp = json.loads(kuksa.setValue(target, send_value))
+                        resp = json.loads(self._kuksa.setValue(target, send_value))
                         if "error" in resp:
                             log.error(f"Error sending {target} to kuksa-val-server: {resp['error']}")
                             success = False
