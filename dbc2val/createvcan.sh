@@ -68,5 +68,3 @@ fi
 virtualCanConfigure
 
 echo "createvcan: Done."
-
-

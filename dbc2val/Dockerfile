@@ -29,9 +29,11 @@ RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 RUN /opt/venv/bin/python3 -m pip install --upgrade pip \
-    && pip3 install --no-cache-dir -r requirements.txt
+    && pip3 install --pre --no-cache-dir -r requirements.txt
 
-RUN pip3 install wheel scons && pip3 install pyinstaller patchelf==0.17.0.0 staticx
+# staticx v0.13.8 cannot use pyinstaller 5.10.0
+# see https://github.com/JonathonReinhart/staticx/issues/235
+RUN pip3 install wheel scons && pip3 install pyinstaller==5.9.0 patchelf==0.17.0.0 staticx
 
 # By default we use certificates and tokens from kuksa_certificates, so they must be included
 RUN pyinstaller --collect-data kuksa_certificates --hidden-import can.interfaces.socketcan --clean -F -s dbcfeeder.py

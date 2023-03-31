@@ -46,8 +46,10 @@ $ python -V
 3. Install the needed python packages
 
 ```console
-$ pip install -r requirements.txt
+$ pip install --pre -r requirements.txt
 ```
+
+*Note - `--pre` currently needed as dbcfeeder relies on a pre-release of kuksa-client*
 
 4. If you want to run tests and linters, you will also need to install development dependencies
 
@@ -104,19 +106,32 @@ A smaller excerpt from the above sample, with fewer signals.
 
 ## Configuration
 
-| Command Line Argument | Environment Variable            | Config File Property    | Default Value                    | Description     | 
+<<<<<<< HEAD
+| Command Line Argument | Environment Variable            | Config File Property    | Default Value                    | Description     |
 |:----------------------|:--------------------------------|:------------------------|:---------------------------------|-----------------------|
-| *--config*            | -                               | -                       | -                                | Configuration file  |
+| *--config*            | -                               | -                       | *See below*                      | Configuration file  |
 | *--dbcfile*           | *DBC_FILE*                      | *[can].dbc*             |                                  | DBC file used for parsing CAN traffic  |
 | *--dumpfile*          | *CANDUMP_FILE*                  | *[can].candumpfile*     |                                  | Replay recorded CAN traffic from dumpfile |
 | *--canport*           | *CAN_PORT*                      | *[can].port*            |                                  | Read from this CAN interface |
 | *--use-j1939*         | *USE_J1939*                     | *[can].j1939*           | `False`                          | Use J1939 when decoding CAN frames. Setting the environment value to any value is equivalent to activating the switch on the command line. |
 | *--use-socketcan*     | -                               | -                       | `False`                          | Use SocketCAN (overriding any use of --dumpfile) |
-| *--mapping*           | *MAPPING_FILE*                  | *[general].mapping*     | `mapping/vss_3.1.1/vss_dbc.json` |Mapping file used to map CAN signals to databroker datapoints. Take a look on usage of the mapping file |
+| *--mapping*           | *MAPPING_FILE*                  | *[general].mapping*     | `mapping/vss_3.1.1/vss_dbc.json` | Mapping file used to map CAN signals to databroker datapoints. |
 | *--server-type*       | *SERVER_TYPE*                   | *[general].server_type* | `kuksa_databroker`               | Which type of server the feeder should connect to (`kuksa_val_server` or `kuksa_databroker`) |
-| -                     | *VDB_ADDRESS*                   | -                       | `127.0.0.1:55555`                | The IP address/host name and port number of the databroker (only applicable for server type `kuksa_databroker`) |
-| -                     | *DAPR_GRPC_PORT*                | -                       | -                                | Override broker address & connect to DAPR sidecar @ 127.0.0.1:DAPR_GRPC_PORT |
-| -                     | *VEHICLEDATABROKER_DAPR_APP_ID* | -                       | -                                | Add dapr-app-id metadata |
+| -                     | *KUKSA_ADDRESS*                 | *[general].ip*          | `127.0.0.1`                      | IP address for Server/Databroker |
+| -                     | *KUKSA_PORT*                    | *[general].port*        | `55555`                          | Port for Server/Databroker |
+| *--tls*               | -                               | *[general].tls*         | `False`                          | Shall tls be used for Server/Databroker connection? |
+| -                     | -                               | *[general].token*       | *Undefined*                      | Token path. Only needed if Databroker/Server requires authentication |
+| -                     | *VEHICLEDATABROKER_DAPR_APP_ID* | -                       | -                                | Add dapr-app-id metadata. Only relevant for KUKSA.val Databroker |
+
+*Note that the [default config file](config/dbc_feeder.ini) include default Databroker settings and must be modified if you intend to use it for KUKSA.val Server*
+
+If `--config` is not given, the dbcfeeder will look for configuration files in the following locations:
+
+* `/config/dbc_feeder.in`
+* `/etc/dbc_feeder.ini`
+* `config/dbc_feeder.ini`
+
+The first one found will be used.
 
 Configuration options have the following priority (highest at top).
 
@@ -218,6 +233,26 @@ docker run  --net=host -e LOG_LEVEL=INFO dbcfeeder:latest --server-type kuksa_da
 docker run  --net=host -e LOG_LEVEL=INFO dbcfeeder:latest --server-type kuksa_val_server
 ```
 
+### KUKSA.val Server/Databroker Authentication when using Docker
+
+The docker container contains default certificates for KUKSA.val server, and if the configuration file does not
+specify token file the [default token file](https://github.com/eclipse/kuksa.val/blob/master/kuksa_certificates/jwt/all-read-write.json.token)
+provided by [kuksa-client](https://github.com/eclipse/kuksa.val/tree/master/kuksa-client) will be used.
+
+No default token is included for KUKSA.val Databroker. Instead the user must specify the token file in the config file.
+The token must also be available for the running docker container, for example by mounting the directory container
+when starting the container. Below is an example based on that the token file
+[provide-all.token](https://github.com/eclipse/kuksa.val/blob/master/jwt/provide-all.token) is used and that `kuksa.val`
+is cloned to `/home/user/kuksa.val`. Then the token can be accessed by mounting the `jwt`folder using the `-v`
+and specify `token=/jwt/provide-all.token` in the [default configuration file](config/dbc_feeder.ini).
+
+
+```console
+docker run  --net=host -e LOG_LEVEL=INFO -v /home/user/kuksa.val/jwt:/jwt dbcfeeder:latest
+```
+
+*Note that authentication in KUKSA.val Databroker by default is deactivated, and then no token needs to be given!*
+
 ## Mapping file
 
 The mapping file describes mapping between VSS signals and DBC signals.
@@ -234,26 +269,22 @@ To set the log level to DEBUG
 $ LOG_LEVEL=debug ./dbcfeeder.py
 ```
 
-Set log level to INFO, but for dbcfeeder.broker set it to DEBUG
+Set log level to INFO, but for dbcfeederlib.databrokerclientwrapper set it to DEBUG
 
 ```console
-$ LOG_LEVEL=info,dbcfeeder.broker_client=debug ./dbcfeeder.py
+$ LOG_LEVEL=info,dbcfeederlib.databrokerclientwrapper=debug ./dbcfeeder.py
 ```
 
 or, since INFO is the default log level, this is equivalent to:
 
 ```console
-$ LOG_LEVEL=dbcfeeder.broker_client=debug ./dbcfeeder.py
+$ LOG_LEVEL=dbcfeederlib.databrokerclientwrapper=debug ./dbcfeeder.py
 ```
 
 Available loggers:
 - dbcfeeder
-- dbcfeeder.broker_client
-- databroker
-- dbcreader
-- dbcmapper
-- can
-- j1939
+- dbcfeederlib.* (one for every file in the dbcfeeder directory)
+- kuksa-client (to control loggings provided by [kuksa-client](https://github.com/eclipse/kuksa.val/tree/master/kuksa-client))
 
 ## ELM/OBDLink support
 
@@ -284,4 +315,3 @@ large-sized messages that are delivered with more than one CAN frame because the
 than a CAN frame's maximum payload of 8 bytes. To enable the J1939 mode, simply put `--use-j1939` in the command when running `dbcfeeder.py`.
 
 Support for J1939 is provided by means of the [can-j1939 package](https://pypi.org/project/can-j1939/).
-

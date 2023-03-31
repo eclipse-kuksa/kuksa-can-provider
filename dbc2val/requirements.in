@@ -6,7 +6,7 @@
 # For creating/distributing a binary, all dependencies should
 # be pinned to specific versions in order to provide for a reproducible
 # build.
-# 
+#
 # The 'pip-tools' package's 'pip-compile' command can be used for that
 # purpose. The following command will take the inputs from this file
 # and create a 'requirements.txt' file with pinned versions of all
@@ -21,6 +21,7 @@ cantools ~= 38.0
 pyyaml ~= 6.0
 can-j1939 ~= 2.0
 py_expression_eval ~= 0.3
-kuksa-client ~= 0.3.0
+# Larger than 0.3, includes pre-released if pip installed with --pre
+kuksa-client > 0.3
 types-PyYAML ~= 6.0
 types-protobuf ~= 4.21

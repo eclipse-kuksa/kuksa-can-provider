@@ -10,3 +10,10 @@ Name | Description
 [SOME/IP feeder](./someip2val) | SOME/IP feeder for KUKSA.val Databroker
 [DDS Provider](./dds2val)      | DDS provider for KUKSA.val Databroker
 [Replay](./replay)             | KUKSA.val Server replay script for previously recorded files, created by providing KUKSA.val Server with `--record` argument
+
+## Pre-commit set up
+This repository is set up to use [pre-commit](https://pre-commit.com/) hooks.
+Use `pip install pre-commit` to install pre-commit.
+After you clone the project, run `pre-commit install` to install pre-commit into your git hooks.
+Pre-commit will now run on every commit.
+Every time you clone a project using pre-commit running pre-commit install should always be the first thing you do.

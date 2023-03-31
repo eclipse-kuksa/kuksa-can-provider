@@ -2,7 +2,7 @@
 #
 # For build and test install both dependencies in this file as well as dependencies in requirements.txt
 #
-# Example: 
+# Example:
 # pip3 install --no-cache-dir -r requirements.txt -r requirements-dev.txt
 #
 pytest
