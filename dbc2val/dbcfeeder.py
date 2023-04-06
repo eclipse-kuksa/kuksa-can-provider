@@ -457,7 +457,7 @@ def main(argv):
     if args.use_j1939:
         use_j1939 = True
     elif os.environ.get("USE_J1939"):
-        use_j1939 = os.environ.get("USE_J1939") == "1"
+        use_j1939 = True
     elif "can" in config:
         use_j1939 = config["can"].getboolean("j1939", False)
     else:

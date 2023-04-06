@@ -100,22 +100,23 @@ unxz candump-2021-12-08_151848.log.xz
 ```
 
 [candump.log](./candump.log):
-A smaller excerpt from the above sample, with less signals.
+A smaller excerpt from the above sample, with fewer signals.
 
 ## Configuration
 
-| parameter                     | default value   | config file          | Env var                       | command line argument | description                                                                                             |
-|-------------------------------|-----------------|----------------------|-------------------------------|-----------------------|---------------------------------------------------------------------------------------------------------|
-| config                        | -               | -                    | -                             | `--config`            | Configuration file                                                                                      |
-| dbcfile                       | -               | [can].dbc            | DBC_FILE                      | `--dbcfile`           | DBC file used for parsing CAN traffic                                                                   |
-| dumpfile                      | -               | [can].candumpfile    | CANDUMP_FILE                  | `--dumpfile`          | Replay recorded CAN traffic from dumpfile                                                               |
-| canport                       | -               | [can].port           | CAN_PORT                      | `--canport`           | Read from this CAN interface                                                                            |
-| use-j1939                     | False           | [can].j1939          | USE_J1939                     | `--use-j1939`         | Use J1939                                                                                               |
-| use-socketcan                 | False           | -                    | -                             | `--use-socketcan`     | Use SocketCAN (overriding any use of --dumpfile)                                                        |
-| mapping                       | mapping/vss_3.1.1/vss_dbc.json    | [general].mapping    | MAPPING_FILE                  | `--mapping`           | Mapping file used to map CAN signals to databroker datapoints. Take a look on usage of the mapping file |
-| server-type                   | kuksa_databroker | [general].server_type | SERVER_TYPE                 | `--server-type`       | Which type of server the feeder should connect to (kuksa_val_server or kuksa_databroker |
-| DAPR_GRPC_PORT                | -               | -                    | DAPR_GRPC_PORT                | -                     | Override broker address & connect to DAPR sidecar @ 127.0.0.1:DAPR_GRPC_PORT                            |
-| VEHICLEDATABROKER_DAPR_APP_ID | -               | -                    | VEHICLEDATABROKER_DAPR_APP_ID | -                     | Add dapr-app-id metadata                                                                                |
+| Command Line Argument | Environment Variable            | Config File Property    | Default Value                    | Description     | 
+|:----------------------|:--------------------------------|:------------------------|:---------------------------------|-----------------------|
+| *--config*            | -                               | -                       | -                                | Configuration file  |
+| *--dbcfile*           | *DBC_FILE*                      | *[can].dbc*             |                                  | DBC file used for parsing CAN traffic  |
+| *--dumpfile*          | *CANDUMP_FILE*                  | *[can].candumpfile*     |                                  | Replay recorded CAN traffic from dumpfile |
+| *--canport*           | *CAN_PORT*                      | *[can].port*            |                                  | Read from this CAN interface |
+| *--use-j1939*         | *USE_J1939*                     | *[can].j1939*           | `False`                          | Use J1939 when decoding CAN frames. Setting the environment value to any value is equivalent to activating the switch on the command line. |
+| *--use-socketcan*     | -                               | -                       | `False`                          | Use SocketCAN (overriding any use of --dumpfile) |
+| *--mapping*           | *MAPPING_FILE*                  | *[general].mapping*     | `mapping/vss_3.1.1/vss_dbc.json` |Mapping file used to map CAN signals to databroker datapoints. Take a look on usage of the mapping file |
+| *--server-type*       | *SERVER_TYPE*                   | *[general].server_type* | `kuksa_databroker`               | Which type of server the feeder should connect to (`kuksa_val_server` or `kuksa_databroker`) |
+| -                     | *VDB_ADDRESS*                   | -                       | `127.0.0.1:55555`                | The IP address/host name and port number of the databroker (only applicable for server type `kuksa_databroker`) |
+| -                     | *DAPR_GRPC_PORT*                | -                       | -                                | Override broker address & connect to DAPR sidecar @ 127.0.0.1:DAPR_GRPC_PORT |
+| -                     | *VEHICLEDATABROKER_DAPR_APP_ID* | -                       | -                                | Add dapr-app-id metadata |
 
 Configuration options have the following priority (highest at top).
 
@@ -281,14 +282,6 @@ When the target DBC file and ECU follow the SAE-J1939 standard, the CAN reader a
 PGN(Parameter Group Number)-based Data rather than CAN frames directly. Otherwise it is possible to miss signals from
 large-sized messages that are delivered with more than one CAN frame because the size of each of these messages is bigger
 than a CAN frame's maximum payload of 8 bytes. To enable the J1939 mode, simply put `--use-j1939` in the command when running `dbcfeeder.py`.
-Prior to using this feature, j1939 and the relevant wheel-packages should be installed first:
 
-```console
-$ pip install j1939
-$ git clone https://github.com/benkfra/j1939.git
-$ cd j1939
-$ pip install .
-```
-
-The detailed documentation to this feature can be found [here](https://dias-kuksa-doc.readthedocs.io/en/latest/contents/j1939.html).
+Support for J1939 is provided by means of the [can-j1939 package](https://pypi.org/project/can-j1939/).
 
