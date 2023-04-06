@@ -56,9 +56,9 @@ class CANplayer:
                 log.debug(f"Message sent on {self.bus.channel_info}")
                 log.debug(f"Message: {msg}")
             except can.CanError:
-                log.debug("Failed to send message via CAN bus")
+                log.error("Failed to send message via CAN bus")
 
-        log.debug("Replayed all messages from CAN log file")
+        log.info("Replayed all messages from CAN log file")
 
     def txWorker(self):
         log.info("Starting Tx thread")
