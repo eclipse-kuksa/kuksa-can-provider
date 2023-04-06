@@ -34,7 +34,7 @@ RUN /opt/venv/bin/python3 -m pip install --upgrade pip \
 RUN pip3 install wheel scons && pip3 install pyinstaller patchelf==0.17.0.0 staticx
 
 # By default we use certificates and tokens from kuksa_certificates, so they must be included
-RUN pyinstaller --collect-data kuksa_certificates --clean -F -s dbcfeeder.py
+RUN pyinstaller --collect-data kuksa_certificates --hidden-import can.interfaces.socketcan --clean -F -s dbcfeeder.py
 #   --debug=imports
 
 WORKDIR /dist
