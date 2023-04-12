@@ -13,14 +13,14 @@
 
 
 # Build stage, to create a Virtual Environent
-FROM --platform=$TARGETPLATFORM python:3.9-slim-bullseye as builder
+FROM --platform=$TARGETPLATFORM python:3.10-alpine as builder
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 
 RUN echo "-- Running on $BUILDPLATFORM, building for $TARGETPLATFORM"
 
-RUN apt-get update -qqy && apt-get upgrade -qqy && apt-get install -qqy binutils g++
+RUN apk update && apk add alpine-sdk linux-headers
 
 COPY . /
 
@@ -29,18 +29,16 @@ RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 RUN /opt/venv/bin/python3 -m pip install --upgrade pip \
-    && pip3 install --pre --no-cache-dir -r requirements.txt
+    && pip3 install --no-cache-dir -r requirements.txt
 
-# staticx v0.13.8 cannot use pyinstaller 5.10.0
-# see https://github.com/JonathonReinhart/staticx/issues/235
-RUN pip3 install wheel scons && pip3 install pyinstaller==5.9.0 patchelf==0.17.0.0 staticx
+
+RUN pip3 install wheel scons && pip3 install pyinstaller
 
 # By default we use certificates and tokens from kuksa_certificates, so they must be included
 RUN pyinstaller --collect-data kuksa_certificates --hidden-import can.interfaces.socketcan --clean -F -s dbcfeeder.py
 #   --debug=imports
 
 WORKDIR /dist
-RUN staticx dbcfeeder dbcfeeder-exe
 
 WORKDIR /data
 COPY ./config/* ./config/
@@ -48,20 +46,12 @@ COPY ./mapping/ ./mapping/
 COPY ./*.dbc ./candump*.log ./
 
 # Runner stage, to copy in the virtual environment and the app
-FROM scratch
+FROM alpine:3
 
-LABEL org.opencontainers.image.source="https://github.com/eclipse/kuksa.val.feeders"
-
-LABEL org.opencontainers.image.licenses="APACHE-2.0"
-
-# needed as /dist/binary unpacks and runs from /tmp
-WORKDIR /tmp
-# optional volume mapping
-WORKDIR /conf
 
 WORKDIR /dist
 
-COPY --from=builder /dist/dbcfeeder-exe .
+COPY --from=builder /dist/* .
 COPY --from=builder /data/ ./
 
 ENV PATH="/dist:$PATH"
@@ -78,4 +68,4 @@ ENV VEHICLEDATABROKER_DAPR_APP_ID=vehicledatabroker
 
 ENV PYTHONUNBUFFERED=yes
 
-ENTRYPOINT ["./dbcfeeder-exe"]
+ENTRYPOINT ["./dbcfeeder"]
