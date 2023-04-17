@@ -106,9 +106,8 @@ A smaller excerpt from the above sample, with fewer signals.
 
 ## Configuration
 
-<<<<<<< HEAD
-| Command Line Argument | Environment Variable            | Config File Property    | Default Value                    | Description     |
-|:----------------------|:--------------------------------|:------------------------|:---------------------------------|-----------------------|
+| Command Line Argument | Environment Variable            | Config File Property    | Default Value                    | Description         |
+|:----------------------|:--------------------------------|:------------------------|:---------------------------------|---------------------|
 | *--config*            | -                               | -                       | *See below*                      | Configuration file  |
 | *--dbcfile*           | *DBC_FILE*                      | *[can].dbc*             |                                  | DBC file used for parsing CAN traffic  |
 | *--dumpfile*          | *CANDUMP_FILE*                  | *[can].candumpfile*     |                                  | Replay recorded CAN traffic from dumpfile |
