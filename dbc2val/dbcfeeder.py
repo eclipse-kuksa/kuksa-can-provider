@@ -395,7 +395,7 @@ def main(argv):
     elif "general" in config and "mapping" in config["general"]:
         mappingfile = config["general"]["mapping"]
     else:
-        mappingfile = "mapping/vss_3.1.1/vss_dbc.json"
+        mappingfile = "mapping/vss_4.0/vss_dbc.json"
 
     if args.canport:
         canport = args.canport

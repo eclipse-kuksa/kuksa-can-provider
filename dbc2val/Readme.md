@@ -114,7 +114,7 @@ A smaller excerpt from the above sample, with fewer signals.
 | *--canport*           | *CAN_PORT*                      | *[can].port*            |                                  | Read from this CAN interface |
 | *--use-j1939*         | *USE_J1939*                     | *[can].j1939*           | `False`                          | Use J1939 when decoding CAN frames. Setting the environment value to any value is equivalent to activating the switch on the command line. |
 | *--use-socketcan*     | -                               | -                       | `False`                          | Use SocketCAN (overriding any use of --dumpfile) |
-| *--mapping*           | *MAPPING_FILE*                  | *[general].mapping*     | `mapping/vss_3.1.1/vss_dbc.json` | Mapping file used to map CAN signals to databroker datapoints. |
+| *--mapping*           | *MAPPING_FILE*                  | *[general].mapping*     | `mapping/vss_4.0/vss_dbc.json` | Mapping file used to map CAN signals to databroker datapoints. |
 | *--server-type*       | *SERVER_TYPE*                   | *[general].server_type* | `kuksa_databroker`               | Which type of server the feeder should connect to (`kuksa_val_server` or `kuksa_databroker`) |
 | -                     | *KUKSA_ADDRESS*                 | *[general].ip*          | `127.0.0.1`                      | IP address for Server/Databroker |
 | -                     | *KUKSA_PORT*                    | *[general].port*        | `55555`                          | Port for Server/Databroker |

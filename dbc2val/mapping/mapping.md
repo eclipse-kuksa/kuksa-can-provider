@@ -51,7 +51,7 @@ The idea of overlays is to specify additions in a separate file and then apply t
 a VSS tree. An example dbc overlay exists in [dbc_overlay.vspec](dbc_overlay.vspec).
 An overlay file is a VSS `*.vspec` file, which shall in itself be a valid VSS tree.
 The VSS tooling requires that type and datatype are defined in addition to the DBC specific data
-needed by the DBC feeder, like in the example below: 
+needed by the DBC feeder, like in the example below:
 
 ```yaml
 Vehicle.Speed:
@@ -69,14 +69,14 @@ you must clone the repository, update submodules and then generate VSS JSON like
 
 ```
 git submodule update --init
-vss-tools/vspec2json.py -e dbc -o dbc_overlay.vspec --no-uuid  --json-pretty ./spec/VehicleSignalSpecification.vspec vss_dbc.json
+vss-tools/vspec2json.py -e dbc -o dbc_overlay.vspec -u spec/units.yaml  --json-pretty ./spec/VehicleSignalSpecification.vspec vss_dbc.json
 ```
 
 An alternative approach is download a tar archive from an [official VSS release](https://github.com/COVESA/vehicle_signal_specification/releases)
 and use the included Yaml file as base.
 
 ```
-vss-tools/vspec2json.py -e dbc -o dbc_overlay.vspec --no-uuid  --json-pretty vss_rel_3.1.1.yaml vss_dbc.json
+vss-tools/vspec2json.py -e dbc -o dbc_overlay.vspec -u units.yaml --json-pretty vss_rel_4.0.yaml vss_dbc.json
 ```
 
 _Note: The dbc feeder relies on correct VSS information in the JSON file. This means that if KUKSA.val Databroker VSS JSON file updated, then the file used in DBC-feeder possibly needs to be updated as well._
