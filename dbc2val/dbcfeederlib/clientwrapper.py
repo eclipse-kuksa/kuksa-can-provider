@@ -14,7 +14,7 @@
 #################################################################################
 
 import logging
-from typing import Any
+from typing import Any, List
 
 from abc import ABC, abstractmethod
 
@@ -79,3 +79,11 @@ class ClientWrapper(ABC):
     @abstractmethod
     def stop(self):
         pass
+
+    @abstractmethod
+    def supports_subscription(self) -> bool:
+        """Return true if this client supports subscribing to VSS signals"""
+
+    @abstractmethod
+    async def subscribe(self, vss_names: List[str], callback):
+        """Creates a subscription and calls the callback when data received"""

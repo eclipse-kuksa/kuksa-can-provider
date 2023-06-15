@@ -26,7 +26,6 @@
 import logging
 import time
 
-import cantools
 import j1939
 from dbcfeederlib import dbc2vssmapper
 from queue import Queue
@@ -36,11 +35,11 @@ log = logging.getLogger(__name__)
 
 class J1939Reader:
 
-    def __init__(self, rxqueue: Queue, dbcfile: str, mapper: str, use_strict_parsing: bool):
+    def __init__(self, rxqueue: Queue, mapper, dbc_parser):
         self.queue = rxqueue
-        self.db = cantools.database.load_file(dbcfile, strict = use_strict_parsing)
         self.mapper = mapper
-        self.ecu = j1939.ElectronicControlUnit();
+        self.dbc_parser = dbc_parser
+        self.ecu = j1939.ElectronicControlUnit()
 
     def stop(self):
         self.ecu.disconnect()
@@ -90,7 +89,7 @@ class J1939Reader:
 
     def identify_message(self, pgn):
         pgn_hex = hex(pgn)[2:]  # only hex(pgn) without '0x' prefix
-        for message in self.db.messages:
+        for message in self.dbc_parser.db.messages:
             message_hex = hex(message.frame_id)[
                 -6:-2
             ]  # only hex(pgn) without '0x' prefix, priority and source address

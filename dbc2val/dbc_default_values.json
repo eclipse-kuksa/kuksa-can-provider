@@ -1,0 +1,22 @@
+{
+  "VCLEFT_frontHandlePWM" : 0,
+  "VCLEFT_frontHandlePulled" : 0,
+  "VCLEFT_frontHandlePulledPersist" : 0,
+  "VCLEFT_frontIntSwitchPressed" : 0,
+  "VCLEFT_frontLatchStatus" : 0,
+  "VCLEFT_frontLatchSwitch" : 0,
+  "VCLEFT_frontRelActuatorSwitch" : 0,
+  "VCLEFT_mirrorDipped" : 0,
+  "VCLEFT_mirrorFoldState" : 0,
+  "VCLEFT_mirrorHeatState" : 2,
+  "VCLEFT_mirrorRecallState" : 0,
+  "VCLEFT_mirrorState" : 0,
+  "VCLEFT_mirrorTiltXPosition" : 0,
+  "VCLEFT_mirrorTiltYPosition" : 0,
+  "VCLEFT_rearHandlePWM" : 0,
+  "VCLEFT_rearHandlePulled" : 0,
+  "VCLEFT_rearIntSwitchPressed" : 0,
+  "VCLEFT_rearLatchStatus" : 0,
+  "VCLEFT_rearLatchSwitch" : 0,
+  "VCLEFT_rearRelActuatorSwitch" : 0
+}

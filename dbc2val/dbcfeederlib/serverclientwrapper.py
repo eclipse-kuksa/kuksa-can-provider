@@ -14,13 +14,12 @@
 #################################################################################
 
 import logging
-from typing import Any
+from typing import Any, List
 import json
 
-from dbcfeederlib import clientwrapper
-
-
 from kuksa_client import KuksaClientThread
+
+from dbcfeederlib import clientwrapper
 
 log = logging.getLogger(__name__)
 
@@ -71,15 +70,15 @@ class ServerClientWrapper(clientwrapper.ClientWrapper):
     def is_connected(self) -> bool:
         # This one is quite unreliable, see https://github.com/eclipse/kuksa.val/issues/523
         if self._kuksa is None:
-            log.warning("is_connected called before client has been started")
+            log.error("is_connected called before client has been started")
             return False
         return self._kuksa.checkConnection()
 
     def is_signal_defined(self, vss_name: str) -> bool:
         if self._kuksa is None:
-            log.warning("is_signal_defined called before client has been started")
+            log.error("is_signal_defined called before client has been started")
             return False
-        """Check if signal is defined in server """
+        # Check if signal is defined in server
         resp = json.loads(self._kuksa.getMetaData(vss_name))
         if "error" in resp:
             log.error(f"Signal {vss_name} appears not to be registered: {resp['error']}")
@@ -95,7 +94,7 @@ class ServerClientWrapper(clientwrapper.ClientWrapper):
         (possibly with correct case)
         """
         if self._kuksa is None:
-            log.warning("update_datapoint called before client has been started")
+            log.error("update_datapoint called before client has been started")
             return False
         success = True
         if isinstance(value, bool):
@@ -117,3 +116,11 @@ class ServerClientWrapper(clientwrapper.ClientWrapper):
         if self._kuksa is not None:
             self._kuksa.stop()
             self._kuksa = None
+
+    def supports_subscription(self) -> bool:
+        log.info("Feature not implemented")
+        return False
+
+    async def subscribe(self, vss_names: List[str], callback):
+        log.error("Feature not implemented")
+        return

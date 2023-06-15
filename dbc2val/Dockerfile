@@ -43,7 +43,7 @@ WORKDIR /dist
 WORKDIR /data
 COPY ./config/* ./config/
 COPY ./mapping/ ./mapping/
-COPY ./*.dbc ./candump*.log ./
+COPY ./*.dbc ./candump*.log ./*.json ./
 
 # Runner stage, to copy in the virtual environment and the app
 FROM alpine:3

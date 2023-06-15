@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The DBC feeder use JSON for configuring how DBC data shall be mapped to VSS signals.
+The DBC feeder use JSON for configuring how DBC data shall be mapped to/from VSS signals.
 The JSON file is supposed to contain valid VSS JSON, so that it theoretically also could be
 used as configuration file for [KUKSA.val](https://github.com/eclipse/kuksa.val)
 (kuksa-val-server or kuksa-databroker).
@@ -11,17 +11,37 @@ for the DBC feeder, like in the example below.
 
 
 ```json
-      "Speed": {
-        "datatype": "float",
-        "dbc": {
-          "interval_ms": 5000,
-          "signal": "DI_uiSpeed"
-        },
-        "description": "Vehicle speed.",
-        "type": "sensor",
-        "unit": "km/h"
-      },
+ "Pan": {
+                    "datatype": "int8",
+                    "dbc2vss": {
+                      "interval_ms": 100,
+                      "signal": "DBC_Signal_For_Actual_Pan",
+                      "transform": {
+                        "math": "floor((x*40)-100)"
+                      }
+                    },
+                    "description": "Mirror pan as a percent. 0 = Center Position. 100 = Fully Left Position. -100 = Fully Right Position.",
+                    "max": 100,
+                    "min": -100,
+                    "type": "actuator",
+                    "unit": "percent",
+                    "vss2dbc": {
+                      "signal": "DBC_Signal_For_Wanted_Pan",
+                      "transform": {
+                        "math": "(x+100)/40"
+                      }
+                    }
 ```
+
+Two types of mapping exists.
+`dbc2vss`(synonym `dbc` for historical reasons) specifies mapping from DBC to VSS.
+The DBC value is read and injected to KUKSA.val as actual value.
+`vss2dbc` specifies mapping from VSS to DBC.
+The VSS target value is read and injected to DBC.
+
+This is built on the assumption that the DBC provider always send target values to CAN, but read actual values.
+Having separate configurations (`dbc2vss` and `vss2dbc`) is needed as wanted value and actual value never are sent
+by the same DBC signal, they are not even part of the same CAN-frame.
 
 ## Example mapping files
 
@@ -57,7 +77,7 @@ needed by the DBC feeder, like in the example below:
 Vehicle.Speed:
   type: sensor
   datatype: float
-  dbc:
+  dbc2vss:
     signal: DI_uiSpeed
     interval_ms: 5000
 ```
@@ -69,14 +89,14 @@ you must clone the repository, update submodules and then generate VSS JSON like
 
 ```
 git submodule update --init
-vss-tools/vspec2json.py -e dbc -o dbc_overlay.vspec -u spec/units.yaml  --json-pretty ./spec/VehicleSignalSpecification.vspec vss_dbc.json
+vss-tools/vspec2json.py -e vss2dbc,dbc2vss,dbc -o dbc_overlay.vspec -u spec/units.yaml  --json-pretty ./spec/VehicleSignalSpecification.vspec vss_dbc.json
 ```
 
 An alternative approach is download a tar archive from an [official VSS release](https://github.com/COVESA/vehicle_signal_specification/releases)
 and use the included Yaml file as base.
 
 ```
-vss-tools/vspec2json.py -e dbc -o dbc_overlay.vspec -u units.yaml --json-pretty vss_rel_4.0.yaml vss_dbc.json
+vss-tools/vspec2json.py -e vss2dbc,dbc2vss,dbc -o dbc_overlay.vspec -u units.yaml --json-pretty vss_rel_4.0.yaml vss_dbc.json
 ```
 
 _Note: The dbc feeder relies on correct VSS information in the JSON file. This means that if KUKSA.val Databroker VSS JSON file updated, then the file used in DBC-feeder possibly needs to be updated as well._
@@ -88,7 +108,7 @@ The syntax for a DBC definition of a signal in an overlay is specified below.
 The syntax if information instead is added directly to a VSS JSON file is similar, but not described here.
 See `vss_dbc.json` in mapping folder for examples on DBC specification in JSON format.
 Search for `dbc` to find the signals where DBC mapping has been defined.
-If a signal does not have DBC mapping it will be ignored by the DBC feeder.
+If a signal does not have DBC mapping (`dbc`, `vss2dbc`, or `dbc2vss` it will be ignored by the DBC feeder.
 
 Syntax
 
@@ -96,12 +116,17 @@ Syntax
 <VSS Signal name>:
   type: <VSS type>
   datatype: <VSS datatype>
-  dbc:
+  vss2dbc:
+    signal: <DBC signal name>
+    [transform: ...]
+  dbc2vss:
     signal: <DBC signal name>
     [interval_ms: <interval in milliseconds>]
     [on_change: {true|false}]
     [transform: ...]
 ```
+
+(`dbc` can be used as synonym for `dbc2vss`)
 
 Specifying DBC signal name is mandatory. It must correspond to a DBC signal name defined in a DBC file.
 By default the DBC feeder use the [Model3CAN.dbc](Model3CAN.dbc) example file.
@@ -114,6 +139,9 @@ If only `on_change: true` is specified it corresponds to `interval_ms: 0, on_cha
 
 The `transform` entry can be used to specify how DBC values shall be mapped to VSS values.
 If transform is not specified values will be transformed as is.
+
+*Note: For `vss2dbc` the attributes`interval_ms` and `on_change` are currently ignored.*
+*Instead the dbcfeeder send updated VSS values to CAN whenever it get a value from databroker!*
 
 ### Math Transformation
 

@@ -1,32 +1,53 @@
 # Feeder CAN for real CAN interface or dumpfile replay
 
-This is an a DBC CAN feeder for the [KUKSA.val](https://github.com/eclipse/kuksa.val) server and databroker. The basic operation is as follows:
-The feeder connects to a socket CAN interface and reads raw CAN data, that will be parsed based on a DBC file.
-The mapping file (called `vss_dbc.json` in the picture) describes mappings between VSS signals and DBC signals. The respective data point can then be sent to the kuksa.val databroker or kuksa.val server.
+This is a DBC CAN feeder for the [KUKSA.val](https://github.com/eclipse/kuksa.val) Server and Databroker.
+For [KUKSA.val Server](https://github.com/boschglobal/kuksa.val/tree/master/kuksa-val-server)
+it supports receiving data from CAN and sending to Server.
+For [KUKSA.val Databroker](https://github.com/boschglobal/kuksa.val/tree/master/kuksa_databroker)
+it supports both receiving data from CAN and sending to Databroker as well as subscrbing to VSS signals in Databroker
+and sending to CAN.
+
+The basic operation is as follows:
+
+The feeder connects to a socket CAN interface. In dbc2val-mode it  reads raw CAN data, that will be parsed based on a DBC file.
+The mapping file (called `vss_dbc.json` in the picture) describes mappings between VSS signals and DBC signals.
+The respective data point is then sent to Kuksa.val.
 It is also possible to replay CAN dumpfiles without the SocketCAN interface being available, e.g. in a CI test environment.
-See "Steps for a local test with replaying a can dump file"
+See "Steps for a local dbc2val test with replaying a can dump file"
+
+Val2dbc-mode works similar, but in the opposite direction, taking data from KUKSA.val and sending on CAN.
+The CAN sending functionality relies on that all signals in the CAN frame must have a value.
+This is solved by using default values, if the feeder does not have a VSS mapping for a specific DBC signal,
+or has not received a value from KUKSA.val, then the default value will be used.
+Default values shall be provided by a JSON file, an example file exists in [dbc_default_values.json](dbc_default_values.json).
+
+*Note: If you use the files provided in this repository default values are only included for CAN id 258!*
 
 ```console
                              +-------------+
                              |   DBCFile   |
-                             +-------------+            +-------------+
-                                    |                   |             |
-                                    |              |--->|  VSS Server |
-                                    |              |    |             |
-                                    |              |    +-------------+
+                             +-------------+            +------------------+
+                                    |                   |                  |
+                                    |              |--->| KUKSA.val Server |
+                                    |              |    |                  |
+                                    |              |    +------------------+
 +-----------------+                 |              |
 |                 |         +-------|------+       |
 |  CAN Interface  |         |              |       |
-|       or        |------- >|  DBCFeeder   | --OR--|
+|       or        |<------ >|  DBCFeeder   |<--OR--|
 | dumpfile replay |         |              |       |
 |                 |         +--------------+       |
-+-----------------+                 |              |    +-------------+
-                                    |              |    |             |
-                            +--------------+       |--->|  Databroker |
-                            | vss_dbc.json |            |             |
-                            +--------------+            +-------------+
++-----------------+                 |              |    +----------------------+
+                                    |              |    |                      |
+                            +--------------+       |--->| KUKSA.val Databroker |
+                            | vss_dbc.json |            |                      |
+                            +--------------+            +----------------------+
 
 ```
+
+*By default only dbc2val-mode is enabled!*
+
+
 
 ## General Setup Requirements
 
@@ -57,13 +78,13 @@ $ pip install --pre -r requirements.txt
 $ pip install -r requirements-dev.txt
 ```
 
-## Steps for a local test with socket can or virtual socket can
+## Steps for a local dbc2val test with socket can or virtual socket can
 
 1. Use the argument --use-socketcan or you can remove the line with the dumpfile in `config/dbc_feeder.ini`
 
 2. Start the can player
 
-_This is only needed if you want feed data from a dumpfile!_
+_This is only needed if you want feed data from a dumpfile, and do not want dbcfeeder to feed data itself!_
 
 ```console
 $ ./createvcan.sh vcan0
@@ -78,7 +99,7 @@ $ canplayer vcan0=elmcan -v -I candump.log -l i -g 1
 $ ./dbcfeeder.py
 ```
 
-## Steps for a local test with replaying a can dump file
+## Steps for a local dbc2val test with replaying a can dump file
 
 1. Set the a path to a dumpfile e.g. candump.log in the config file `config/dbc_feeder.ini` or use the argument --dumpfile to use a different dumpfile
 
@@ -88,6 +109,114 @@ $ ./dbcfeeder.py
 
 ```console
 $ ./dbcfeeder.py
+```
+
+## Steps for val2dbc test with socketcan
+
+Make sure socketcan is started
+
+```console
+$ ./createvcan.sh vcan0
+```
+
+Make also sure KUKSA.val Databroker is started. You cannot user val2dbc together with KUKSA.val Server.
+
+Start dbcfeeder. Consider using debug-printouts to be able to verify that KUKSA.val updates reaches the dbcfeeder.
+If KUKSA.val Databroker already has values for some of the signals expect something like below
+
+```console
+$ LOG_LEVEL="INFO,dbcfeederlib.dbc2vssmapper=DEBUG" ./dbcfeeder.py --val2dbc --no-dbc2val --use-socketcan
+...
+2023-06-02 11:01:22,474 INFO dbcfeeder: Starting CAN feeder
+2023-06-02 11:01:22,474 INFO dbcfeederlib.dbcparser: Reading DBC file Model3CAN.dbc
+2023-06-02 11:01:22,982 INFO dbcfeeder: Using mapping: mapping/vss_4.0/vss_dbc.json
+2023-06-02 11:01:22,985 INFO dbcfeederlib.dbc2vssmapper: Reading dbc configurations from mapping/vss_4.0/vss_dbc.json
+...
+2023-06-02 11:01:22,999 INFO dbcfeeder: No dbc2val mappings found or dbc2val disabled!
+2023-06-02 11:01:22,999 INFO dbcfeeder: Starting transmit thread, using vcan0
+2023-06-02 11:01:23,001 INFO dbcfeederlib.databrokerclientwrapper: Connectivity to data broker changed to: ChannelConnectivity.READY
+2023-06-02 11:01:23,002 INFO dbcfeederlib.databrokerclientwrapper: Connected to data broker
+2023-06-02 11:01:23,003 INFO can.interfaces.socketcan.socketcan: Created a socket
+2023-06-02 11:01:23,004 INFO dbcfeederlib.databrokerclientwrapper: Subscribe entry: SubscribeEntry(path='Vehicle.Body.Mirrors.DriverSide.Pan', view=<View.FIELDS: 10>, fields=[<Field.ACTUATOR_TARGET: 3>])
+2023-06-02 11:01:23,004 INFO dbcfeederlib.databrokerclientwrapper: Subscribe entry: SubscribeEntry(path='Vehicle.Body.Mirrors.DriverSide.Tilt', view=<View.FIELDS: 10>, fields=[<Field.ACTUATOR_TARGET: 3>])
+2023-06-02 11:01:23,004 INFO dbcfeederlib.databrokerclientwrapper: Subscribe entry: SubscribeEntry(path='Vehicle.Body.Trunk.Rear.IsOpen', view=<View.FIELDS: 10>, fields=[<Field.ACTUATOR_TARGET: 3>])
+2023-06-02 11:01:23,004 INFO dbcfeederlib.databrokerclientwrapper: Subscribe entry: SubscribeEntry(path='Vehicle.Powertrain.ElectricMotor.Temperature', view=<View.FIELDS: 10>, fields=[<Field.ACTUATOR_TARGET: 3>])
+2023-06-02 11:01:23,015 DEBUG dbcfeederlib.dbc2vssmapper: Transformed value 4.525 for Vehicle.Body.Mirrors.DriverSide.Pan
+2023-06-02 11:01:23,015 DEBUG dbcfeederlib.dbc2vssmapper: Transformed value 3.775 for Vehicle.Body.Mirrors.DriverSide.Tilt
+2023-06-02 11:01:23,015 DEBUG dbcfeederlib.dbc2vssmapper: Using stored information to create CAN-frame for 258
+2023-06-02 11:01:23,016 DEBUG dbcfeederlib.dbc2vssmapper: Using DBC id VCLEFT_mirrorTiltXPosition with value 4.525
+2023-06-02 11:01:23,016 DEBUG dbcfeederlib.dbc2vssmapper: Using DBC id VCLEFT_mirrorTiltYPosition with value 3.775
+```
+
+In val2dbc mode the feeder subscribes to target values. To test that that updates reach the feeder use for example the
+[KUKSA.val Client](https://github.com/eclipse/kuksa.val/tree/master/kuksa-client) and set wanted target value
+for one of the signals mentioned in the mapping.
+
+```console
+Test Client> setTargetValue Vehicle.Body.Mirrors.DriverSide.Pan 85
+OK
+
+```
+
+## Steps for a bidirectional test
+
+For bidrectional use you can either have separate instances of dbcfeeder or a joint instance
+
+### Separate Instances
+
+./dbcfeeder.py --val2dbc --dbc2val --use-socketcan
+
+Start the val2dbc instance like this:
+
+```console
+./dbcfeeder.py --val2dbc --no-dbc2val --use-socketcan
+```
+
+... and the dbc2val instance like this:
+
+```console
+./dbcfeeder.py --no-val2dbc --dbc2val --use-socketcan
+```
+
+### Joint instance
+
+It is also possible to use the same instance for both sending and receiving, like this:
+
+```console
+./dbcfeeder.py --val2dbc --dbc2val --use-socketcan
+```
+
+### Verifying expected behvior
+
+Use the [KUKSA.val Client](https://github.com/eclipse/kuksa.val/tree/master/kuksa-client).
+Set target value and verify that actual value is updated. This happens as the example mapping
+in this repository uses the same DBC signal for both val2dbc (`vss2dbc`) and val2dbc (`vss2dbc`). This is not
+a realistic scenario, but is good for test purposes as it shows that when val2dbc sends the CAN-signal the
+CAN-signal will be kept up by the dbc2val mode and then be treated as actual value.
+In a realistic example some other application would listen to CAN, actuate the mirror and report back progress
+on a different CAN signal.
+
+The example below shows a possible output. Note that you may not get back exactly the same value.
+This is caused by the transformations.
+
+* We set wanted value to +81%
+* vss2dbc conversion first converts it to (81+100)/40 = 4.525 Volts (DBC range is 0-5 Volts)
+* CAN tools then use DBC scaling of 0.02 to convert it to 4.525/0.02 = 226,25, truncated to 226 which is sent on CAN
+* CAN tools when reading from CAN converts the value to 226*0.02 = 4.52
+* dbc2vss mapping converts it to floor((4.52*40)-100) = floor(80.8) = 80 (Here one can argue that "round" possibly would be a better choice)
+
+```console
+Test Client> setTargetValue Vehicle.Body.Mirrors.DriverSide.Pan 81
+OK
+
+Test Client> getValue Vehicle.Body.Mirrors.DriverSide.Pan
+{
+    "path": "Vehicle.Body.Mirrors.DriverSide.Pan",
+    "value": {
+        "value": 80,
+        "timestamp": "2023-06-02T09:11:07.214058+00:00"
+    }
+}
 ```
 
 ## Provided can-dump files
@@ -112,7 +241,7 @@ A smaller excerpt from the above sample, with fewer signals.
 | *--dbcfile*           | *DBC_FILE*                      | *[can].dbc*             |                                  | DBC file used for parsing CAN traffic  |
 | *--dumpfile*          | *CANDUMP_FILE*                  | *[can].candumpfile*     |                                  | Replay recorded CAN traffic from dumpfile |
 | *--canport*           | *CAN_PORT*                      | *[can].port*            |                                  | Read from this CAN interface |
-| *--use-j1939*         | *USE_J1939*                     | *[can].j1939*           | `False`                          | Use J1939 when decoding CAN frames. Setting the environment value to any value is equivalent to activating the switch on the command line. |
+| *--use-j1939*         | *USE_J1939*                     | *[can].j1939*           | `False`                          | Use J1939 when decoding CAN frames. Setting the environment variable to any value is equivalent to activating the switch on the command line. |
 | *--use-socketcan*     | -                               | -                       | `False`                          | Use SocketCAN (overriding any use of --dumpfile) |
 | *--mapping*           | *MAPPING_FILE*                  | *[general].mapping*     | `mapping/vss_4.0/vss_dbc.json` | Mapping file used to map CAN signals to databroker datapoints. |
 | *--server-type*       | *SERVER_TYPE*                   | *[general].server_type* | `kuksa_databroker`               | Which type of server the feeder should connect to (`kuksa_val_server` or `kuksa_databroker`) |
@@ -121,6 +250,9 @@ A smaller excerpt from the above sample, with fewer signals.
 | *--tls*               | -                               | *[general].tls*         | `False`                          | Shall tls be used for Server/Databroker connection? |
 | -                     | -                               | *[general].token*       | *Undefined*                      | Token path. Only needed if Databroker/Server requires authentication |
 | -                     | *VEHICLEDATABROKER_DAPR_APP_ID* | -                       | -                                | Add dapr-app-id metadata. Only relevant for KUKSA.val Databroker |
+| *--dbc2val /--no-dbc2val* | *USE_DBC2VAL* / *NO_USE_DBC2VAL* | *[can].dbc2val*    | dbc2val enabled                  | Specifies if sending data from CAN to KUKSA.val is enabled. Setting the environment variable to any value is equivalent to activating the switch on the command line.|
+| *--val2dbc /--no-val2dbc* | *USE_VAL2DBC* / *NO_USE_VAL2DBC* | *[can].val2dbc*    | val2dbc nor enabled              | Specifies if sending data from KUKSA.val to CAN is enabled. Setting the environment variable to any value is equivalent to activating the switch on the command line. |
+| *--dbc_default <file_path>* | -                         | -                       | dbc_default_values.json          | Default values for val2dbc. Needed for all DBCs in sent CAN signals |
 
 *Note that the [default config file](config/dbc_feeder.ini) include default Databroker settings and must be modified if you intend to use it for KUKSA.val Server*
 

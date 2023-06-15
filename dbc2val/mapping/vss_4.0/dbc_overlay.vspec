@@ -29,7 +29,7 @@
 Vehicle.Chassis.SteeringWheel.Angle:
   datatype: int16
   type: sensor
-  dbc:
+  dbc2vss:
     signal: SteeringAngle129
     interval_ms: 100
     transform:
@@ -38,21 +38,21 @@ Vehicle.Chassis.SteeringWheel.Angle:
 Vehicle.Speed:
   type: sensor
   datatype: float
-  dbc:
+  dbc2vss:
     signal: DI_uiSpeed
     interval_ms: 100
 
 Vehicle.OBD.Speed:
   type: sensor
   datatype: float
-  dbc:
+  dbc2vss:
     signal: DI_uiSpeed
     interval_ms: 100
 
 Vehicle.Powertrain.Transmission.CurrentGear:
   type: sensor
   datatype: int8
-  dbc:
+  dbc2vss:
     interval_ms: 100
     signal: DI_gear
     transform:
@@ -69,7 +69,7 @@ Vehicle.Powertrain.Transmission.CurrentGear:
 Vehicle.Powertrain.Transmission.IsParkLockEngaged:
   type: sensor
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 100
     signal: DI_gear
     transform:
@@ -86,21 +86,21 @@ Vehicle.Powertrain.Transmission.IsParkLockEngaged:
 Vehicle.Powertrain.ElectricMotor.Torque:
   type: sensor
   datatype: int16
-  dbc:
+  dbc2vss:
     interval_ms: 100
     signal: DIR_torqueActual
 
 Vehicle.OBD.ControlModuleVoltage:
   type: sensor
   datatype: float
-  dbc:
+  dbc2vss:
     interval_ms: 1000
     signal: PCS_dcdcLvBusVolt
 
 Vehicle.Powertrain.TractionBattery.Charging.IsCharging:
   type: sensor
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 1000
     signal: CP_hvChargeStatus
     transform:
@@ -123,7 +123,7 @@ Vehicle.Powertrain.TractionBattery.Charging.IsCharging:
 Vehicle.Chassis.Axle.Row1.Wheel.Left.Brake.IsFluidLevelLow:
   type: sensor
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 1000
     signal: VCFRONT_brakeFluidLevel
     transform:
@@ -136,7 +136,7 @@ Vehicle.Chassis.Axle.Row1.Wheel.Left.Brake.IsFluidLevelLow:
 Vehicle.Chassis.Axle.Row1.Wheel.Right.Brake.IsFluidLevelLow:
   type: sensor
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 1000
     signal: VCFRONT_brakeFluidLevel
     transform:
@@ -149,7 +149,7 @@ Vehicle.Chassis.Axle.Row1.Wheel.Right.Brake.IsFluidLevelLow:
 Vehicle.Chassis.Axle.Row2.Wheel.Left.Brake.IsFluidLevelLow:
   type: sensor
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 1000
     signal: VCFRONT_brakeFluidLevel
     transform:
@@ -162,7 +162,7 @@ Vehicle.Chassis.Axle.Row2.Wheel.Left.Brake.IsFluidLevelLow:
 Vehicle.Chassis.Axle.Row2.Wheel.Right.Brake.IsFluidLevelLow:
   type: sensor
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 1000
     signal: VCFRONT_brakeFluidLevel
     transform:
@@ -175,14 +175,14 @@ Vehicle.Chassis.Axle.Row2.Wheel.Right.Brake.IsFluidLevelLow:
 Vehicle.OBD.AmbientAirTemperature:
   type: sensor
   datatype: float
-  dbc:
+  dbc2vss:
     interval_ms: 1000
     signal: VCFRONT_tempAmbientFiltered
 
 Vehicle.Body.Windshield.Front.WasherFluid.IsLevelLow:
   type: sensor
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 1000
     signal: VCFRONT_washerFluidLevel
     transform:
@@ -199,7 +199,7 @@ Vehicle.Body.Windshield.Front.WasherFluid.IsLevelLow:
 Vehicle.Body.Mirrors.DriverSide.IsHeatingOn:
   type: actuator
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 1000
     signal: VCLEFT_mirrorHeatState
     transform:
@@ -212,7 +212,7 @@ Vehicle.Body.Mirrors.DriverSide.IsHeatingOn:
 Vehicle.Body.Mirrors.PassengerSide.IsHeatingOn:
   type: actuator
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 1000
     signal: VCLEFT_mirrorHeatState
     transform:
@@ -225,25 +225,33 @@ Vehicle.Body.Mirrors.PassengerSide.IsHeatingOn:
 Vehicle.Body.Mirrors.DriverSide.Tilt:
   datatype: int8
   type: actuator
-  dbc:
+  dbc2vss:
     signal: VCLEFT_mirrorTiltYPosition
     interval_ms: 100
     transform:
       math: "floor((x*40)-100)"
+  vss2dbc:
+    signal: VCLEFT_mirrorTiltYPosition
+    transform:
+      math: "(x+100)/40"
 
 Vehicle.Body.Mirrors.DriverSide.Pan:
   datatype: int8
   type: actuator
-  dbc:
+  dbc2vss:
     signal: VCLEFT_mirrorTiltXPosition
     interval_ms: 100
     transform:
       math: "floor((x*40)-100)"
+  vss2dbc:
+    signal: VCLEFT_mirrorTiltXPosition
+    transform:
+      math: "(x+100)/40"
 
 Vehicle.Body.Mirrors.PassengerSide.Tilt:
   datatype: int8
   type: actuator
-  dbc:
+  dbc2vss:
     signal: VCRIGHT_mirrorTiltYPosition
     interval_ms: 100
     transform:
@@ -252,7 +260,7 @@ Vehicle.Body.Mirrors.PassengerSide.Tilt:
 Vehicle.Body.Mirrors.PassengerSide.Pan:
   datatype: int8
   type: actuator
-  dbc:
+  dbc2vss:
     signal: VCRIGHT_mirrorTiltXPosition
     interval_ms: 100
     transform:
@@ -261,7 +269,7 @@ Vehicle.Body.Mirrors.PassengerSide.Pan:
 Vehicle.Body.Trunk.Rear.IsOpen:
   type: actuator
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 1000
     signal: VCRIGHT_trunkLatchStatus
     transform:
@@ -278,18 +286,28 @@ Vehicle.Body.Trunk.Rear.IsOpen:
           to: true
         - from: LATCH_OPENING
           to: true
+  vss2dbc:
+    signal: VCRIGHT_trunkLatchStatus
+    transform:
+       mapping:
+        - from: true
+          to: LATCH_OPENED
+        - from: false
+          to: LATCH_CLOSED
 
 Vehicle.Powertrain.ElectricMotor.Temperature:
   datatype: int16
   type: sensor
-  dbc:
+  dbc2vss:
     signal: PTC_rightTempIGBT
     interval_ms: 1000
+  vss2dbc:
+    signal: PTC_rightTempIGBT
 
 Vehicle.Cabin.Door.Row1.DriverSide.IsOpen:
   type: actuator
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 500
     signal: VCLEFT_frontDoorState
     transform:
@@ -304,7 +322,7 @@ Vehicle.Cabin.Door.Row1.DriverSide.IsOpen:
 Vehicle.Cabin.Door.Row2.DriverSide.IsOpen:
   type: actuator
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 500
     signal: VCLEFT_rearDoorState
     transform:
@@ -319,7 +337,7 @@ Vehicle.Cabin.Door.Row2.DriverSide.IsOpen:
 Vehicle.Cabin.Seat.Row1.DriverSide.IsBelted:
   type: sensor
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 1000
     signal: VCFRONT_driverBuckleStatus
     transform:
@@ -332,7 +350,7 @@ Vehicle.Cabin.Seat.Row1.DriverSide.IsBelted:
 Vehicle.Body.Lights.Brake.IsActive:
   type: actuator
   datatype: string
-  dbc:
+  dbc2vss:
     interval_ms: 100
     signal: VCRIGHT_brakeLightStatus
     transform:
@@ -349,7 +367,7 @@ Vehicle.Body.Lights.Brake.IsActive:
 Vehicle.Body.Lights.Fog.Rear.IsOn:
   type: actuator
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 100
     signal: VCRIGHT_brakeLightStatus
     transform:
@@ -366,7 +384,7 @@ Vehicle.Body.Lights.Fog.Rear.IsOn:
 Vehicle.Body.Lights.Backup.IsOn:
   type: actuator
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 100
     signal: VCRIGHT_reverseLightStatus
     transform:
@@ -383,7 +401,7 @@ Vehicle.Body.Lights.Backup.IsOn:
 Vehicle.Body.Lights.DirectionIndicator.Right.IsSignaling:
   type: actuator
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 100
     signal: VCRIGHT_turnSignalStatus
     transform:
@@ -400,7 +418,7 @@ Vehicle.Body.Lights.DirectionIndicator.Right.IsSignaling:
 Vehicle.Body.Lights.DirectionIndicator.Left.IsSignaling:
   type: actuator
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 100
     signal: VCLEFT_turnSignalStatus
     transform:
@@ -417,7 +435,7 @@ Vehicle.Body.Lights.DirectionIndicator.Left.IsSignaling:
 Vehicle.Trailer.IsConnected:
   type: sensor
   datatype: boolean
-  dbc:
+  dbc2vss:
     interval_ms: 3000
     signal: VCLEFT_trailerDetected
     transform:
@@ -434,7 +452,7 @@ Vehicle.Trailer.IsConnected:
 Vehicle.OBD.EngineLoad:
   type: sensor
   datatype: float
-  dbc:
+  dbc2vss:
     signal: RearPower266
     interval_ms: 100
     transform:

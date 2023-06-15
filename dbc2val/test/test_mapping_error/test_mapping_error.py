@@ -18,18 +18,21 @@
 # SPDX-License-Identifier: Apache-2.0
 ########################################################################
 
-
-
 from dbcfeederlib import dbc2vssmapper
+from dbcfeederlib import dbcparser
 import os
 import pytest
 import logging
 
 
 def test_unknown_transform(caplog, capsys):
-    path = os.path.dirname(os.path.abspath(__file__)) + "/test_unknown_transform.json"
+
+    test_path = os.path.dirname(os.path.abspath(__file__))
+    mapping_path = test_path + "/test_unknown_transform.json"
+    parser = dbcparser.DBCParser(test_path + "/../../Model3CAN.dbc")
+
     with pytest.raises(SystemExit) as excinfo:
-        mapper : dbc2vssmapper.Mapper = dbc2vssmapper.Mapper(path)
+        dbc2vssmapper.Mapper(mapping_path, parser)
     out, err = capsys.readouterr()
     assert excinfo.value.code == -1
     assert caplog.record_tuples == [("dbcfeederlib.dbc2vssmapper", logging.ERROR, "Unsupported transform for A.B")]

@@ -23,24 +23,28 @@
 
 
 from dbcfeederlib import dbc2vssmapper
+from dbcfeederlib import dbcparser
 import os
 
 # read config only once
-path = os.path.dirname(os.path.abspath(__file__)) + "/test.json"
-mapper: dbc2vssmapper.Mapper = dbc2vssmapper.Mapper(path)
+
+test_path = os.path.dirname(os.path.abspath(__file__))
+mapping_path = test_path + "/test.json"
+parser = dbcparser.DBCParser(test_path + "/../../Model3CAN.dbc")
+mapper: dbc2vssmapper.Mapper = dbc2vssmapper.Mapper(mapping_path, parser)
 
 
 def test_mapping_read():
-    dbc_mapping = mapper["S1"]
+    dbc_mapping = mapper.get_dbc2val_mappings("S1")
     # We have 6 VSS signals using S1
     assert len(dbc_mapping) == 6
 
 
 def test_no_transform_default():
-    mapping = mapper.get_vss_mapping("S1", "A.NoTransformDefault")
+    mapping = mapper.get_dbc2val_mapping("S1", "A.NoTransformDefault")
     assert mapping is not None
     assert mapping.interval_ms == 1000
-    assert mapping.on_change == False
+    assert mapping.on_change is False
     assert mapping.last_time == 0.0
     assert mapping.last_vss_value is None
 
@@ -72,10 +76,10 @@ def test_no_transform_default():
 
 
 def test_no_transform_interval_500():
-    mapping = mapper.get_vss_mapping("S1", "A.NoTransformInterval500")
+    mapping = mapper.get_dbc2val_mapping("S1", "A.NoTransformInterval500")
     assert mapping is not None
     assert mapping.interval_ms == 500
-    assert mapping.on_change == False
+    assert mapping.on_change is False
     # First shall always be sent
     assert mapping.time_condition_fulfilled(0.01)
     assert not mapping.time_condition_fulfilled(0.02)
@@ -92,7 +96,7 @@ def test_no_transform_interval_500():
 
 
 def test_no_transform_on_change_true():
-    mapping = mapper.get_vss_mapping("S1", "A.NoTransformOnChangeTrue")
+    mapping = mapper.get_dbc2val_mapping("S1", "A.NoTransformOnChangeTrue")
     assert mapping is not None
     assert mapping.interval_ms == 0
     assert mapping.on_change
@@ -114,10 +118,10 @@ def test_no_transform_on_change_true():
 
 def test_no_transform_on_change_false():
     # Should be same as test_no_transform_default
-    mapping = mapper.get_vss_mapping("S1", "A.NoTransformOnChangeFalse")
+    mapping = mapper.get_dbc2val_mapping("S1", "A.NoTransformOnChangeFalse")
     assert mapping is not None
     assert mapping.interval_ms == 1000
-    assert mapping.on_change == False
+    assert mapping.on_change is False
 
     # First shall always be sent
     assert mapping.time_condition_fulfilled(0.01)
@@ -135,7 +139,7 @@ def test_no_transform_on_change_false():
 
 
 def test_no_transform_on_change_interval_500():
-    mapping = mapper.get_vss_mapping("S1", "A.NoTransformOnChangeInterval500")
+    mapping = mapper.get_dbc2val_mapping("S1", "A.NoTransformOnChangeInterval500")
     assert mapping is not None
     assert mapping.interval_ms == 500
     assert mapping.on_change
@@ -156,10 +160,10 @@ def test_no_transform_on_change_interval_500():
 
 
 def test_no_transform_always():
-    mapping = mapper.get_vss_mapping("S1", "A.NoTransformAlways")
+    mapping = mapper.get_dbc2val_mapping("S1", "A.NoTransformAlways")
     assert mapping is not None
     assert mapping.interval_ms == 0
-    assert mapping.on_change == False
+    assert mapping.on_change is False
     # First shall always be sent
     assert mapping.time_condition_fulfilled(0.01)
     assert mapping.time_condition_fulfilled(0.02)
@@ -177,7 +181,7 @@ def test_no_transform_always():
 
 
 def test_mapping_math():
-    mapping = mapper.get_vss_mapping("S2", "A.Math")
+    mapping = mapper.get_dbc2val_mapping("S2", "A.Math")
     assert mapping is not None
     assert mapping.transform_value(26) == 5
     assert mapping.transform_value(-26) == 5
@@ -187,9 +191,9 @@ def test_mapping_math():
 
 
 def test_mapping_string_int():
-    mapping = mapper.get_vss_mapping("S3", "A.MappingStringInt")
+    mapping = mapper.get_dbc2val_mapping("S3", "A.MappingStringInt")
     assert mapping is not None
-    
+
     assert mapping.transform_value("DI_GEAR_P") == 0
     assert mapping.transform_value("DI_GEAR_INVALID") == 0
     assert mapping.transform_value("DI_GEAR_R") == -1
@@ -199,7 +203,7 @@ def test_mapping_string_int():
 
 
 def test_mapping_string_string():
-    mapping = mapper.get_vss_mapping("S4", "A.MappingStringString")
+    mapping = mapper.get_dbc2val_mapping("S4", "A.MappingStringString")
     assert mapping is not None
     assert mapping.interval_ms == 0
     assert mapping.on_change
@@ -212,7 +216,7 @@ def test_mapping_string_string():
 
 
 def test_mapping_int_int():
-    mapping = mapper.get_vss_mapping("S5", "A.MappingIntInt")
+    mapping = mapper.get_dbc2val_mapping("S5", "A.MappingIntInt")
     assert mapping is not None
 
     assert mapping.transform_value(3) == 7
@@ -225,7 +229,7 @@ def test_mapping_int_int():
 
 
 def test_mapping_int_duplicate():
-    mapping = mapper.get_vss_mapping("S5", "A.MappingIntIntDuplicate")
+    mapping = mapper.get_dbc2val_mapping("S5", "A.MappingIntIntDuplicate")
     assert mapping is not None
     # For duplicated mappings we do not state which one that will be used,
     # both are OK
@@ -238,8 +242,8 @@ def test_mapping_int_duplicate():
     assert mapping.transform_value(6) is None
 
 
-def test_mapping_int_int():
-    mapping = mapper.get_vss_mapping("S6", "A.IsMappingBool")
+def test_mapping_int_bool():
+    mapping = mapper.get_dbc2val_mapping("S6", "A.IsMappingBool")
     assert mapping is not None
 
     # Assuming that Yaml 1.1 syntax is used, i.e. yes is treated as True

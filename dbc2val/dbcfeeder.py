@@ -30,13 +30,18 @@ import os
 import queue
 import sys
 import time
+import threading
+import asyncio
+
 from signal import SIGINT, SIGTERM, signal
 from typing import Any
 from typing import Dict
 
+from dbcfeederlib import canclient
 from dbcfeederlib import canplayer
 from dbcfeederlib import dbc2vssmapper
 from dbcfeederlib import dbcreader
+from dbcfeederlib import dbcparser
 from dbcfeederlib import j1939reader
 from dbcfeederlib import databrokerclientwrapper
 from dbcfeederlib import serverclientwrapper
@@ -107,7 +112,7 @@ class Feeder:
     are fulfilled send them to the client wrapper which in turn send it to the bckend supported by the wrapper.
     """
     def __init__(self, client_wrapper: clientwrapper.ClientWrapper,
-                 elmcan_config: Dict[str, Any]):
+                 elmcan_config: Dict[str, Any], dbc2val: bool = True, val2dbc: bool = False):
         self._shutdown = False
         self._reader = None
         self._player = None
@@ -117,62 +122,98 @@ class Feeder:
         self._client_wrapper = client_wrapper
         self._elmcan_config = elmcan_config
         self._disconnect_time = 0.0
+        self._dbc2val = dbc2val
+        self._val2dbc = val2dbc
+        self._canclient = None
+        self._transmit = False
+        self._dbc_parser = None
 
     def start(
         self,
         canport,
         dbcfile,
         mappingfile,
+        dbc_default_file,
         candumpfile=None,
         use_j1939=False,
         use_strict_parsing=False
     ):
+
+        # Read DBC file
+        self._dbc_parser = dbcparser.DBCParser(dbcfile, use_strict_parsing)
+
         log.info("Using mapping: {}".format(mappingfile))
-        self._mapper = dbc2vssmapper.Mapper(mappingfile)
+        self._mapper = dbc2vssmapper.Mapper(mappingfile, self._dbc_parser, dbc_default_file)
 
-        if use_j1939:
-            log.info("Using J1939 reader")
-            self._reader = j1939reader.J1939Reader(
-                rxqueue=self._can_queue,
-                dbcfile=dbcfile,
-                mapper=self._mapper,
-                use_strict_parsing=use_strict_parsing,
-            )
+        self._client_wrapper.start()
+        threads = []
+
+        if self._dbc2val and self._mapper.has_dbc2val_mapping():
+            log.info("Setting up reception of CAN signals")
+            if use_j1939:
+                log.info("Using J1939 reader")
+                self._reader = j1939reader.J1939Reader(
+                    rxqueue=self._can_queue,
+                    mapper=self._mapper,
+                    dbc_parser=self._dbc_parser
+                )
+            else:
+                log.info("Using DBC reader")
+                self._reader = dbcreader.DBCReader(
+                    rxqueue=self._can_queue,
+                    mapper=self._mapper,
+                    dbc_parser=self._dbc_parser
+                )
+
+            if candumpfile:
+                # use dumpfile
+                log.info(
+                    "Using virtual bus to replay CAN messages (channel: %s) (dumpfile: %s)",
+                    canport,
+                    candumpfile
+                )
+                self._reader.start_listening(
+                    bustype="virtual",
+                    channel=canport,
+                    bitrate=500000
+                )
+                self._player = canplayer.CANplayer(dumpfile=candumpfile)
+                self._player.start_replaying(canport=canport)
+            else:
+
+                if canport == 'elmcan':
+
+                    log.info("Using elmcan. Trying to set up elm2can bridge")
+                    elm2canbridge.elm2canbridge(canport, self._elmcan_config, self._reader.canidwl)
+
+                # use socketCAN
+                log.info("Using socket CAN device '%s'", canport)
+                self._reader.start_listening(bustype="socketcan", channel=canport)
+
+            receiver = threading.Thread(target=self._run_receiver)
+            receiver.start()
+            threads.append(receiver)
         else:
-            log.info("Using DBC reader")
-            self._reader = dbcreader.DBCReader(
-                rxqueue=self._can_queue,
-                dbcfile=dbcfile,
-                mapper=self._mapper,
-                use_strict_parsing=use_strict_parsing,
-            )
+            log.info("No dbc2val mappings found or dbc2val disabled!")
 
-        if candumpfile:
-            # use dumpfile
-            log.info(
-                "Using virtual bus to replay CAN messages (channel: %s) (dumpfile: %s)",
-                canport,
-                candumpfile
-            )
-            self._reader.start_listening(
-                bustype="virtual",
-                channel=canport,
-                bitrate=500000
-            )
-            self._player = canplayer.CANplayer(dumpfile=candumpfile)
-            self._player.start_replaying(canport=canport)
+        if self._val2dbc and self._mapper.has_val2dbc_mapping():
+            if not self._client_wrapper.supports_subscription():
+                log.error("Subscribing to VSS signals not supported by chosen client!")
+                self.stop()
+            else:
+                log.info(f"Starting transmit thread, using {canport}")
+                # For now creating another bus
+                # Maybe support different buses for downstream/upstream in the future
+                self._canclient = canclient.CANClient(bustype="socketcan", channel=canport)
+
+                transmitter = threading.Thread(target=self._run_transmitter)
+                transmitter.start()
+                threads.append(transmitter)
         else:
-
-            if canport == 'elmcan':
-
-                log.info("Using elmcan. Trying to set up elm2can bridge")
-                elm2canbridge.elm2canbridge(canport, self._elmcan_config, self._reader.canidwl)
-
-            # use socketCAN
-            log.info("Using socket CAN device '%s'", canport)
-            self._reader.start_listening(bustype="socketcan", channel=canport)
-
-        self._run()
+            log.info("No val2dbc mappings found or val2dbc disabled!!")
+        # Wait for all of them to finish
+        for thread in threads:
+            thread.join()
 
     def stop(self):
         log.info("Shutting down...")
@@ -184,6 +225,7 @@ class Feeder:
             self._player.stop()
         self._client_wrapper.stop()
         self._mapper = None
+        self._transmit = False
 
     def is_stopping(self):
         return self._shutdown
@@ -199,18 +241,14 @@ class Feeder:
             log.error("_register_datapoints called before feeder has been started")
             return False
         all_registered = True
-        for entry in self._mapper.mapping.values():
-            for vss_mapping in entry:
-                log.debug("Checking if signal %s is registered", vss_mapping.vss_name)
-                resp = self._client_wrapper.is_signal_defined(vss_mapping.vss_name)
-                if not resp:
-                    all_registered = False
+        for vss_name in self._mapper.get_vss_names():
+            log.debug("Checking if signal %s is registered", vss_name)
+            resp = self._client_wrapper.is_signal_defined(vss_name)
+            if not resp:
+                all_registered = False
         return all_registered
 
-    def _run(self):
-        self._client_wrapper.start()
-
-        log.info("Authorized")
+    def _run_receiver(self):
         processing_started = False
         messages_sent = 0
         last_sent_log_entry = 0
@@ -242,7 +280,7 @@ class Feeder:
                 if queue_size > queue_max_size:
                     queue_max_size = queue_size
                 vss_observation = self._can_queue.get(timeout=1)
-                vss_mapping = self._mapper.get_vss_mapping(vss_observation.dbc_name, vss_observation.vss_name)
+                vss_mapping = self._mapper.get_dbc2val_mapping(vss_observation.dbc_name, vss_observation.vss_name)
                 value = vss_mapping.transform_value(vss_observation.raw_value)
                 if value is None:
                     log.warning(f"Value ignored for  dbc {vss_observation.dbc_name} to VSS {vss_observation.vss_name},"
@@ -266,6 +304,49 @@ class Feeder:
                 pass
             except Exception:
                 log.error("Exception caught in main loop", exc_info=True)
+
+    async def vss_update(self, updates):
+        log.debug("vss-Update callback!")
+        dbc_ids = set()
+        for update in updates:
+            if update.entry.value is not None:
+                # This shall currently never happen as we do not subscribe to this
+                log.warning(f"Current value for {update.entry.path} is now: "
+                            f"{update.entry.value.value} of type {type(update.entry.value.value)}")
+
+            if update.entry.actuator_target is not None:
+                log.debug(f"Target value for {update.entry.path} is now: {update.entry.actuator_target} "
+                          f"of type {type(update.entry.actuator_target.value)}")
+                new_dbc_ids = self._mapper.handle_update(update.entry.path, update.entry.actuator_target.value)
+                dbc_ids.update(new_dbc_ids)
+
+        can_ids = set()
+        for dbc_id in dbc_ids:
+            can_id = self._dbc_parser.get_canid_for_signal(dbc_id)
+            can_ids.add(can_id)
+
+        for can_id in can_ids:
+            log.debug(f"CAN id to be sent, this is {can_id}")
+            sig_dict = self._mapper.get_value_dict(can_id)
+            message_data = self._dbc_parser.db.get_message_by_frame_id(can_id)
+            data = message_data.encode(sig_dict)
+            self._canclient.send(arbitration_id=message_data.frame_id, data=data)
+
+    async def _run_subscribe(self):
+        """
+        Requests the client wrapper to start subscription.
+        Checks every second if we have requested to stop reception and if so exits
+        """
+        asyncio.create_task(self._client_wrapper.subscribe(self._mapper.get_val2dbc_entries(), self.vss_update))
+        while self._transmit:
+            await asyncio.sleep(1)
+
+    def _run_transmitter(self):
+        """
+        Starts subscription to selected VSS signals and on updates transmit to CAN
+        """
+        self._transmit = True
+        asyncio.run(self._run_subscribe())
 
 
 def parse_config(filename):
@@ -306,7 +387,6 @@ def parse_config(filename):
 
 def main(argv):
     """Main entrypoint for dbcfeeder"""
-    log.info(f"Argv is {argv}")
     parser = argparse.ArgumentParser(description="dbcfeeder")
     parser.add_argument("--config", metavar="FILE", help="Configuration file")
     parser.add_argument(
@@ -329,6 +409,11 @@ def main(argv):
         help="Mapping file used to map CAN signals to VSS datapoints",
     )
     parser.add_argument(
+        "--dbc-default",
+        metavar="FILE",
+        help="File containing default values for DBC signals. Needed for all CAN signals used if using val2dbc",
+    )
+    parser.add_argument(
         "--server-type",
         help="Which type of server the feeder should connect to",
         choices=[server_type.value for server_type in ServerType],
@@ -345,7 +430,19 @@ def main(argv):
           fix it first.
           """,
         action="store_false",
+
     )
+    # By default we work as bidirectional provider
+    parser.add_argument('--dbc2val', action='store_true',
+                        help="Monitor CAN and send mapped signals to KUKSA.val")
+    parser.add_argument('--no-dbc2val', action='store_true',
+                        help="Do not monitor signals on CAN")
+    # By default we disable sending to CAN, for backward compatibility
+    parser.add_argument('--val2dbc', action='store_true',
+                        help="Monitor mapped signals in KUKSA.val and send to CAN")
+    parser.add_argument('--no-val2dbc', action='store_true',
+                        help="Do not monitor mapped signals in KUKSA.val")
+
     args = parser.parse_args()
 
     config = parse_config(args.config)
@@ -440,6 +537,10 @@ def main(argv):
         elif "can" in config and "candumpfile" in config["can"]:
             candumpfile = config["can"]["candumpfile"]
 
+        if args.val2dbc and candumpfile is not None:
+            log.error("Cannot use dumpfile and val2dbc at the same time!")
+            sys.exit(-1)
+
     client_wrapper.get_client_specific_configs()
 
     elmcan_config = []
@@ -452,7 +553,47 @@ def main(argv):
             sys.exit(-1)
         elmcan_config = config["elmcan"]
 
-    feeder = Feeder(client_wrapper, elmcan_config)
+    if args.dbc_default:
+        dbc_default = args.dbc_default
+    elif os.environ.get("DBC_DEFAULT_FILE"):
+        dbc_default = os.environ.get("DBC_DEFAULT_FILE")
+    elif "can" in config and "dbc_default_file" in config["can"]:
+        dbc_default = config["can"]["dbc_default_file"]
+    else:
+        dbc_default = "dbc_default_values.json"
+
+    if args.dbc2val:
+        use_dbc2val = True
+    elif args.no_dbc2val:
+        use_dbc2val = False
+    elif os.environ.get("USE_DBC2VAL"):
+        use_dbc2val = True
+    elif os.environ.get("NO_USE_DBC2VAL"):
+        use_dbc2val = False
+    elif "general" in config and "dbc2val" in config["general"]:
+        use_dbc2val = config["general"].getboolean("dbc2val", False)
+    else:
+        # By default enabled
+        log.info("Alt5")
+        use_dbc2val = True
+    log.info(f"DBC2VAL mode is: {use_dbc2val}")
+
+    if args.val2dbc:
+        use_val2dbc = True
+    elif args.no_val2dbc:
+        use_val2dbc = False
+    elif os.environ.get("USE_VAL2DBC"):
+        use_val2dbc = True
+    elif os.environ.get("NO_USE_VAL2DBC"):
+        use_val2dbc = False
+    elif "general" in config and "val2dbc" in config["general"]:
+        use_val2dbc = config["general"].getboolean("val2dbc", True)
+    else:
+        # By default disabled
+        use_val2dbc = False
+    log.info(f"VAL2DBC mode is: {use_val2dbc}")
+
+    feeder = Feeder(client_wrapper, elmcan_config, dbc2val=use_dbc2val, val2dbc=use_val2dbc)
 
     def signal_handler(signal_received, *_):
         log.info(f"Received signal {signal_received}, stopping...")
@@ -472,6 +613,7 @@ def main(argv):
         canport=canport,
         dbcfile=dbcfile,
         mappingfile=mappingfile,
+        dbc_default_file=dbc_default,
         candumpfile=candumpfile,
         use_j1939=use_j1939,
         use_strict_parsing=args.strict

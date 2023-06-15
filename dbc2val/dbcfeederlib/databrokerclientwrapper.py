@@ -15,7 +15,7 @@
 
 import logging
 from typing import Any
-from typing import Dict
+from typing import Dict, List
 
 import os
 import contextlib
@@ -29,6 +29,9 @@ from kuksa_client.grpc import DataType
 from kuksa_client.grpc import EntryUpdate
 from kuksa_client.grpc import Field
 from kuksa_client.grpc import Metadata
+from kuksa_client.grpc.aio import VSSClient
+from kuksa_client.grpc import SubscribeEntry
+from kuksa_client.grpc import View
 from dbcfeederlib import clientwrapper
 
 log = logging.getLogger(__name__)
@@ -39,7 +42,7 @@ class DatabrokerClientWrapper(clientwrapper.ClientWrapper):
     Client Wrapper using the interface in
     https://github.com/eclipse/kuksa.val/blob/master/kuksa-client/kuksa_client/grpc/__init__.py
     """
-    # No default token path given as no dewfault token included in packages/containers
+    # No default token path given as no default token included in packages/containers
     def __init__(self, ip: str = "127.0.0.1", port: int = 55555,
                  token_path: str = "",
                  tls: bool = False):
@@ -52,6 +55,7 @@ class DatabrokerClientWrapper(clientwrapper.ClientWrapper):
         self._connected = False
         self._exit_stack = contextlib.ExitStack()
         super().__init__(ip, port, token_path, tls)
+        self._token = ""
 
     def get_client_specific_configs(self):
         """
@@ -72,12 +76,12 @@ class DatabrokerClientWrapper(clientwrapper.ClientWrapper):
         log.info(f"Connecting to Data Broker using {self._ip}:{self._port}")
 
         # For now will just throw a FileNotFoundError if file cannot be found
-        token = ""
+        # token = ""
         if self._token_path != "":
             log.info(f"Token path specified is {self._token_path}")
-            file = open(self._token_path, 'r')
-            token = file.read()
-            log.debug(f"Token is: {token}")
+            with open(self._token_path, "r") as file:
+                self._token = file.read()
+            log.debug(f"Token is: {self._token}")
         else:
             log.info("No token path specified. KUKSA.val Databroker must run without authentication!")
 
@@ -91,7 +95,7 @@ class DatabrokerClientWrapper(clientwrapper.ClientWrapper):
                  port=self._port,
                  ensure_startup_connection=False
             ))
-        self._grpc_client.authorize(token=token, **self._rpc_kwargs)
+        self._grpc_client.authorize(token=self._token, **self._rpc_kwargs)
         self._grpc_client.channel.subscribe(
                 lambda connectivity: self.on_broker_connectivity_change(connectivity),
                 try_to_connect=False,
@@ -99,10 +103,7 @@ class DatabrokerClientWrapper(clientwrapper.ClientWrapper):
 
     def on_broker_connectivity_change(self, connectivity):
         log.info("Connectivity to data broker changed to: %s", connectivity)
-        if (
-            connectivity == grpc.ChannelConnectivity.READY or
-            connectivity == grpc.ChannelConnectivity.IDLE
-        ):
+        if connectivity in {grpc.ChannelConnectivity.READY, grpc.ChannelConnectivity.IDLE}:
             # Can change between READY and IDLE. Only act if coming from
             # unconnected state
             if not self._connected:
@@ -185,3 +186,19 @@ class DatabrokerClientWrapper(clientwrapper.ClientWrapper):
         else:
             self._exit_stack.close()
             self._grpc_client = None
+
+    def supports_subscription(self) -> bool:
+        return True
+
+    async def subscribe(self, vss_names: List[str], callback):
+        """Creates a subscription and calls the callback when data received"""
+        entries = []
+        for name in vss_names:
+            # Always subscribe to target
+            subscribe_entry = SubscribeEntry(name, View.FIELDS, [Field.ACTUATOR_TARGET])
+            log.info(f"Subscribe entry: {subscribe_entry}")
+            entries.append(subscribe_entry)
+        async with VSSClient(self._ip, self._port, token=self._token) as client:
+            async for updates in client.subscribe(entries=entries):
+                log.debug(f"Received update of length {len(updates)}")
+                await callback(updates)

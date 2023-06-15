@@ -370,7 +370,7 @@
                   },
                   "IsOn": {
                     "datatype": "boolean",
-                    "dbc": {
+                    "dbc2vss": {
                       "interval_ms": 100,
                       "signal": "VCRIGHT_reverseLightStatus",
                       "transform": {
@@ -448,7 +448,7 @@
                       "ADAPTIVE"
                     ],
                     "datatype": "string",
-                    "dbc": {
+                    "dbc2vss": {
                       "interval_ms": 100,
                       "signal": "VCRIGHT_brakeLightStatus",
                       "transform": {
@@ -495,7 +495,7 @@
                       },
                       "IsSignaling": {
                         "datatype": "boolean",
-                        "dbc": {
+                        "dbc2vss": {
                           "interval_ms": 100,
                           "signal": "VCLEFT_turnSignalStatus",
                           "transform": {
@@ -535,7 +535,7 @@
                       },
                       "IsSignaling": {
                         "datatype": "boolean",
-                        "dbc": {
+                        "dbc2vss": {
                           "interval_ms": 100,
                           "signal": "VCRIGHT_turnSignalStatus",
                           "transform": {
@@ -597,7 +597,7 @@
                       },
                       "IsOn": {
                         "datatype": "boolean",
-                        "dbc": {
+                        "dbc2vss": {
                           "interval_ms": 100,
                           "signal": "VCRIGHT_brakeLightStatus",
                           "transform": {
@@ -725,7 +725,7 @@
                 "children": {
                   "IsHeatingOn": {
                     "datatype": "boolean",
-                    "dbc": {
+                    "dbc2vss": {
                       "interval_ms": 1000,
                       "signal": "VCLEFT_mirrorHeatState",
                       "transform": {
@@ -746,7 +746,7 @@
                   },
                   "Pan": {
                     "datatype": "int8",
-                    "dbc": {
+                    "dbc2vss": {
                       "interval_ms": 100,
                       "signal": "VCLEFT_mirrorTiltXPosition",
                       "transform": {
@@ -757,11 +757,17 @@
                     "max": 100,
                     "min": -100,
                     "type": "actuator",
-                    "unit": "percent"
+                    "unit": "percent",
+                    "vss2dbc": {
+                      "signal": "VCLEFT_mirrorTiltXPosition",
+                      "transform": {
+                        "math": "(x+100)/40"
+                      }
+                    }
                   },
                   "Tilt": {
                     "datatype": "int8",
-                    "dbc": {
+                    "dbc2vss": {
                       "interval_ms": 100,
                       "signal": "VCLEFT_mirrorTiltYPosition",
                       "transform": {
@@ -772,7 +778,13 @@
                     "max": 100,
                     "min": -100,
                     "type": "actuator",
-                    "unit": "percent"
+                    "unit": "percent",
+                    "vss2dbc": {
+                      "signal": "VCLEFT_mirrorTiltYPosition",
+                      "transform": {
+                        "math": "(x+100)/40"
+                      }
+                    }
                   }
                 },
                 "description": "All mirrors.",
@@ -782,7 +794,7 @@
                 "children": {
                   "IsHeatingOn": {
                     "datatype": "boolean",
-                    "dbc": {
+                    "dbc2vss": {
                       "interval_ms": 1000,
                       "signal": "VCLEFT_mirrorHeatState",
                       "transform": {
@@ -803,7 +815,7 @@
                   },
                   "Pan": {
                     "datatype": "int8",
-                    "dbc": {
+                    "dbc2vss": {
                       "interval_ms": 100,
                       "signal": "VCRIGHT_mirrorTiltXPosition",
                       "transform": {
@@ -818,7 +830,7 @@
                   },
                   "Tilt": {
                     "datatype": "int8",
-                    "dbc": {
+                    "dbc2vss": {
                       "interval_ms": 100,
                       "signal": "VCRIGHT_mirrorTiltYPosition",
                       "transform": {
@@ -920,7 +932,7 @@
                   },
                   "IsOpen": {
                     "datatype": "boolean",
-                    "dbc": {
+                    "dbc2vss": {
                       "interval_ms": 1000,
                       "signal": "VCRIGHT_trunkLatchStatus",
                       "transform": {
@@ -953,7 +965,22 @@
                       }
                     },
                     "description": "Trunk open or closed. True = Open. False = Closed.",
-                    "type": "actuator"
+                    "type": "actuator",
+                    "vss2dbc": {
+                      "signal": "VCRIGHT_trunkLatchStatus",
+                      "transform": {
+                        "mapping": [
+                          {
+                            "from": true,
+                            "to": "LATCH_OPENED"
+                          },
+                          {
+                            "from": false,
+                            "to": "LATCH_CLOSED"
+                          }
+                        ]
+                      }
+                    }
                   }
                 },
                 "comment": "A trunk is a luggage compartment in a vehicle. Depending on vehicle, it can be either in the front or back of the vehicle. Some vehicles may have trunks both at the front and at the rear of the vehicle.",
@@ -978,7 +1005,7 @@
                     "children": {
                       "IsLevelLow": {
                         "datatype": "boolean",
-                        "dbc": {
+                        "dbc2vss": {
                           "interval_ms": 1000,
                           "signal": "VCFRONT_washerFluidLevel",
                           "transform": {
@@ -1314,7 +1341,7 @@
                       },
                       "IsOpen": {
                         "datatype": "boolean",
-                        "dbc": {
+                        "dbc2vss": {
                           "interval_ms": 500,
                           "signal": "VCLEFT_frontDoorState",
                           "transform": {
@@ -1496,7 +1523,7 @@
                       },
                       "IsOpen": {
                         "datatype": "boolean",
-                        "dbc": {
+                        "dbc2vss": {
                           "interval_ms": 500,
                           "signal": "VCLEFT_rearDoorState",
                           "transform": {
@@ -2904,7 +2931,7 @@
                       },
                       "IsBelted": {
                         "datatype": "boolean",
-                        "dbc": {
+                        "dbc2vss": {
                           "interval_ms": 1000,
                           "signal": "VCFRONT_driverBuckleStatus",
                           "transform": {
@@ -4979,7 +5006,7 @@
                               },
                               "IsFluidLevelLow": {
                                 "datatype": "boolean",
-                                "dbc": {
+                                "dbc2vss": {
                                   "interval_ms": 1000,
                                   "signal": "VCFRONT_brakeFluidLevel",
                                   "transform": {
@@ -5060,7 +5087,7 @@
                               },
                               "IsFluidLevelLow": {
                                 "datatype": "boolean",
-                                "dbc": {
+                                "dbc2vss": {
                                   "interval_ms": 1000,
                                   "signal": "VCFRONT_brakeFluidLevel",
                                   "transform": {
@@ -5216,7 +5243,7 @@
                               },
                               "IsFluidLevelLow": {
                                 "datatype": "boolean",
-                                "dbc": {
+                                "dbc2vss": {
                                   "interval_ms": 1000,
                                   "signal": "VCFRONT_brakeFluidLevel",
                                   "transform": {
@@ -5297,7 +5324,7 @@
                               },
                               "IsFluidLevelLow": {
                                 "datatype": "boolean",
-                                "dbc": {
+                                "dbc2vss": {
                                   "interval_ms": 1000,
                                   "signal": "VCFRONT_brakeFluidLevel",
                                   "transform": {
@@ -5435,7 +5462,7 @@
             "children": {
               "Angle": {
                 "datatype": "int16",
-                "dbc": {
+                "dbc2vss": {
                   "interval_ms": 100,
                   "signal": "SteeringAngle129",
                   "transform": {
@@ -5821,7 +5848,7 @@
           },
           "AmbientAirTemperature": {
             "datatype": "float",
-            "dbc": {
+            "dbc2vss": {
               "interval_ms": 1000,
               "signal": "VCFRONT_tempAmbientFiltered"
             },
@@ -5897,7 +5924,7 @@
           },
           "ControlModuleVoltage": {
             "datatype": "float",
-            "dbc": {
+            "dbc2vss": {
               "interval_ms": 1000,
               "signal": "PCS_dcdcLvBusVolt"
             },
@@ -5979,7 +6006,7 @@
           },
           "EngineLoad": {
             "datatype": "float",
-            "dbc": {
+            "dbc2vss": {
               "interval_ms": 100,
               "signal": "RearPower266",
               "transform": {
@@ -6672,7 +6699,7 @@
           },
           "Speed": {
             "datatype": "float",
-            "dbc": {
+            "dbc2vss": {
               "interval_ms": 100,
               "signal": "DI_uiSpeed"
             },
@@ -7072,17 +7099,20 @@
               },
               "Temperature": {
                 "datatype": "int16",
-                "dbc": {
+                "dbc2vss": {
                   "interval_ms": 1000,
                   "signal": "PTC_rightTempIGBT"
                 },
                 "description": "Motor temperature.",
                 "type": "sensor",
-                "unit": "celsius"
+                "unit": "celsius",
+                "vss2dbc": {
+                  "signal": "PTC_rightTempIGBT"
+                }
               },
               "Torque": {
                 "datatype": "int16",
-                "dbc": {
+                "dbc2vss": {
                   "interval_ms": 100,
                   "signal": "DIR_torqueActual"
                 },
@@ -7376,7 +7406,7 @@
                   },
                   "IsCharging": {
                     "datatype": "boolean",
-                    "dbc": {
+                    "dbc2vss": {
                       "interval_ms": 1000,
                       "signal": "CP_hvChargeStatus",
                       "transform": {
@@ -7707,7 +7737,7 @@
               },
               "CurrentGear": {
                 "datatype": "int8",
-                "dbc": {
+                "dbc2vss": {
                   "interval_ms": 100,
                   "signal": "DI_gear",
                   "transform": {
@@ -7791,7 +7821,7 @@
               },
               "IsParkLockEngaged": {
                 "datatype": "boolean",
-                "dbc": {
+                "dbc2vss": {
                   "interval_ms": 100,
                   "signal": "DI_gear",
                   "transform": {
@@ -7919,7 +7949,7 @@
       },
       "Speed": {
         "datatype": "float",
-        "dbc": {
+        "dbc2vss": {
           "interval_ms": 100,
           "signal": "DI_uiSpeed"
         },
@@ -7938,7 +7968,7 @@
         "children": {
           "IsConnected": {
             "datatype": "boolean",
-            "dbc": {
+            "dbc2vss": {
               "interval_ms": 3000,
               "signal": "VCLEFT_trailerDetected",
               "transform": {
