@@ -26,7 +26,7 @@
 import logging
 import time
 
-import j1939
+import j1939  # type: ignore[import]
 from dbcfeederlib import dbc2vssmapper
 from queue import Queue
 

@@ -19,7 +19,8 @@
 ########################################################################
 
 import logging
-from typing import Set, Optional, Dict
+import sys
+from typing import Set, Optional, Dict, cast
 import cantools
 
 log = logging.getLogger(__name__)
@@ -28,7 +29,6 @@ log = logging.getLogger(__name__)
 class DBCParser:
     def __init__(self, dbcfile: str, use_strict_parsing: bool = True):
 
-        self.db = None
         first = True
         found_names = set()
         for name in dbcfile.split(","):
@@ -39,8 +39,14 @@ class DBCParser:
             found_names.add(filename)
             if first:
                 log.info("Reading DBC file {} as first file".format(filename))
-                self.db = cantools.database.load_file(filename, strict=use_strict_parsing)
-                first = False
+                db = cantools.database.load_file(filename, strict=use_strict_parsing)
+                # load_file can return multiple types of databases, make sure we have CAN database
+                if isinstance(db, cantools.database.can.database.Database):
+                    self.db = cast(cantools.database.can.database.Database, db)
+                    first = False
+                else:
+                    log.error("File is not a CAN database, likely a diagnostics database")
+                    sys.exit(-1)
             else:
                 log.info("Adding definitions from {}".format(filename))
                 self.db.add_dbc_file(filename)
@@ -81,5 +87,5 @@ class DBCParser:
                 self.canid_to_signals[canid] = names
                 return names
         log.warning(f"CAN id {canid} not found in DBC file")
-        self.canid_to_signals[canid] = []
-        return []
+        self.canid_to_signals[canid] = set()
+        return set()

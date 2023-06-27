@@ -26,10 +26,10 @@ as well as transforming dbc data to VSS data.
 import json
 import logging
 import sys
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Set, Optional, KeysView
 from dataclasses import dataclass
 
-from py_expression_eval import Parser
+from py_expression_eval import Parser  # type: ignore[import]
 
 from dbcfeederlib import dbcparser
 
@@ -201,12 +201,15 @@ class Mapper:
         """
         Find VSS mapping and transform DBC value to VSS value.
         """
-        # If we have an observation we know that a mapping exists
         vss_signal = self.get_dbc2val_mapping(vss_observation.dbc_name, vss_observation.vss_name)
-        value = vss_signal.transform_value(vss_observation.raw_value)
-        log.debug(f"Transformed dbc {vss_observation.dbc_name} to VSS "
-                  f"{vss_observation.vss_name}, "
-                  f"from raw value {vss_observation.raw_value} to {value}")
+        if vss_signal:
+            value = vss_signal.transform_value(vss_observation.raw_value)
+            log.debug(f"Transformed dbc {vss_observation.dbc_name} to VSS "
+                      f"{vss_observation.vss_name}, "
+                      f"from raw value {vss_observation.raw_value} to {value}")
+        else:
+            log.error("No mapping found, that is not expected!")
+            value = None
         return value
 
     def extract_verify_transform(self, expanded_name: str, node: dict):
@@ -310,6 +313,9 @@ class Mapper:
 
         # Also add CAN-id
         dbc_can_id = self.dbc_parser.get_canid_for_signal(dbc_name)
+        if not dbc_can_id:
+            log.error(f"Could not find {dbc_name}")
+            return
         if dbc_can_id not in self.val2dbc_can_id_mapping:
             self.val2dbc_can_id_mapping[dbc_can_id] = []
         self.val2dbc_can_id_mapping[dbc_can_id].append(mapping_entry)
@@ -360,7 +366,7 @@ class Mapper:
             for item in node.items():
                 self.traverse_vss_node(item[0], item[1], prefix)
 
-    def get_dbc2val_mapping(self, dbc_name: str, vss_name: str) -> VSSMapping:
+    def get_dbc2val_mapping(self, dbc_name: str, vss_name: str) -> Optional[VSSMapping]:
         """
         Helper method for test purposes
         """
@@ -370,11 +376,11 @@ class Mapper:
                     return mapping
         return None
 
-    def get_dbc2val_entries(self) -> Set[str]:
+    def get_dbc2val_entries(self) -> KeysView:
         """Return a set of all dbc names used for reception"""
         return self.dbc2val_mapping.keys()
 
-    def get_val2dbc_entries(self) -> Set[str]:
+    def get_val2dbc_entries(self) -> KeysView:
         """Return a set of all vss names used for reception"""
         return self.val2dbc_mapping.keys()
 
@@ -384,8 +390,8 @@ class Mapper:
         for entry in self.dbc2val_mapping.values():
             for vss_mapping in entry:
                 vss_names.add(vss_mapping.vss_name)
-        for entry in self.val2dbc_mapping.keys():
-            vss_names.add(entry)
+        for key_entry in self.val2dbc_mapping.keys():
+            vss_names.add(key_entry)
         return vss_names
 
     def has_dbc2val_mapping(self) -> bool:
@@ -415,7 +421,7 @@ class Mapper:
             dbc_ids.add(dbc_mapping.dbc_name)
         return dbc_ids
 
-    def get_default_values(self, can_id) -> Dict[int, Any]:
+    def get_default_values(self, can_id) -> Dict[str, Any]:
 
         res = {}
         for signal in self.dbc_parser.get_signals_for_canid(can_id):

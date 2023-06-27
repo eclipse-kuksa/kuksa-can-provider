@@ -23,14 +23,14 @@ import contextlib
 import grpc.aio
 from pathlib import Path
 
-import kuksa_client.grpc
+import kuksa_client.grpc  # type: ignore[import]
 from kuksa_client.grpc import Datapoint
 from kuksa_client.grpc import DataEntry
 from kuksa_client.grpc import DataType
 from kuksa_client.grpc import EntryUpdate
 from kuksa_client.grpc import Field
 from kuksa_client.grpc import Metadata
-from kuksa_client.grpc.aio import VSSClient
+from kuksa_client.grpc.aio import VSSClient  # type: ignore[import]
 from kuksa_client.grpc import SubscribeEntry
 from kuksa_client.grpc import View
 from dbcfeederlib import clientwrapper

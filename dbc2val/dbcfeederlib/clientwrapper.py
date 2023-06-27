@@ -14,7 +14,7 @@
 #################################################################################
 
 import logging
-from typing import Any, List
+from typing import Any, List, Optional
 
 from abc import ABC, abstractmethod
 
@@ -36,8 +36,8 @@ class ClientWrapper(ABC):
         self._token_path = token_path
         self._tls = tls
         self._registered = False
-        self._root_ca_path = None
-        self._tls_server_name = None
+        self._root_ca_path: Optional[str] = None
+        self._tls_server_name: Optional[str] = None
 
     def set_ip(self, ip: str):
         """ Set IP address to use """

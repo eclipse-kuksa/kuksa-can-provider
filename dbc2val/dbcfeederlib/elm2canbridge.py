@@ -20,15 +20,13 @@
 
 import os
 import sys
-import serial
+import serial  # type: ignore[import]
 import can
 import threading
 from multiprocessing import Queue, Process
 
 # To limit memory in case parsing thread dies and serial reader keeps filling
 QUEUE_MAX_ELEMENTS = 2048
-
-
 
 
 class elm2canbridge:
@@ -41,7 +39,7 @@ class elm2canbridge:
             sys.exit(-1)
 
         self.canport = canport
-        self.whitelist=whitelist
+        self.whitelist = whitelist
         elm = serial.Serial()
         elm.baudrate = cfg['baud']
         elm.port = cfg['port']
@@ -56,7 +54,7 @@ class elm2canbridge:
             print("elm2canbridge: Can not open serial port")
             sys.exit(-1)
 
-        self.initelm(elm,cfg['speed'], cfg['canack'])
+        self.initelm(elm, cfg['speed'], cfg['canack'])
         can = self.initcan(cfg)
 
         serQueue = Queue(QUEUE_MAX_ELEMENTS)
@@ -64,10 +62,9 @@ class elm2canbridge:
         mt = threading.Thread(target=self.serialProcesor, args=(serQueue, can,))
         mt.start()
 
-        sr = p = Process(target=self.serialReader, args=(elm, serQueue,))
-        #sr = threading.Thread(target=self.serialReader, args=(elm, serQueue,))
+        sr = Process(target=self.serialReader, args=(elm, serQueue,))
         sr.start()
-        srpid=sr.pid
+        srpid = sr.pid
         print("Running on pid {}".format(srpid))
 
     def serialReader(self, elm, q):
@@ -80,7 +77,7 @@ class elm2canbridge:
 
         os.nice(-10)
         print("elm2canbridge: Enter monitoring mode...")
-        if self.whitelist != None:
+        if self.whitelist is not None:
             print("Applying whitelist")
             elm.write(b'STM\r')
             elm.read(4)  # Consume echo
@@ -90,53 +87,51 @@ class elm2canbridge:
             elm.read(5)  # Consume echo
 
         elm.timeout = None
-        CR=13
+        CR = 13
         while True:
             buffer[index] = elm.read()[0]
-            #print("Read: {}=={} ".format(buffer[index],CR))
-            #print("Buffer {}".format(buffer))
+            # print("Read: {}=={} ".format(buffer[index],CR))
+            # print("Buffer {}".format(buffer))
             if buffer[index] == CR or index == 63:
-                #print("Received {}".format(bytes(buffer).hex()[:index]))
-                q.put(buffer[:index]) #Todo will slice copy deep enough or is this a race?
-                index=0
+                # print("Received {}".format(bytes(buffer).hex()[:index]))
+                q.put(buffer[:index])  # Todo will slice copy deep enough or is this a race?
+                index = 0
                 continue
-            index+=1
+            index += 1
 
-
-
-
-    def serialProcesor(self,q, candevice):
+    def serialProcesor(self, q, candevice):
         print("elm2canbridge: Waiting for incoming...")
 
         while True:
-            line=q.get().decode('utf-8')
-            #print("Received {}".format(line))
+            line = q.get().decode('utf-8')
+            # print("Received {}".format(line))
 
-            isextendedid=False
-            #print("Received from elm: {}".format(line))
+            isextendedid = False
+            # print("Received from elm: {}".format(line))
             try:
                 items = line.split()
                 if len(items[0]) == 3:  # normal id
-                    canid=int(items[0], 16)
-                    #print("Normal ID {}".format(canid))
+                    canid = int(items[0], 16)
+                    # print("Normal ID {}".format(canid))
                     del items[0]
                 elif len(items) >= 4:  # extended id
-                    isextendedid=True
+                    isextendedid = True
                     canid = int(items[0] + items[1] + items[2] + items[3], 16)
                     items = items[4:]
-                    #print("Extended ID {}".format(canid))
+                    # print("Extended ID {}".format(canid))
                 else:
                     print(
-                        "Parseline: Invalid line: {}, len first element: {}, total elements: {}".format(line, len(items[0]),
+                        "Parseline: Invalid line: {}, len first element: {}, total elements: {}".format(line,
+                                                                                                        len(items[0]),
                                                                                                         len(items)))
                     continue
 
-                data=''.join(items)
-                #print("data: {}".format(data))
-                dataBytes= bytearray.fromhex(data)
-            except Exception as e:
-#                print("Error parsing: " + str(e))
-#                print("Error. ELM line, items **{}**".format(line.split()))
+                data = ''.join(items)
+                # print("data: {}".format(data))
+                dataBytes = bytearray.fromhex(data)
+            except Exception:
+                # print("Error parsing: " + str(e))
+                # print("Error. ELM line, items **{}**".format(line.split()))
                 continue
 
             if len(dataBytes) > 8:
@@ -149,12 +144,12 @@ class elm2canbridge:
             try:
                 candevice.send(canmsg)
             except Exception as e:
-                print("Error formwarding message to Can ID 0x{:02x} (extended: {}) with data 0x{}".format(canid, isextendedid, dataBytes.hex()))
+                print("Error forwarding message to Can ID 0x{:02x} (extended: {}) with data 0x{}".
+                      format(canid, isextendedid, dataBytes.hex()))
                 print("Error: {}".format(e))
 
-
-    #Currently only works with obdlink devices
     def initelm(self, elm, canspeed, ack):
+        """Currently only works with obdlink devices"""
         print("Detecting ELM...")
         elm.write(b'\r\r')
         self.waitforprompt(elm)
@@ -174,39 +169,38 @@ class elm2canbridge:
         print("Disable DLC")
         self.executecommand(elm, b'AT D0\r')
 
-        if self.whitelist != None:
+        if self.whitelist:
             print("Using Whitelist")
             print("Clear all filters")
             self.executecommand(elm, b'STFAC\r')
             for canid in self.whitelist:
                 if canid < 2048:
-                    cmd="STFPA {:04x}, 7fff\r".format(canid)
+                    cmd = "STFPA {:04x}, 7fff\r".format(canid)
                 else:
                     cmd = "STFPA {:08x}, 1fffffff\r".format(canid)
                 print("Exec "+str(cmd))
                 self.executecommand(elm, cmd.encode('utf-8'))
 
-
         print("Set CAN speed")
         self.executecommand(elm, b'STP 32\r')
         cmd = "STPBR " + str(canspeed) + "\r"
         self.executecommand(elm, cmd.encode('utf-8'))
-        baud = self.executecommand(elm, b'STPBRR\r', expectok=False)
+        self.executecommand(elm, b'STPBRR\r', expectok=False)
         print("Speed is {}".format(canspeed))
         if ack:
             self.executecommand(elm, b'STCMM 1\r')
         else:
             self.executecommand(elm, b'STCMM 0\r')
 
-    #open vcan where we mirror the elmcan monitor output
+    # open vcan where we mirror the elmcan monitor output
     def initcan(self, cfg):
         return can.interface.Bus(self.canport, bustype='socketcan')  # pylint: disable=abstract-class-instantiated
 
-    def waitforprompt(self,elm):
+    def waitforprompt(self, elm):
         while elm.read() != b'>':
             pass
 
-    def writetoelm(self,elm,data):
+    def writetoelm(self, elm, data):
         # print("Write")
         length = len(data)
         elm.write(data)
@@ -215,15 +209,14 @@ class elm2canbridge:
             print("elm2canbridge: Not the same {}/{}".format(data, echo))
         # print("Write Done")
 
-
     def readresponse(self, elm):
-        response=""
+        response = ""
         while True:
-            d=elm.read()
+            d = elm.read()
             if d == b'\r':
                 return response
-            response=response+d.decode('utf-8')
-        #print("DEBUG: "+response)
+            response = response + d.decode('utf-8')
+        # print("DEBUG: "+response)
 
     def executecommand(self, elm, command, expectok=True):
         self.writetoelm(elm, command)

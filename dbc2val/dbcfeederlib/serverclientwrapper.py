@@ -17,7 +17,7 @@ import logging
 from typing import Any, List
 import json
 
-from kuksa_client import KuksaClientThread
+from kuksa_client import KuksaClientThread  # type: ignore[import]
 
 from dbcfeederlib import clientwrapper
 
