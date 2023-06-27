@@ -28,9 +28,22 @@ log = logging.getLogger(__name__)
 class DBCParser:
     def __init__(self, dbcfile: str, use_strict_parsing: bool = True):
 
-        # Read DBC file
-        log.info("Reading DBC file {}".format(dbcfile))
-        self.db = cantools.database.load_file(dbcfile, strict=use_strict_parsing)
+        self.db = None
+        first = True
+        found_names = set()
+        for name in dbcfile.split(","):
+            filename = name.strip()
+            if filename in found_names:
+                log.warn("The DBC file {} has already been read, ignoring it!".format(filename))
+                continue
+            found_names.add(filename)
+            if first:
+                log.info("Reading DBC file {} as first file".format(filename))
+                self.db = cantools.database.load_file(filename, strict=use_strict_parsing)
+                first = False
+            else:
+                log.info("Adding definitions from {}".format(filename))
+                self.db.add_dbc_file(filename)
 
         # Init some dictionaries to speed up search
         self.signal_to_canid: Dict[str, Optional[int]] = {}

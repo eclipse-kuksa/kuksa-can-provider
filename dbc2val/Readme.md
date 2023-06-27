@@ -186,7 +186,7 @@ It is also possible to use the same instance for both sending and receiving, lik
 ./dbcfeeder.py --val2dbc --dbc2val --use-socketcan
 ```
 
-### Verifying expected behvior
+### Verifying expected behavior
 
 Use the [KUKSA.val Client](https://github.com/eclipse/kuksa.val/tree/master/kuksa-client).
 Set target value and verify that actual value is updated. This happens as the example mapping
@@ -238,7 +238,7 @@ A smaller excerpt from the above sample, with fewer signals.
 | Command Line Argument | Environment Variable            | Config File Property    | Default Value                    | Description         |
 |:----------------------|:--------------------------------|:------------------------|:---------------------------------|---------------------|
 | *--config*            | -                               | -                       | *See below*                      | Configuration file  |
-| *--dbcfile*           | *DBC_FILE*                      | *[can].dbc*             |                                  | DBC file used for parsing CAN traffic  |
+| *--dbcfile*           | *DBC_FILE*                      | *[can].dbc*             |                                  | DBC file(s) used for parsing CAN traffic. You may specify multiple file names separated by comma|
 | *--dumpfile*          | *CANDUMP_FILE*                  | *[can].candumpfile*     |                                  | Replay recorded CAN traffic from dumpfile |
 | *--canport*           | *CAN_PORT*                      | *[can].port*            |                                  | Read from this CAN interface |
 | *--use-j1939*         | *USE_J1939*                     | *[can].j1939*           | `False`                          | Use J1939 when decoding CAN frames. Setting the environment variable to any value is equivalent to activating the switch on the command line. |
@@ -272,6 +272,25 @@ Configuration options have the following priority (highest at top).
 2. environment variable
 3. configuration file
 4. default value
+
+## Specifying multiple DBC files
+
+It is possible to specify that KUKSA.val DBC Feeder shall read multiple files by giving a comma separated list of
+DBC files. Whitespace characters may be used but will stripped before file is read.
+If whitespace characters is used on the command line then the string must be quoted
+
+Below is two functionally equivalent methods to list two DBC files:
+
+```console
+./dbcfeeder.py --dbcfile test/test_dbc/test1_1.dbc,test/test_dbc/test1_2.dbc --config config/dbc_feeder.ini
+
+./dbcfeeder.py --dbcfile "test/test_dbc/test1_1.dbc, test/test_dbc/test1_2.dbc" --config config/dbc_feeder.ini
+```
+
+If using a configuration file no quotes are needed, even if whitespaces are used
+```
+dbcfile = test/test_dbc/test1_1.dbc, test/test_dbc/test1_2.dbc
+```
 
 ### Using kuksa-client with a server requiring Authorization
 
