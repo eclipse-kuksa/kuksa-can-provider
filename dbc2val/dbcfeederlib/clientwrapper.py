@@ -36,6 +36,8 @@ class ClientWrapper(ABC):
         self._token_path = token_path
         self._tls = tls
         self._registered = False
+        self._root_ca_path = None
+        self._tls_server_name = None
 
     def set_ip(self, ip: str):
         """ Set IP address to use """
@@ -51,6 +53,20 @@ class ClientWrapper(ABC):
         Currently we rely on default location for root cert as defined by kuksa-client
         """
         self._tls = tls
+
+    def get_tls(self) -> bool:
+        """
+        Return TLS setting
+        """
+        return self._tls
+
+    def set_root_ca_path(self, path: str):
+        """ Set Path for Root CA (CA.pem) """
+        self._root_ca_path = path
+
+    def set_tls_server_name(self, name: str):
+        """ Set Path for Root CA (CA.pem) """
+        self._tls_server_name = name
 
     def set_token_path(self, token_path: str):
         self._token_path = token_path

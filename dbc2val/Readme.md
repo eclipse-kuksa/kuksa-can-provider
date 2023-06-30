@@ -247,7 +247,9 @@ A smaller excerpt from the above sample, with fewer signals.
 | *--server-type*       | *SERVER_TYPE*                   | *[general].server_type* | `kuksa_databroker`               | Which type of server the feeder should connect to (`kuksa_val_server` or `kuksa_databroker`) |
 | -                     | *KUKSA_ADDRESS*                 | *[general].ip*          | `127.0.0.1`                      | IP address for Server/Databroker |
 | -                     | *KUKSA_PORT*                    | *[general].port*        | `55555`                          | Port for Server/Databroker |
-| *--tls*               | -                               | *[general].tls*         | `False`                          | Shall tls be used for Server/Databroker connection? |
+| -                     | -                               | *[general].tls*         | `False`                          | Shall tls be used for Server/Databroker connection? |
+| -                     | -                               | *[general].root_ca_path* | *Undefined*                      | Path to root CA: Only needed if using TLS |
+| -                     | -                               | *[general].tls_server_name* | *Undefined*                   | TLS server name, may be needed if addressing a server by IP-name |
 | -                     | -                               | *[general].token*       | *Undefined*                      | Token path. Only needed if Databroker/Server requires authentication |
 | -                     | *VEHICLEDATABROKER_DAPR_APP_ID* | -                       | -                                | Add dapr-app-id metadata. Only relevant for KUKSA.val Databroker |
 | *--dbc2val /--no-dbc2val* | *USE_DBC2VAL* / *NO_USE_DBC2VAL* | *[can].dbc2val*    | dbc2val enabled                  | Specifies if sending data from CAN to KUKSA.val is enabled. Setting the environment variable to any value is equivalent to activating the switch on the command line.|
@@ -270,6 +272,35 @@ Configuration options have the following priority (highest at top).
 2. environment variable
 3. configuration file
 4. default value
+
+### Using kuksa-client with a server requiring Authorization
+
+The [default configuration file](config/dbc-feeder.ini) does not specify any token to use.
+If the KUKSA.val Databroker or KUKSA.val Server requires authorization the `token` attribute in the config file
+must be set. The default config file include (commented) values to use if using KUKSA.val example tokens.
+
+*Note: Production deployments are strongly recommend to use Authorization but must NOT use the example tokens available in the KUKSA.val repository!*
+
+### Using kuksa-client with a server requiring TLS
+
+The [default configuration file](config/dbc-feeder.ini) does not specify that TLS shall be used.
+If the KUKSA.val Databroker or KUKSA.val Server requires authentication the `tls` attribute in the config file
+must be set to `True` and `root_ca_path` must be set.
+The default config file include (commented) values to use if using KUKSA.val example certificates.
+
+The feeder verifies that the Databroker/Server presents a certificate with a name matching the server.
+The KUKSA.val default server certificate include `Server`, `localhost` and `127.0.0.1` as names, but due to a limitation
+name validation does not work when using gRPC and a numeric IP-address, so for that combination you must as a work around
+specify the `tls_server_name` to use in name validation, like in the example below.
+
+```
+ip = 127.0.0.1
+tls = True
+root_ca_path=../../kuksa.val/kuksa_certificates/CA.pem
+tls_server_name=localhost
+```
+
+*Note: Production deployments are strongly recommend to use TLS but must NOT use the example certificates available in the KUKSA.val repository!*
 
 ## Using kuksa-val-server
 

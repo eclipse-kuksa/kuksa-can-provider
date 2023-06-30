@@ -204,6 +204,7 @@ class Feeder:
                 log.info(f"Starting transmit thread, using {canport}")
                 # For now creating another bus
                 # Maybe support different buses for downstream/upstream in the future
+
                 self._canclient = canclient.CANClient(bustype="socketcan", channel=canport)
 
                 transmitter = threading.Thread(target=self._run_transmitter)
@@ -224,6 +225,9 @@ class Feeder:
         if self._player is not None:
             self._player.stop()
         self._client_wrapper.stop()
+        if self._canclient:
+            self._canclient.stop()
+            self._canclient = None
         self._mapper = None
         self._transmit = False
 
@@ -478,6 +482,19 @@ def main(argv):
 
     if "tls" in config["general"]:
         client_wrapper.set_tls(config["general"].getboolean("tls"))
+
+    if "root_ca_path" in config["general"]:
+        path = config['general']['root_ca_path']
+        log.info(f"Given root CA path: {path}")
+        client_wrapper.set_root_ca_path(path)
+    elif client_wrapper.get_tls():
+        # We do not want to rely on kuksa-client default
+        log.error("Root CA must be given when using TLS")
+
+    if "tls_server_name" in config["general"]:
+        name = config['general']['tls_server_name']
+        log.info(f"Given TLS server name: {name}")
+        client_wrapper.set_tls_server_name(name)
 
     if "token" in config["general"]:
         log.info(f"Given token information: {config['general']['token']}")

@@ -95,3 +95,6 @@ class DBCReader:
 
     def stop(self):
         self.run = False
+        if self.canclient:
+            self.canclient.stop()
+            self.canclient = None

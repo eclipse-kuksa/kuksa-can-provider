@@ -21,6 +21,7 @@ import os
 import contextlib
 
 import grpc.aio
+from pathlib import Path
 
 import kuksa_client.grpc
 from kuksa_client.grpc import Datapoint
@@ -90,10 +91,19 @@ class DatabrokerClientWrapper(clientwrapper.ClientWrapper):
         # The alternative approach would be to provide token in constructor
         # with/without ensure_startup_connection and not actively call "authorize"
         # The only practical difference is how progress and errors (if any) are reported!
+
+        # If there is a path VSSClient will request a secure connection
+        if self._tls and self._root_ca_path:
+            root_path = Path(self._root_ca_path)
+        else:
+            root_path = None
+
         self._grpc_client = self._exit_stack.enter_context(kuksa_client.grpc.VSSClient(
                  host=self._ip,
                  port=self._port,
-                 ensure_startup_connection=False
+                 ensure_startup_connection=False,
+                 root_certificates=root_path,
+                 tls_server_name=self._tls_server_name
             ))
         self._grpc_client.authorize(token=self._token, **self._rpc_kwargs)
         self._grpc_client.channel.subscribe(
@@ -198,7 +208,15 @@ class DatabrokerClientWrapper(clientwrapper.ClientWrapper):
             subscribe_entry = SubscribeEntry(name, View.FIELDS, [Field.ACTUATOR_TARGET])
             log.info(f"Subscribe entry: {subscribe_entry}")
             entries.append(subscribe_entry)
-        async with VSSClient(self._ip, self._port, token=self._token) as client:
+
+        # If there is a path VSSClient will request a secure connection
+        if self._tls and self._root_ca_path:
+            root_path = Path(self._root_ca_path)
+        else:
+            root_path = None
+
+        async with VSSClient(self._ip, self._port, token=self._token,
+                             root_certificates=root_path, tls_server_name=self._tls_server_name) as client:
             async for updates in client.subscribe(entries=entries):
                 log.debug(f"Received update of length {len(updates)}")
                 await callback(updates)

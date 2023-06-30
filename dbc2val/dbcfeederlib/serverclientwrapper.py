@@ -61,7 +61,10 @@ class ServerClientWrapper(clientwrapper.ClientWrapper):
         if self._token_path != "":
             self._client_config["token"] = self._token_path
 
-        # TODO add data for root cert if using TLS and if given
+        if self._root_ca_path:
+            self._client_config['cacertificate'] = self._root_ca_path
+        if self._tls_server_name:
+            self._client_config['tls_server_name'] = self._tls_server_name
 
         self._kuksa = KuksaClientThread(self._client_config)
         self._kuksa.start()

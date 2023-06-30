@@ -29,9 +29,23 @@ class CANClient:
     def __init__(self, *args, **kwargs):
         self.bus = can.interface.Bus(*args, **kwargs)  # pylint: disable=abstract-class-instantiated
 
+    def stop(self):
+        if self.bus:
+            self.bus.shutdown()
+            self.bus = None
+
     def recv(self, timeout: int = 1) -> Optional[canmessage.CANMessage]:
         """Wait for message from CAN"""
-        msg = self.bus.recv(timeout)
+        try:
+            msg = self.bus.recv(timeout)
+        except can.CanError:
+            msg = None
+            if self.bus:
+                log.error("Error while waiting for recv from CAN", exc_info=True)
+            else:
+                # This is expected if we are shutting down
+                log.debug("Exception received during shutdown")
+
         if msg:
             canmsg = canmessage.CANMessage(msg)
             return canmsg
