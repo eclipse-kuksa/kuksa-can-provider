@@ -434,3 +434,9 @@ class Mapper:
             if can_mapping.last_dbc_value is not None:
                 res[can_mapping.dbc_name] = can_mapping.last_dbc_value
         return res
+
+    def __contains__(self, key):
+        return key in self.dbc2val_mapping.keys()
+
+    def __getitem__(self, item):
+        return self.dbc2val_mapping[item]
