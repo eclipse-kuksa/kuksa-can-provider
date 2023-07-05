@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<NetworkDefinition xmlns="http://kayak.2codeornot2code.org/1.0">
+    <Document name="test1_1.kcd" date="Wed Jul 05 15:13:39 CEST 2023"></Document>
+    <Bus name="Private">
+        <Message id="0x16" name="ID016DI_bmsRequest" length="1">
+            <Signal name="DI_bmsOpenContactorsRequest" offset="4">
+                <Value/>
+            </Signal>
+            <Signal length="4" name="DI_bmsRequestInterfaceVersion" offset="0">
+                <Value max="15.0"/>
+            </Signal>
+        </Message>
+    </Bus>
+</NetworkDefinition>

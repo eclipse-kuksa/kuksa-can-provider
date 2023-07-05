@@ -21,7 +21,7 @@
 import logging
 import sys
 from typing import Set, Optional, Dict, cast
-import cantools
+import cantools.database
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class DBCParser:
         for name in dbcfile.split(","):
             filename = name.strip()
             if filename in found_names:
-                log.warn("The DBC file {} has already been read, ignoring it!".format(filename))
+                log.warning("The DBC file {} has already been read, ignoring it!".format(filename))
                 continue
             found_names.add(filename)
             if first:
@@ -49,7 +49,10 @@ class DBCParser:
                     sys.exit(-1)
             else:
                 log.info("Adding definitions from {}".format(filename))
-                self.db.add_dbc_file(filename)
+                # determine DB file format by means of filename suffix
+                tmp_database: cantools.db.Database = cantools.database.load_file(filename, strict=use_strict_parsing)
+                # "normalize" definitions to DBC format, before adding them
+                self.db.add_dbc_string(tmp_database.as_dbc_string())
 
         # Init some dictionaries to speed up search
         self.signal_to_canid: Dict[str, Optional[int]] = {}

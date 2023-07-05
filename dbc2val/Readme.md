@@ -238,7 +238,7 @@ A smaller excerpt from the above sample, with fewer signals.
 | Command Line Argument | Environment Variable            | Config File Property    | Default Value                    | Description         |
 |:----------------------|:--------------------------------|:------------------------|:---------------------------------|---------------------|
 | *--config*            | -                               | -                       | *See below*                      | Configuration file  |
-| *--dbcfile*           | *DBC_FILE*                      | *[can].dbc*             |                                  | DBC file(s) used for parsing CAN traffic. You may specify multiple file names separated by comma|
+| *--dbcfile*           | *DBC_FILE*                      | *[can].dbc*             |                                  | DBC file(s) used for parsing CAN traffic. You may specify multiple file names separated by comma. Supports parsing of [arbitrary DB file types](https://github.com/cantools/cantools#about). |
 | *--dumpfile*          | *CANDUMP_FILE*                  | *[can].candumpfile*     |                                  | Replay recorded CAN traffic from dumpfile |
 | *--canport*           | *CAN_PORT*                      | *[can].port*            |                                  | Read from this CAN interface |
 | *--use-j1939*         | *USE_J1939*                     | *[can].j1939*           | `False`                          | Use J1939 when decoding CAN frames. Setting the environment variable to any value is equivalent to activating the switch on the command line. |

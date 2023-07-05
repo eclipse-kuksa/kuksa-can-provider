@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<NetworkDefinition xmlns="http://kayak.2codeornot2code.org/1.0">
+    <Document name="test1_2.kcd" date="Wed Jul 05 15:13:39 CEST 2023"></Document>
+    <Bus name="Private">
+        <Message id="0x129" name="ID129SteeringAngle" length="8" interval="10">
+            <Signal length="8" name="SteeringSensorC129" offset="56">
+                <Value max="255.0"/>
+            </Signal>
+            <Signal length="8" name="SteeringSensorB129" offset="48">
+                <Value max="255.0"/>
+            </Signal>
+            <Signal length="2" name="SteeringSensorA129" offset="46">
+                <Value max="3.0"/>
+            </Signal>
+            <Signal length="14" name="SteeringSpeed129" offset="32">
+                <Notes>Steering Speed</Notes>
+                <Value slope="0.5" intercept="-4096.0" unit="D/S" min="-4096.0" max="4095.5"/>
+            </Signal>
+            <Signal length="14" name="SteeringAngle129" offset="16">
+                <Notes>Steering Angle</Notes>
+                <Value slope="0.1" intercept="-819.2" unit="Deg" min="-819.2" max="819.1"/>
+            </Signal>
+        </Message>
+    </Bus>
+</NetworkDefinition>
