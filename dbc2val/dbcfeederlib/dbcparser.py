@@ -20,7 +20,8 @@
 
 import logging
 import sys
-from typing import Set, Optional, Dict, cast
+import os
+from typing import Set, Optional, Dict, cast, Tuple
 import cantools.database
 
 log = logging.getLogger(__name__)
@@ -49,14 +50,37 @@ class DBCParser:
                     sys.exit(-1)
             else:
                 log.info("Adding definitions from {}".format(filename))
-                # determine DB file format by means of filename suffix
-                tmp_database: cantools.db.Database = cantools.database.load_file(filename, strict=use_strict_parsing)
-                # "normalize" definitions to DBC format, before adding them
-                self.db.add_dbc_string(tmp_database.as_dbc_string())
+                self._add_db_file(filename)
 
         # Init some dictionaries to speed up search
         self.signal_to_canid: Dict[str, Optional[int]] = {}
         self.canid_to_signals: Dict[int, Set[str]] = {}
+
+    def _determine_db_format_and_encoding(self, filename) -> Tuple[str, str]:
+        db_format = os.path.splitext(filename)[1][1:].lower()
+
+        try:
+            encoding = {
+                'dbc': 'cp1252',
+                'sym': 'cp1252'
+            }[db_format]
+        except KeyError:
+            encoding = 'utf-8'
+
+        return db_format, encoding
+
+    def _add_db_file(self, filename: str):
+        db_format, encoding = self._determine_db_format_and_encoding(filename)
+        if db_format == "arxml":
+            self.db.add_arxml_file(filename, encoding)
+        elif db_format == "dbc":
+            self.db.add_dbc_file(filename, encoding)
+        elif db_format == "kcd":
+            self.db.add_kcd_file(filename, encoding)
+        elif db_format == "sym":
+            self.db.add_sym_file(filename, encoding)
+        else:
+            log.warning("Cannot read CAN message definitions from file using unsupported format: %s", db_format)
 
     def get_canid_for_signal(self, sig_to_find: str) -> Optional[int]:
         if sig_to_find in self.signal_to_canid:
