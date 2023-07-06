@@ -14,6 +14,9 @@
 #
 # pip-compile requirements.in
 #
+# If you depend on pre-releases (of e.g. kuksa-client) use
+#
+# pip-compile --pre requirements.in
 
 python-can ~= 4.1
 pyserial ~= 3.5
@@ -21,7 +24,6 @@ cantools ~= 38.0
 pyyaml ~= 6.0
 can-j1939 ~= 2.0
 py_expression_eval ~= 0.3
-# Larger than 0.3, includes pre-released if pip installed with --pre
-kuksa-client > 0.3
+kuksa-client >= 0.4a4
 types-PyYAML ~= 6.0
 types-protobuf ~= 4.21

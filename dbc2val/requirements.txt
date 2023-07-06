@@ -34,7 +34,7 @@ iniconfig==2.0.0
     # via pytest
 jsonpath-ng==1.5.3
     # via kuksa-client
-kuksa-client==0.4.0a3
+kuksa-client==0.4.0a4
     # via -r requirements.in
 msgpack==1.0.5
     # via python-can
