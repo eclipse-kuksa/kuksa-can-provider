@@ -294,7 +294,7 @@ dbcfile = test/test_dbc/test1_1.dbc, test/test_dbc/test1_2.dbc
 
 ### Using kuksa-client with a server requiring Authorization
 
-The [default configuration file](config/dbc-feeder.ini) does not specify any token to use.
+The [default configuration file](config/dbc_feeder.ini) does not specify any token to use.
 If the KUKSA.val Databroker or KUKSA.val Server requires authorization the `token` attribute in the config file
 must be set. The default config file include (commented) values to use if using KUKSA.val example tokens.
 
@@ -302,7 +302,7 @@ must be set. The default config file include (commented) values to use if using 
 
 ### Using kuksa-client with a server requiring TLS
 
-The [default configuration file](config/dbc-feeder.ini) does not specify that TLS shall be used.
+The [default configuration file](config/dbc_feeder.ini) does not specify that TLS shall be used.
 If the KUKSA.val Databroker or KUKSA.val Server requires authentication the `tls` attribute in the config file
 must be set to `True` and `root_ca_path` must be set.
 The default config file include (commented) values to use if using KUKSA.val example certificates.

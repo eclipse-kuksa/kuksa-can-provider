@@ -45,7 +45,7 @@ by the same DBC signal, they are not even part of the same CAN-frame.
 
 ## Example mapping files
 
-Example mapping files for various VSS versions can be found in the [mapping](mapping) folder.
+Example mapping files for various VSS versions can be found in this folder.
 By default dbc2val uses the `vss_dbc.json` file for the newest available VSS release.
 If your KUKSA.val Server or Databroker use a different VSS-version then you should select a mapping file matching
 that version.
@@ -68,7 +68,7 @@ described below.
 ### Generating mapping file based on overlay
 
 The idea of overlays is to specify additions in a separate file and then apply this on top of
-a VSS tree. An example dbc overlay exists in [dbc_overlay.vspec](dbc_overlay.vspec).
+a VSS tree. An example dbc overlay exists in `dbc_overlay.vspec`.
 An overlay file is a VSS `*.vspec` file, which shall in itself be a valid VSS tree.
 The VSS tooling requires that type and datatype are defined in addition to the DBC specific data
 needed by the DBC feeder, like in the example below:
@@ -129,7 +129,7 @@ Syntax
 (`dbc` can be used as synonym for `dbc2vss`)
 
 Specifying DBC signal name is mandatory. It must correspond to a DBC signal name defined in a DBC file.
-By default the DBC feeder use the [Model3CAN.dbc](Model3CAN.dbc) example file.
+By default the DBC feeder use the [Model3CAN.dbc](../Model3CAN.dbc) example file.
 
 `interval_ms` and `on_change` are optional and control under which conditions a value shall be forwarded.
 The `interval_ms` value indicates the minimum interval between signals in milliseconds.
