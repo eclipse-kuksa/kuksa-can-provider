@@ -84,9 +84,10 @@ class ServerClientWrapper(clientwrapper.ClientWrapper):
         # Check if signal is defined in server
         resp = json.loads(self._kuksa.getMetaData(vss_name))
         if "error" in resp:
-            log.error(f"Signal {vss_name} appears not to be registered: {resp['error']}")
+            log.error("Signal %s appears not to be registered: %s", vss_name, resp['error'])
             return False
-        log.info(f"Signal {vss_name} is registered: {resp}")
+        log.info("Signal %s is registered", vss_name)
+        log.debug("Signal %s registration information: %s", vss_name, resp)
         return True
 
     def update_datapoint(self, name: str, value: Any) -> bool:

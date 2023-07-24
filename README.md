@@ -10,7 +10,7 @@ Name | Description
 [SOME/IP feeder](./someip2val) | SOME/IP feeder for KUKSA.val Databroker
 [DDS Provider](./dds2val)      | DDS provider for KUKSA.val Databroker
 [Replay](./replay)             | KUKSA.val Server replay script for previously recorded files, created by providing KUKSA.val Server with `--record` argument
-[CSV provider](./csv_provider) | Script to replay VSS signals to `kuksa.val` databroker as defined in a CSV-file
+[CSV provider](./csv_provider) | Script to replay VSS signals to KUKSA.val Databroker as defined in a CSV-file
 
 ## Pre-commit set up
 This repository is set up to use [pre-commit](https://pre-commit.com/) hooks.

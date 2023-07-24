@@ -19,9 +19,9 @@ from typing import Dict, List
 
 import os
 import contextlib
+from pathlib import Path
 
 import grpc.aio
-from pathlib import Path
 
 import kuksa_client.grpc  # type: ignore[import]
 from kuksa_client.grpc import Datapoint
