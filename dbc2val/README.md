@@ -67,10 +67,10 @@ $ python -V
 3. Install the needed python packages
 
 ```console
-$ pip install --pre -r requirements.txt
+$ pip install -r requirements.txt
 ```
 
-*Note - `--pre` currently needed as dbcfeeder relies on a pre-release of kuksa-client*
+*Note - Sometimes DBC Feeder on main branch rely on a kuksa-client pre-release. Then you must add `--pre` to the command above!*
 
 4. If you want to run tests and linters, you will also need to install development dependencies
 
