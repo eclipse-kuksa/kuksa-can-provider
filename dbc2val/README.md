@@ -160,7 +160,7 @@ OK
 
 ## Steps for a bidirectional test
 
-For bidrectional use you can either have separate instances of dbcfeeder or a joint instance
+For bidirectional use you can either have separate instances of dbcfeeder or a joint instance
 
 ### Separate Instances
 
@@ -188,7 +188,8 @@ It is also possible to use the same instance for both sending and receiving, lik
 
 ### Verifying expected behavior
 
-Use the [KUKSA.val Client](https://github.com/eclipse/kuksa.val/tree/master/kuksa-client).
+Use the [KUKSA.val Python Client](https://github.com/eclipse/kuksa.val/tree/master/kuksa-client).
+If connecting to KUKSA Databroker it is also possible to use [KUKSA Databroker CLI](https://github.com/eclipse/kuksa.val/tree/master/kuksa_databroker#test-the-databroker-using-cli).
 Set target value and verify that actual value is updated. This happens as the example mapping
 in this repository uses the same DBC signal for both val2dbc (`vss2dbc`) and val2dbc (`vss2dbc`). This is not
 a realistic scenario, but is good for test purposes as it shows that when val2dbc sends the CAN-signal the
@@ -196,7 +197,7 @@ CAN-signal will be kept up by the dbc2val mode and then be treated as actual val
 In a realistic example some other application would listen to CAN, actuate the mirror and report back progress
 on a different CAN signal.
 
-The example below shows a possible output. Note that you may not get back exactly the same value.
+The example below shows a possible output if using KUKSA Python Client. Note that you may not get back exactly the same value.
 This is caused by the transformations.
 
 * We set wanted value to +81%
@@ -328,13 +329,13 @@ tls_server_name=localhost
 2. Use the latest release from here:
 https://github.com/eclipse/kuksa.val/tree/master/kuksa-val-server
 
-After you download for example the release 0.2.1 you can run it with this command, this is also described in the kuksa val server [readme](https://github.com/eclipse/kuksa.val/blob/master/kuksa-val-server/README.md):
+After you download for example the release 0.2.1 you can run it with this command, this is also described in the [KUKSA Server readme](https://github.com/eclipse/kuksa.val/blob/master/kuksa-val-server/README.md):
 
 ```console
 $ docker run -it --rm -v $HOME/kuksaval.config:/config  -p 127.0.0.1:8090:8090 -e LOG_LEVEL=ALL ghcr.io/eclipse/kuksa.val/kuksa-val:0.2.1-amd64
 ```
 
-3. After server is started also start the dbcfeeder you should got some similar output in the kuksa val server terminal
+3. After server is started also start the dbcfeeder you should got some similar output in the KUKSA Server terminal
 
 ```console
 VERBOSE: Receive action: set
@@ -349,54 +350,12 @@ VERBOSE: SubscriptionHandler::publishForVSSPath: set value true for path Vehicle
 
 1. To make the feeder communicate with this server, use the `--server-type kuksa_databroker` CLI option or refer to [Configuration](#configuration) for `server-type`.
 
-2. Start kuksa_databroker server:
+2. Start KUKSA Databroker according to the [Quickstart](https://github.com/eclipse/kuksa.val/blob/master/doc/quickstart.md).
+   Automatic data entry registration is not yet supported so you **do need** to specify a metadata path using `--metadata`.
+3. To control that values are fed as expected to KUKSA Databroker you can use the [KUKSA.val Python Client](https://github.com/eclipse/kuksa.val/tree/master/kuksa-client)
+   or the  [KUKSA Databroker CLI](https://github.com/eclipse/kuksa.val/tree/master/kuksa_databroker#test-the-databroker-using-cli)
+   to connect to the Databroker.
 
-```console
-$ cd kuksa.val/kuksa_databroker
-$ cargo run --bin databroker -- --metadata ../data/vss-core/vss_release_3.0.json
-    Finished dev [unoptimized + debuginfo] target(s) in 0.07s
-     Running `/home/ler2so/Repo/kuksa.val/target/debug/databroker --metadata ../data/vss-core/vss_release_3.0.json`
-2022-12-01T13:53:58.933749Z  INFO databroker: Init logging from RUST_LOG (environment variable not found)
-2022-12-01T13:53:58.933781Z  INFO databroker: Starting Kuksa Data Broker 0.17.0
-2022-12-01T13:53:58.933865Z  INFO databroker: Populating metadata... from file '../data/vss-core/vss_release_3.0.json'
-2022-12-01T13:53:58.944068Z  INFO databroker: Listening on 127.0.0.1:55555
-2022-12-01T13:53:58.944095Z  INFO databroker::broker: Starting housekeeping task
-```
-
-> **Warning**
-> Automatic data entry registration is not yet supported so you **do need** to specify a metadata path using `--metadata`.
-> If you don't, running `./dbcfeeder.py` against databroker will raise ``2022-12-05 18:10:18,226 ERROR dbcfeeder: Failed to register datapoints``.
-
-3. Start the vehicle data client cli
-
-```console
-$ cd kuksa.val/kuksa_databroker
-$ cargo run --bin databroker-cli
-    Finished dev [unoptimized + debuginfo] target(s) in 0.06s
-     Running `/home/ler2so/Repo/kuksa.val/target/debug/databroker-cli`
-client>
-```
-
-4. After dbcfeeder is running use vehicle data client cli to subcribe to datapoints
-
-```console
-client> subscribe SELECT Vehicle.OBD.Speed
-
-# press 2 times Enter
-
--> status: OK
--> subscription1:
-Vehicle.OBD.Speed: 14.00
-
--> subscription1:
-Vehicle.OBD.Speed: 13.00
-
--> subscription1:
-Vehicle.OBD.Speed: 12.00
-```
-
-> **Note**
-> To end the subscription currently you have to stop the client cli via 'quit' and Enter.
 
 ## Using Docker
 
@@ -496,3 +455,5 @@ large-sized messages that are delivered with more than one CAN frame because the
 than a CAN frame's maximum payload of 8 bytes. To enable the J1939 mode, simply put `--use-j1939` in the command when running `dbcfeeder.py`.
 
 Support for J1939 is provided by means of the [can-j1939 package](https://pypi.org/project/can-j1939/).
+The J1939 feature is in Alpha status (see [KUKSA Component Maturity ](https://github.com/eclipse/kuksa.val/wiki/KUKSA.val-Component-Maturity))
+as no public test cases or example configurations exist.
