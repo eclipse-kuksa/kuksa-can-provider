@@ -21,49 +21,63 @@
 import logging
 import sys
 import os
-from typing import Set, Optional, Dict, cast, Tuple
+
 import cantools.database
+
+from types import MappingProxyType
+from typing import cast, Dict, Optional, List, Set, Tuple
+
 
 log = logging.getLogger(__name__)
 
 
 class DBCParser:
-    def __init__(self, dbcfile: str, use_strict_parsing: bool = True):
+
+    _dbc_file_encodings = MappingProxyType({
+                'dbc': 'cp1252',
+                'sym': 'cp1252'
+            })
+
+    def __init__(self,
+                 dbc_file_names: List[str],
+                 use_strict_parsing: bool = True,
+                 expect_extended_frame_ids: bool = False):
 
         first = True
-        found_names = set()
-        for name in dbcfile.split(","):
-            filename = name.strip()
-            if filename in found_names:
-                log.warning("The DBC file {} has already been read, ignoring it!".format(filename))
+        processed_files: Set[str] = set()
+        for filename in [name.strip() for name in dbc_file_names]:
+            if filename in processed_files:
+                log.warning("DBC file %s has already been read, ignoring it!", filename)
                 continue
-            found_names.add(filename)
+            processed_files.add(filename)
             if first:
-                log.info("Reading DBC file {} as first file".format(filename))
-                db = cantools.database.load_file(filename, strict=use_strict_parsing)
+                # by default, do not mask any bits of standard (11-bit) frame IDs
+                mask = 0b11111111111
+                if expect_extended_frame_ids:
+                    # mask 3 priority bits of extended (29-bit) frame IDs
+                    mask = 0b00011111111111111111111111111
+                log.info("Reading definitions from DBC file %s", filename)
+                database = cantools.database.load_file(filename, strict=use_strict_parsing, frame_id_mask=mask)
                 # load_file can return multiple types of databases, make sure we have CAN database
-                if isinstance(db, cantools.database.can.database.Database):
-                    self.db = cast(cantools.database.can.database.Database, db)
+                if isinstance(database, cantools.database.can.database.Database):
+                    self._db = cast(cantools.database.can.database.Database, database)
                     first = False
                 else:
-                    log.error("File is not a CAN database, likely a diagnostics database")
+                    log.error("File %s is not a CAN database, likely a diagnostics database", filename)
                     sys.exit(-1)
             else:
-                log.info("Adding definitions from {}".format(filename))
+                log.info("Adding definitions from DBC file %s", filename)
                 self._add_db_file(filename)
 
         # Init some dictionaries to speed up search
-        self.signal_to_canid: Dict[str, Optional[int]] = {}
-        self.canid_to_signals: Dict[int, Set[str]] = {}
+        self._signal_to_canid: Dict[str, Optional[int]] = {}
+        self._canid_to_signals: Dict[int, Set[str]] = {}
 
     def _determine_db_format_and_encoding(self, filename) -> Tuple[str, str]:
         db_format = os.path.splitext(filename)[1][1:].lower()
 
         try:
-            encoding = {
-                'dbc': 'cp1252',
-                'sym': 'cp1252'
-            }[db_format]
+            encoding = DBCParser._dbc_file_encodings[db_format]
         except KeyError:
             encoding = 'utf-8'
 
@@ -72,47 +86,47 @@ class DBCParser:
     def _add_db_file(self, filename: str):
         db_format, encoding = self._determine_db_format_and_encoding(filename)
         if db_format == "arxml":
-            self.db.add_arxml_file(filename, encoding)
+            self._db.add_arxml_file(filename, encoding)
         elif db_format == "dbc":
-            self.db.add_dbc_file(filename, encoding)
+            self._db.add_dbc_file(filename, encoding)
         elif db_format == "kcd":
-            self.db.add_kcd_file(filename, encoding)
+            self._db.add_kcd_file(filename, encoding)
         elif db_format == "sym":
-            self.db.add_sym_file(filename, encoding)
+            self._db.add_sym_file(filename, encoding)
         else:
             log.warning("Cannot read CAN message definitions from file using unsupported format: %s", db_format)
 
     def get_canid_for_signal(self, sig_to_find: str) -> Optional[int]:
-        if sig_to_find in self.signal_to_canid:
-            return self.signal_to_canid[sig_to_find]
+        if sig_to_find in self._signal_to_canid:
+            return self._signal_to_canid[sig_to_find]
 
-        for msg in self.db.messages:
+        for msg in self._db.messages:
             for signal in msg.signals:
                 if signal.name == sig_to_find:
                     frame_id = msg.frame_id
-                    log.info(
-                        "Found signal in DBC file {} in CAN frame id 0x{:02x}".format(
-                            signal.name, frame_id
-                        )
-                    )
-                    self.signal_to_canid[sig_to_find] = frame_id
+                    log.debug("Found signal %s in CAN message with frame ID %#x", signal.name, frame_id)
+                    self._signal_to_canid[sig_to_find] = frame_id
                     return frame_id
-        log.warning("Signal {} not found in DBC file".format(sig_to_find))
-        self.signal_to_canid[sig_to_find] = None
+        log.warning("Signal %s not found in CAN message database", sig_to_find)
+        self._signal_to_canid[sig_to_find] = None
         return None
 
     def get_signals_for_canid(self, canid: int) -> Set[str]:
 
-        if canid in self.canid_to_signals:
-            return self.canid_to_signals[canid]
+        if canid in self._canid_to_signals:
+            return self._canid_to_signals[canid]
 
-        for msg in self.db.messages:
-            if canid == msg.frame_id:
-                names = set()
-                for signal in msg.signals:
-                    names.add(signal.name)
-                self.canid_to_signals[canid] = names
-                return names
-        log.warning(f"CAN id {canid} not found in DBC file")
-        self.canid_to_signals[canid] = set()
-        return set()
+        names: Set[str] = set()
+        message = self.get_message_for_canid(canid)
+        if message is not None:
+            for signal in message.signals:
+                names.add(signal.name)
+        self._canid_to_signals[canid] = names
+        return names
+
+    def get_message_for_canid(self, canid: int) -> Optional[cantools.database.Message]:
+        try:
+            return self._db.get_message_by_frame_id(canid)
+        except Exception:
+            log.debug("No DBC mapping registered for CAN frame id %#x", canid)
+            return None

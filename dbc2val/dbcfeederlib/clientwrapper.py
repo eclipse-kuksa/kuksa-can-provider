@@ -38,6 +38,15 @@ class ClientWrapper(ABC):
         self._registered = False
         self._root_ca_path: Optional[str] = None
         self._tls_server_name: Optional[str] = None
+        self._do_init()
+
+    def _do_init(self):
+        """
+        Perform any implementation specific additional initialization.
+
+        Called at the end of __init__.
+        This default implementation does nothing.
+        """
 
     def set_ip(self, ip: str):
         """ Set IP address to use """
@@ -63,19 +72,18 @@ class ClientWrapper(ABC):
     def set_root_ca_path(self, path: str):
         """ Set Path for Root CA (CA.pem) """
         self._root_ca_path = path
+        log.info("Using root CA path: %s", self._root_ca_path)
 
     def set_tls_server_name(self, name: str):
         """ Set Path for Root CA (CA.pem) """
         self._tls_server_name = name
+        log.info("Using TLS server name: %s", self._tls_server_name)
 
     def set_token_path(self, token_path: str):
         self._token_path = token_path
+        log.info("Using token from: %s", self._token_path)
 
     # Abstract methods to implement
-    @abstractmethod
-    def get_client_specific_configs(self):
-        pass
-
     @abstractmethod
     def start(self):
         pass

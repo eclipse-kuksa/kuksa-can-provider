@@ -18,8 +18,9 @@
 # SPDX-License-Identifier: Apache-2.0
 ########################################################################
 
-from dbcfeederlib import dbcparser
 import os
+
+from dbcfeederlib import dbcparser
 
 # read config only once
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -28,7 +29,7 @@ def_dbc = test_path + "/../../Model3CAN.dbc"
 
 def test_default_dbc():
 
-    parser3 = dbcparser.DBCParser(def_dbc)
+    parser3 = dbcparser.DBCParser([def_dbc])
     assert parser3.get_canid_for_signal('SteeringAngle129') == 297
     assert parser3.get_canid_for_signal('DI_uiSpeed') == 599
 
@@ -38,7 +39,7 @@ def test_splitted_dbc():
     This verifies that we can read a splitted DBC File.
     Difference compared to default is that 'SteeringAngle129' has been moved to test1_2.dbc
     """
-    parser3 = dbcparser.DBCParser(test_path + "/test1_1.dbc," + test_path + "/test1_2.dbc")
+    parser3 = dbcparser.DBCParser([test_path + "/test1_1.dbc", test_path + "/test1_2.dbc"])
     assert parser3.get_canid_for_signal('SteeringAngle129') == 297
     assert parser3.get_canid_for_signal('DI_uiSpeed') == 599
 
@@ -47,6 +48,6 @@ def test_duplicated_dbc():
     """
     Load original DBC multiple times
     """
-    parser3 = dbcparser.DBCParser(def_dbc + ',' + def_dbc)
+    parser3 = dbcparser.DBCParser([def_dbc, def_dbc])
     assert parser3.get_canid_for_signal('SteeringAngle129') == 297
     assert parser3.get_canid_for_signal('DI_uiSpeed') == 599

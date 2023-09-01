@@ -25,6 +25,7 @@ Feeder parsing CAN data and sending to KUKSA.val
 import argparse
 import configparser
 import enum
+import errno
 import logging
 import os
 import queue
@@ -34,8 +35,7 @@ import threading
 import asyncio
 
 from signal import SIGINT, SIGTERM, signal
-from typing import Any
-from typing import Dict
+from typing import Any, Dict
 
 from dbcfeederlib import canclient
 from dbcfeederlib import canplayer
@@ -49,6 +49,21 @@ from dbcfeederlib import clientwrapper
 from dbcfeederlib import elm2canbridge
 
 log = logging.getLogger("dbcfeeder")
+
+CONFIG_SECTION_CAN = "can"
+CONFIG_SECTION_ELMCAN = "elmcan"
+CONFIG_SECTION_GENERAL = "general"
+
+CONFIG_OPTION_CAN_DUMP_FILE = "candumpfile"
+CONFIG_OPTION_DBC_DEFAULT_FILE = "dbc_default_file"
+CONFIG_OPTION_IP = "ip"
+CONFIG_OPTION_J1939 = "j1939"
+CONFIG_OPTION_MAPPING = "mapping"
+CONFIG_OPTION_PORT = "port"
+CONFIG_OPTION_ROOT_CA_PATH = "root_ca_path"
+CONFIG_OPTION_TLS_ENABLED = "tls"
+CONFIG_OPTION_TLS_SERVER_NAME = "tls_server_name"
+CONFIG_OPTION_TOKEN = "token"
 
 
 class ServerType(str, enum.Enum):
@@ -131,16 +146,16 @@ class Feeder:
     def start(
         self,
         canport,
-        dbcfile,
+        dbc_file_names,
         mappingfile,
         dbc_default_file,
-        candumpfile=None,
+        candumpfile,
         use_j1939=False,
         use_strict_parsing=False
     ):
 
         # Read DBC file
-        self._dbc_parser = dbcparser.DBCParser(dbcfile, use_strict_parsing)
+        self._dbc_parser = dbcparser.DBCParser(dbc_file_names, use_strict_parsing, use_j1939)
 
         log.info("Using mapping: {}".format(mappingfile))
         self._mapper = dbc2vssmapper.Mapper(mappingfile, self._dbc_parser, dbc_default_file)
@@ -201,7 +216,7 @@ class Feeder:
                 log.error("Subscribing to VSS signals not supported by chosen client!")
                 self.stop()
             else:
-                log.info(f"Starting transmit thread, using {canport}")
+                log.info("Starting transmit thread, using %s", canport)
                 # For now creating another bus
                 # Maybe support different buses for downstream/upstream in the future
 
@@ -315,12 +330,16 @@ class Feeder:
         for update in updates:
             if update.entry.value is not None:
                 # This shall currently never happen as we do not subscribe to this
-                log.warning(f"Current value for {update.entry.path} is now: "
-                            f"{update.entry.value.value} of type {type(update.entry.value.value)}")
+                log.warning(
+                    "Current value for %s is now: %s of type %s",
+                    update.entry.path, update.entry.value.value, type(update.entry.value.value)
+                )
 
             if update.entry.actuator_target is not None:
-                log.debug(f"Target value for {update.entry.path} is now: {update.entry.actuator_target} "
-                          f"of type {type(update.entry.actuator_target.value)}")
+                log.debug(
+                    "Target value for %s is now: %s of type %s",
+                    update.entry.path, update.entry.actuator_target, type(update.entry.actuator_target.value)
+                )
                 new_dbc_ids = self._mapper.handle_update(update.entry.path, update.entry.actuator_target.value)
                 dbc_ids.update(new_dbc_ids)
 
@@ -330,11 +349,12 @@ class Feeder:
             can_ids.add(can_id)
 
         for can_id in can_ids:
-            log.debug(f"CAN id to be sent, this is {can_id}")
+            log.debug("CAN id to be sent, this is %#x", can_id)
             sig_dict = self._mapper.get_value_dict(can_id)
-            message_data = self._dbc_parser.db.get_message_by_frame_id(can_id)
-            data = message_data.encode(sig_dict)
-            self._canclient.send(arbitration_id=message_data.frame_id, data=data)
+            message_definition = self._dbc_parser.get_message_for_canid(can_id)
+            if message_definition is not None:
+                data = message_definition.encode(sig_dict)
+                self._canclient.send(arbitration_id=message_definition.frame_id, data=data)
 
     async def _run_subscribe(self):
         """
@@ -353,13 +373,13 @@ class Feeder:
         asyncio.run(self._run_subscribe())
 
 
-def parse_config(filename):
+def _parse_config(filename: str) -> configparser.ConfigParser:
     configfile = None
 
     if filename:
         if not os.path.exists(filename):
-            log.warning("Couldn't find config file {}".format(filename))
-            raise Exception("Couldn't find config file {}".format(filename))
+            log.warning("Couldn't find config file %s", filename)
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), filename)
         configfile = filename
     else:
         config_candidates = [
@@ -372,35 +392,83 @@ def parse_config(filename):
                 configfile = candidate
                 break
 
-    log.info("Using config: {}".format(configfile))
-    if configfile is None:
-        return {}
-
     config = configparser.ConfigParser()
-    readed = config.read(configfile)
-    if log.level >= logging.DEBUG:
-        log.debug(
-            "# config.read({}):\n{}".format(
-                readed,
-                {section: dict(config[section]) for section in config.sections()},
-            )
-        )
+    log.info("Reading configuration from file: %s", configfile)
+    if configfile:
+        readed = config.read(configfile)
+        if log.isEnabledFor(logging.DEBUG):
+            log.debug("using configuration (%s):\n%s", readed, config)
 
     return config
 
 
-def main(argv):
-    """Main entrypoint for dbcfeeder"""
+def _get_kuksa_val_client(command_line_parser: argparse.Namespace,
+                          config: configparser.ConfigParser) -> clientwrapper.ClientWrapper:
+
+    if command_line_parser.server_type:
+        server_type_name = command_line_parser.server_type
+    elif os.environ.get("SERVER_TYPE"):
+        server_type_name = os.environ.get("SERVER_TYPE")
+    else:
+        server_type_name = config.get(CONFIG_SECTION_GENERAL, "server_type", fallback=ServerType.KUKSA_VAL_SERVER.name)
+
+    server_type = ServerType(server_type_name)
+
+    # The wrappers contain default settings, so we only need to change settings
+    # if given by dbcfeeder configs/arguments/env-variables
+    if server_type is ServerType.KUKSA_VAL_SERVER:
+        client: clientwrapper.ClientWrapper = serverclientwrapper.ServerClientWrapper()
+    elif server_type is ServerType.KUKSA_DATABROKER:
+        client = databrokerclientwrapper.DatabrokerClientWrapper()
+    else:
+        raise ValueError(f"Unsupported server type: {server_type}")
+
+    kuksa_ip = os.environ.get("KUKSA_ADDRESS")
+    if kuksa_ip is not None:
+        client.set_ip(kuksa_ip)
+    elif config.has_option(CONFIG_SECTION_GENERAL, CONFIG_OPTION_IP):
+        client.set_ip(config.get(CONFIG_SECTION_GENERAL, CONFIG_OPTION_IP))
+
+    kuksa_port = os.environ.get("KUKSA_PORT")
+    if kuksa_port is not None:
+        client.set_port(int(kuksa_port))
+    elif config.has_option(CONFIG_SECTION_GENERAL, CONFIG_OPTION_PORT):
+        client.set_port(config.getint(CONFIG_SECTION_GENERAL, CONFIG_OPTION_PORT))
+
+    if config.has_option(CONFIG_SECTION_GENERAL, CONFIG_OPTION_TLS_ENABLED):
+        client.set_tls(config.getboolean(CONFIG_SECTION_GENERAL, CONFIG_OPTION_TLS_ENABLED, fallback=False))
+
+    if config.has_option(CONFIG_SECTION_GENERAL, CONFIG_OPTION_ROOT_CA_PATH):
+        path = config.get(CONFIG_SECTION_GENERAL, CONFIG_OPTION_ROOT_CA_PATH)
+        client.set_root_ca_path(path)
+    elif client.get_tls():
+        # We do not want to rely on kuksa-client default
+        log.error("Root CA must be given when using TLS")
+
+    if config.has_option(CONFIG_SECTION_GENERAL, CONFIG_OPTION_TLS_SERVER_NAME):
+        name = config.get(CONFIG_SECTION_GENERAL, CONFIG_OPTION_TLS_SERVER_NAME)
+        client.set_tls_server_name(name)
+
+    if config.has_option(CONFIG_SECTION_GENERAL, CONFIG_OPTION_TOKEN):
+        token_path = config.get(CONFIG_SECTION_GENERAL, CONFIG_OPTION_TOKEN)
+        client.set_token_path(token_path)
+    else:
+        log.info("Path to token information not given")
+
+    return client
+
+
+def _get_command_line_args_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="dbcfeeder")
-    parser.add_argument("--config", metavar="FILE", help="Configuration file")
+    parser.add_argument("--config", metavar="FILE", help="The file to read configuration properties from")
     parser.add_argument(
-        "--dbcfile", metavar="FILE", help="DBC file used for parsing CAN traffic"
+        "--dbcfile", metavar="FILE", help="A (comma sparated) list of DBC files to read message definitions from."
     )
     parser.add_argument(
         "--dumpfile", metavar="FILE", help="Replay recorded CAN traffic from dumpfile"
     )
-    parser.add_argument("--canport", metavar="DEVICE", help="Read from this CAN device")
-    parser.add_argument("--use-j1939", action="store_true", help="Use J1939")
+    parser.add_argument("--canport", metavar="DEVICE", help="The name of the device representing the CAN bus")
+    parser.add_argument("--use-j1939", action="store_true", help="Use j1939 messages on the CAN bus")
 
     parser.add_argument(
         "--use-socketcan",
@@ -410,18 +478,17 @@ def main(argv):
     parser.add_argument(
         "--mapping",
         metavar="FILE",
-        help="Mapping file used to map CAN signals to VSS datapoints",
+        help="The file to read definitions for mapping CAN signals to VSS datapoints from",
     )
     parser.add_argument(
         "--dbc-default",
         metavar="FILE",
-        help="File containing default values for DBC signals. Needed for all CAN signals used if using val2dbc",
+        help="A file containing default values for DBC signals. Needed for all CAN signals used if using val2dbc",
     )
     parser.add_argument(
         "--server-type",
-        help="Which type of server the feeder should connect to",
-        choices=[server_type.value for server_type in ServerType],
-        type=ServerType,
+        help="The type of KUKSA.val server to write/read VSS signal to/from",
+        choices=[server_type.name for server_type in ServerType]
     )
     parser.add_argument(
         "--lax-dbc-parsing",
@@ -447,137 +514,14 @@ def main(argv):
     parser.add_argument('--no-val2dbc', action='store_true',
                         help="Do not monitor mapped signals in KUKSA.val")
 
+    return parser
+
+
+def main(argv):
+    """Main entrypoint for dbcfeeder"""
+    parser = _get_command_line_args_parser()
     args = parser.parse_args()
-
-    config = parse_config(args.config)
-
-    if args.server_type:
-        server_type = args.server_type
-    elif os.environ.get("SERVER_TYPE"):
-        server_type = ServerType(os.environ.get("SERVER_TYPE"))
-    elif "server_type" in config["general"]:
-        server_type = ServerType(config["general"]["server_type"])
-    else:
-        server_type = ServerType.KUKSA_VAL_SERVER
-
-    if server_type not in [ServerType.KUKSA_VAL_SERVER, ServerType.KUKSA_DATABROKER]:
-        raise ValueError(f"Unsupported server type: {server_type}")
-
-    # The wrappers contain default settings, so we only need to change settings
-    # if given by dbcfeeder configs/arguments/env-variables
-    if server_type is ServerType.KUKSA_VAL_SERVER:
-        client_wrapper = serverclientwrapper.ServerClientWrapper()
-    elif server_type is ServerType.KUKSA_DATABROKER:
-        client_wrapper = databrokerclientwrapper.DatabrokerClientWrapper()
-
-    if os.environ.get("KUKSA_ADDRESS"):
-        client_wrapper.set_ip(os.environ.get("KUKSA_ADDRESS"))
-    elif "ip" in config["general"]:
-        client_wrapper.set_ip(config["general"]["ip"])
-
-    if os.environ.get("KUKSA_PORT"):
-        client_wrapper.set_port(os.environ.get("KUKSA_PORT"))
-    elif "port" in config["general"]:
-        client_wrapper.set_port(config["general"]["port"])
-
-    if "tls" in config["general"]:
-        client_wrapper.set_tls(config["general"].getboolean("tls"))
-
-    if "root_ca_path" in config["general"]:
-        path = config['general']['root_ca_path']
-        log.info(f"Given root CA path: {path}")
-        client_wrapper.set_root_ca_path(path)
-    elif client_wrapper.get_tls():
-        # We do not want to rely on kuksa-client default
-        log.error("Root CA must be given when using TLS")
-
-    if "tls_server_name" in config["general"]:
-        name = config['general']['tls_server_name']
-        log.info(f"Given TLS server name: {name}")
-        client_wrapper.set_tls_server_name(name)
-
-    if "token" in config["general"]:
-        log.info(f"Given token information: {config['general']['token']}")
-        client_wrapper.set_token_path(config["general"]["token"])
-    else:
-        log.info("Token information not given")
-
-    if args.mapping:
-        mappingfile = args.mapping
-    elif os.environ.get("MAPPING_FILE"):
-        mappingfile = os.environ.get("MAPPING_FILE")
-    elif "general" in config and "mapping" in config["general"]:
-        mappingfile = config["general"]["mapping"]
-    else:
-        mappingfile = "mapping/vss_4.0/vss_dbc.json"
-
-    if args.canport:
-        canport = args.canport
-    elif os.environ.get("CAN_PORT"):
-        canport = os.environ.get("CAN_PORT")
-    elif "can" in config and "port" in config["can"]:
-        canport = config["can"]["port"]
-    else:
-        parser.print_help()
-        print("ERROR:\nNo CAN port specified")
-        return -1
-
-    if args.use_j1939:
-        use_j1939 = True
-    elif os.environ.get("USE_J1939"):
-        use_j1939 = True
-    elif "can" in config:
-        use_j1939 = config["can"].getboolean("j1939", False)
-    else:
-        use_j1939 = False
-
-    if args.dbcfile:
-        dbcfile = args.dbcfile
-    elif os.environ.get("DBC_FILE"):
-        dbcfile = os.environ.get("DBC_FILE")
-    elif "can" in config and "dbcfile" in config["can"]:
-        dbcfile = config["can"]["dbcfile"]
-    else:
-        dbcfile = None
-
-    if not dbcfile and not use_j1939:
-        parser.print_help()
-        print("\nERROR:\nNeither DBC file nor the use of J1939 specified")
-        return -1
-
-    candumpfile = None
-    if not args.use_socketcan:
-        if args.dumpfile:
-            candumpfile = args.dumpfile
-        elif os.environ.get("CANDUMP_FILE"):
-            candumpfile = os.environ.get("CANDUMP_FILE")
-        elif "can" in config and "candumpfile" in config["can"]:
-            candumpfile = config["can"]["candumpfile"]
-
-        if args.val2dbc and candumpfile is not None:
-            log.error("Cannot use dumpfile and val2dbc at the same time!")
-            sys.exit(-1)
-
-    client_wrapper.get_client_specific_configs()
-
-    elmcan_config = []
-    if canport == "elmcan":
-        if candumpfile is not None:
-            log.error("It is a contradiction specifying both elmcan and candumpfile!")
-            sys.exit(-1)
-        if "elmcan" not in config:
-            log.error("Cannot use elmcan without elmcan config!")
-            sys.exit(-1)
-        elmcan_config = config["elmcan"]
-
-    if args.dbc_default:
-        dbc_default = args.dbc_default
-    elif os.environ.get("DBC_DEFAULT_FILE"):
-        dbc_default = os.environ.get("DBC_DEFAULT_FILE")
-    elif "can" in config and "dbc_default_file" in config["can"]:
-        dbc_default = config["can"]["dbc_default_file"]
-    else:
-        dbc_default = "dbc_default_values.json"
+    config = _parse_config(args.config)
 
     if args.dbc2val:
         use_dbc2val = True
@@ -587,13 +531,10 @@ def main(argv):
         use_dbc2val = True
     elif os.environ.get("NO_USE_DBC2VAL"):
         use_dbc2val = False
-    elif "general" in config and "dbc2val" in config["general"]:
-        use_dbc2val = config["general"].getboolean("dbc2val", False)
     else:
         # By default enabled
-        log.info("Alt5")
-        use_dbc2val = True
-    log.info(f"DBC2VAL mode is: {use_dbc2val}")
+        use_dbc2val = config.getboolean(CONFIG_SECTION_GENERAL, "dbc2val", fallback=True)
+    log.info("DBC2VAL mode is: %s", use_dbc2val)
 
     if args.val2dbc:
         use_val2dbc = True
@@ -603,21 +544,84 @@ def main(argv):
         use_val2dbc = True
     elif os.environ.get("NO_USE_VAL2DBC"):
         use_val2dbc = False
-    elif "general" in config and "val2dbc" in config["general"]:
-        use_val2dbc = config["general"].getboolean("val2dbc", True)
     else:
         # By default disabled
-        use_val2dbc = False
-    log.info(f"VAL2DBC mode is: {use_val2dbc}")
+        use_val2dbc = config.getboolean(CONFIG_SECTION_GENERAL, "val2dbc", fallback=False)
+    log.info("VAL2DBC mode is: %s", use_val2dbc)
 
-    feeder = Feeder(client_wrapper, elmcan_config, dbc2val=use_dbc2val, val2dbc=use_val2dbc)
+    if not (use_dbc2val or use_val2dbc):
+        parser.error("Either DBC2VAL or VAL2DBC must be enabled")
+
+    if args.dbcfile:
+        dbcfile = args.dbcfile
+    elif os.environ.get("DBC_FILE"):
+        dbcfile = os.environ.get("DBC_FILE")
+    else:
+        dbcfile = config.get(CONFIG_SECTION_CAN, "dbcfile", fallback=None)
+
+    if not dbcfile:
+        parser.error("No DBC file(s) specified")
+
+    if args.canport:
+        canport = args.canport
+    elif os.environ.get("CAN_PORT"):
+        canport = os.environ.get("CAN_PORT")
+    else:
+        canport = config.get(CONFIG_SECTION_CAN, CONFIG_OPTION_PORT, fallback=None)
+
+    if not canport:
+        parser.error("No CAN port specified")
+
+    if args.dbc_default:
+        dbc_default = args.dbc_default
+    elif os.environ.get("DBC_DEFAULT_FILE"):
+        dbc_default = os.environ.get("DBC_DEFAULT_FILE")
+    else:
+        dbc_default = config.get(CONFIG_SECTION_CAN, CONFIG_OPTION_DBC_DEFAULT_FILE, fallback="dbc_default_values.json")
+
+    if args.mapping:
+        mappingfile = args.mapping
+    elif os.environ.get("MAPPING_FILE"):
+        mappingfile = os.environ.get("MAPPING_FILE")
+    else:
+        mappingfile = config.get(CONFIG_SECTION_GENERAL, CONFIG_OPTION_MAPPING, fallback="mapping/vss_4.0/vss_dbc.json")
+
+    if args.use_j1939:
+        use_j1939 = True
+    elif os.environ.get("USE_J1939"):
+        use_j1939 = True
+    else:
+        use_j1939 = config.getboolean(CONFIG_SECTION_CAN, CONFIG_OPTION_J1939, fallback=False)
+
+    candumpfile = None
+    if not args.use_socketcan:
+        if args.dumpfile:
+            candumpfile = args.dumpfile
+        elif os.environ.get("CANDUMP_FILE"):
+            candumpfile = os.environ.get("CANDUMP_FILE")
+        else:
+            candumpfile = config.get(CONFIG_SECTION_CAN, CONFIG_OPTION_CAN_DUMP_FILE, fallback=None)
+
+        if args.val2dbc and candumpfile is not None:
+            parser.error("Cannot use dumpfile and val2dbc at the same time!")
+
+    elmcan_config = []
+    if canport == "elmcan":
+        if candumpfile is not None:
+            parser.error("It is a contradiction specifying both elmcan and candumpfile!")
+        if not config.has_section(CONFIG_SECTION_ELMCAN):
+            parser.error("Cannot use elmcan without configuration in [elmcan] section!")
+        elmcan_config = config[CONFIG_SECTION_ELMCAN]
+
+    kuksa_val_client = _get_kuksa_val_client(args, config)
+    feeder = Feeder(kuksa_val_client, elmcan_config, dbc2val=use_dbc2val, val2dbc=use_val2dbc)
 
     def signal_handler(signal_received, *_):
-        log.info(f"Received signal {signal_received}, stopping...")
+        log.info("Received signal %s, stopping...", signal_received)
 
         # If we get told to shutdown a second time. Just do it.
         if feeder.is_stopping():
-            log.warning("Shutdown now!")
+            log.warning("Shutting down now!")
             sys.exit(-1)
 
         feeder.stop()
@@ -628,7 +632,7 @@ def main(argv):
     log.info("Starting CAN feeder")
     feeder.start(
         canport=canport,
-        dbcfile=dbcfile,
+        dbc_file_names=dbcfile.split(','),
         mappingfile=mappingfile,
         dbc_default_file=dbc_default,
         candumpfile=candumpfile,

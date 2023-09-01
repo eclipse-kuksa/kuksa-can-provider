@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 #################################################################################
-# Copyright (c) 2022 Contributors to the Eclipse Foundation
+# Copyright (c) 2022, 2023 Contributors to the Eclipse Foundation
 #
 # See the NOTICE file(s) distributed with this work for additional
 # information regarding copyright ownership.
@@ -48,19 +48,19 @@ class DatabrokerClientWrapper(clientwrapper.ClientWrapper):
                  token_path: str = "",
                  tls: bool = False):
         """
-        Init Databroker client wrapper, by default (for now) without TLS
+        Init Databroker client wrapper, by default with TLS
         """
+        super().__init__(ip, port, token_path, tls)
         self._grpc_client = None
         self._name_to_type: dict[str, DataType] = {}
         self._rpc_kwargs: Dict[str, str] = {}
         self._connected = False
         self._exit_stack = contextlib.ExitStack()
-        super().__init__(ip, port, token_path, tls)
         self._token = ""
 
-    def get_client_specific_configs(self):
+    def _do_init(self):
         """
-        Get client specific configs and env variables
+        Set up gRPC metadata for interaction for Databroker.
         """
 
         if os.environ.get("VEHICLEDATABROKER_DAPR_APP_ID"):

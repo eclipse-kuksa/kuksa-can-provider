@@ -29,7 +29,7 @@ def test_unknown_transform(caplog, capsys):
 
     test_path = os.path.dirname(os.path.abspath(__file__))
     mapping_path = test_path + "/test_unknown_transform.json"
-    parser = dbcparser.DBCParser(test_path + "/../../Model3CAN.dbc")
+    parser = dbcparser.DBCParser([test_path + "/../../Model3CAN.dbc"])
 
     with pytest.raises(SystemExit) as excinfo:
         dbc2vssmapper.Mapper(mapping_path, parser)

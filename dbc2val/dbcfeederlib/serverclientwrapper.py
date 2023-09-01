@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 #################################################################################
-# Copyright (c) 2022 Contributors to the Eclipse Foundation
+# Copyright (c) 2022, 2023 Contributors to the Eclipse Foundation
 #
 # See the NOTICE file(s) distributed with this work for additional
 # information regarding copyright ownership.
@@ -42,11 +42,8 @@ class ServerClientWrapper(clientwrapper.ClientWrapper):
         self._client_config["protocol"] = "ws"
         self._kuksa = None
 
-    def get_client_specific_configs(self):
-        """
-        Get client specific configs and env variables
-        """
-        log.debug("No additional configs for KUKSA.val server")
+    def _do_init(self):
+        log.debug("No additional initialization necessary for KUKSA.val server")
 
     def start(self):
         """

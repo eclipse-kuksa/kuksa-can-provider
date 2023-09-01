@@ -25,7 +25,7 @@ import os
 # read config only once
 test_path = os.path.dirname(os.path.abspath(__file__))
 mapping_path = test_path + "/../../mapping/vss_4.0/vss_dbc.json"
-parser = dbcparser.DBCParser(test_path + "/../../Model3CAN.dbc")
+parser = dbcparser.DBCParser([test_path + "/../../Model3CAN.dbc"])
 mapper: dbc2vssmapper.Mapper = dbc2vssmapper.Mapper(mapping_path, parser)
 
 

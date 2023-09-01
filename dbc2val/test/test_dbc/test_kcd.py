@@ -27,7 +27,7 @@ test_path = os.path.dirname(os.path.abspath(__file__))
 
 def test_single_kcd():
 
-    parser = dbcparser.DBCParser(test_path + "/test1_1.kcd")
+    parser = dbcparser.DBCParser([test_path + "/test1_1.kcd"])
     assert parser.get_canid_for_signal('DI_bmsRequestInterfaceVersion') == 0x16
 
 
@@ -35,7 +35,7 @@ def test_split_kcd():
     """
     This verifies that we can read multiple KCD files.
     """
-    parser = dbcparser.DBCParser(test_path + "/test1_1.kcd," + test_path + "/test1_2.kcd")
+    parser = dbcparser.DBCParser([test_path + "/test1_1.kcd", test_path + "/test1_2.kcd"])
     assert parser.get_canid_for_signal('DI_bmsRequestInterfaceVersion') == 0x16
     assert parser.get_canid_for_signal('SteeringAngle129') == 0x129
 
@@ -44,7 +44,7 @@ def test_mixed_file_types():
     """
     This verifies that we can read files of different type.
     """
-    parser = dbcparser.DBCParser(test_path + "/test1_1.kcd," + test_path + "/test1_2.dbc")
+    parser = dbcparser.DBCParser([test_path + "/test1_1.kcd", test_path + "/test1_2.dbc"])
     assert parser.get_canid_for_signal('DI_bmsRequestInterfaceVersion') == 0x16
     assert parser.get_canid_for_signal('SteeringAngle129') == 0x129
 
@@ -53,5 +53,5 @@ def test_duplicated_dbc():
     """
     Load original KCD multiple times
     """
-    parser = dbcparser.DBCParser(test_path + "/test1_1.kcd," + test_path + "/test1_1.kcd")
+    parser = dbcparser.DBCParser([test_path + "/test1_1.kcd", test_path + "/test1_1.kcd"])
     assert parser.get_canid_for_signal('DI_bmsRequestInterfaceVersion') == 0x16

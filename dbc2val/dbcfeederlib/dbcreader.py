@@ -58,12 +58,12 @@ class DBCReader:
         rx_thread.start()
 
     def get_whitelist(self):
-        log.info("Generating CAN ID whitelist")
+        log.debug("Generating CAN ID whitelist")
         white_list = []
-        for entry in self.mapper.get_dbc2val_entries():
-            canid = self.dbc_parser.get_canid_for_signal(entry)
+        for signal_name in self.mapper.get_dbc2val_entries():
+            canid = self.dbc_parser.get_canid_for_signal(signal_name)
             if canid is not None and canid not in white_list:
-                log.info(f"Adding {entry} to white list, canid is {canid}")
+                log.debug("Adding CAN frame id %d of message containing signal %s to white list", canid, signal_name)
                 white_list.append(canid)
         return white_list
 
@@ -71,26 +71,31 @@ class DBCReader:
         log.info("Starting Rx thread")
         while self.run:
             msg = self.canclient.recv(timeout=1)
-            log.debug("processing message from CAN bus")
             if msg and msg.get_arbitration_id() in self.canidwl:
+                log.debug("processing message with frame ID %#x from CAN bus", msg.get_arbitration_id())
                 try:
-                    decode = self.dbc_parser.db.decode_message(msg.get_arbitration_id(), msg.get_data())
-                    log.debug("Decoded message: %s", str(decode))
+                    message_def = self.dbc_parser.get_message_for_canid(msg.get_arbitration_id())
+                    if message_def is not None:
+                        decode = message_def.decode(data=msg.get_data())
+                    else:
+                        # no message definition found for frame ID
+                        continue
                 except Exception:
-                    log.warning(
-                        "Error Decoding: ID:{}".format(msg.get_arbitration_id()),
-                        exc_info=True,
-                    )
+                    log.warning("Error Decoding frame with ID: %#x", msg.get_arbitration_id(), exc_info=True)
                     continue
+
+                if log.isEnabledFor(logging.DEBUG):
+                    log.debug("Decoded message: %s", str(decode))
+
                 rx_time = time.time()
                 for k, v in decode.items():
                     vss_mappings = self.mapper.get_dbc2val_mappings(k)
                     for signal in vss_mappings:
                         if signal.time_condition_fulfilled(rx_time):
-                            log.debug(f"Queueing {signal.vss_name}, triggered by {k}, raw value {v} ")
+                            log.debug("Queueing %s, triggered by %s, raw value %s ", signal.vss_name, k, v)
                             self.queue.put(dbc2vssmapper.VSSObservation(k, signal.vss_name, v, rx_time))
                         else:
-                            log.debug(f"Ignoring {signal.vss_name}, triggered by {k}, raw value {v} ")
+                            log.debug("Ignoring %s, triggered by %s, raw value %s ", signal.vss_name, k, v)
         log.info("Stopped Rx thread")
 
     def stop(self):
