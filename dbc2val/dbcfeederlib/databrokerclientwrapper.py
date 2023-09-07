@@ -200,7 +200,7 @@ class DatabrokerClientWrapper(clientwrapper.ClientWrapper):
         return True
 
     async def subscribe(self, vss_names: List[str], callback):
-        """Creates a subscription and calls the callback when data received"""
+        """Create a subscription and invoke the callback when data received."""
         entries = []
         for name in vss_names:
             # Always subscribe to target

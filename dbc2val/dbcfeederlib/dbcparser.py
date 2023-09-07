@@ -27,7 +27,6 @@ import cantools.database  # type: ignore
 from types import MappingProxyType
 from typing import cast, Dict, Optional, List, Set, Tuple
 
-
 log = logging.getLogger(__name__)
 
 
@@ -43,6 +42,13 @@ class DBCParser:
                  use_strict_parsing: bool = True,
                  expect_extended_frame_ids: bool = False):
 
+        # by default, do not mask any bits of standard (11-bit) frame IDs
+        self._frame_id_mask: int = 0b11111111111
+        if expect_extended_frame_ids:
+            # ignore 3 priority bits and 8 source address bits of extended
+            # (29-bit) frame IDs when looking up message definitions
+            self._frame_id_mask = 0b00011111111111111111100000000
+
         first = True
         processed_files: Set[str] = set()
         for filename in [name.strip() for name in dbc_file_names]:
@@ -51,14 +57,12 @@ class DBCParser:
                 continue
             processed_files.add(filename)
             if first:
-                # by default, do not mask any bits of standard (11-bit) frame IDs
-                mask = 0b11111111111
-                if expect_extended_frame_ids:
-                    # ignore 3 priority bits and 8 source address bits of extended
-                    # (29-bit) frame IDs when looking up message definitions
-                    mask = 0b00011111111111111111100000000
                 log.info("Reading definitions from DBC file %s", filename)
-                database = cantools.database.load_file(filename, strict=use_strict_parsing, frame_id_mask=mask)
+                database = cantools.database.load_file(
+                    filename,
+                    strict=use_strict_parsing,
+                    frame_id_mask=self._frame_id_mask
+                )
                 # load_file can return multiple types of databases, make sure we have CAN database
                 if isinstance(database, cantools.database.can.database.Database):
                     self._db = cast(cantools.database.can.database.Database, database)
@@ -97,7 +101,12 @@ class DBCParser:
         else:
             log.warning("Cannot read CAN message definitions from file using unsupported format: %s", db_format)
 
+    def can_frame_id_whitelist_mask(self) -> int:
+        """Get the frame ID bit mask used for filtering messages received from CAN bus."""
+        return self._frame_id_mask
+
     def get_canid_for_signal(self, sig_to_find: str) -> Optional[int]:
+        """Get the frame ID of the CAN message that contains a given signal"""
         if sig_to_find in self._signal_to_canid:
             return self._signal_to_canid[sig_to_find]
 
@@ -113,7 +122,7 @@ class DBCParser:
         return None
 
     def get_signals_for_canid(self, canid: int) -> Set[str]:
-
+        """Get the names of the signals contained in a CAN message"""
         if canid in self._canid_to_signals:
             return self._canid_to_signals[canid]
 
@@ -126,6 +135,7 @@ class DBCParser:
         return names
 
     def get_message_for_canid(self, canid: int) -> Optional[cantools.database.Message]:
+        """Look up a CAN message definition by frame ID"""
         try:
             return self._db.get_message_by_frame_id(canid)
         except KeyError:

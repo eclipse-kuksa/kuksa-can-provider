@@ -35,10 +35,10 @@ import threading
 import asyncio
 
 from signal import SIGINT, SIGTERM, signal
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
-from dbcfeederlib import canclient
-from dbcfeederlib import canplayer
+from dbcfeederlib.canclient import CANClient
+from dbcfeederlib.canreader import CanReader
 from dbcfeederlib import dbc2vssmapper
 from dbcfeederlib import dbcreader
 from dbcfeederlib import j1939reader
@@ -125,31 +125,30 @@ class Feeder:
     Start listening to the queue and transform CAN messages to VSS data and if conditions
     are fulfilled send them to the client wrapper which in turn send it to the bckend supported by the wrapper.
     """
-    def __init__(self, client_wrapper: clientwrapper.ClientWrapper,
+    def __init__(self, kuksa_client: clientwrapper.ClientWrapper,
                  elmcan_config: Dict[str, Any], dbc2val: bool = True, val2dbc: bool = False):
-        self._running = False
-        self._reader = None
-        self._player: Optional[canplayer.CANplayer] = None
-        self._mapper = None
-        self._registered = False
-        self._can_queue: queue.Queue[dbc2vssmapper.VSSObservation] = queue.Queue()
-        self._client_wrapper = client_wrapper
+        self._running: bool = False
+        self._reader: Optional[CanReader] = None
+        self._mapper: Optional[dbc2vssmapper.Mapper] = None
+        self._registered: bool = False
+        self._dbc2vss_queue: queue.Queue[dbc2vssmapper.VSSObservation] = queue.Queue()
+        self._kuksa_client = kuksa_client
         self._elmcan_config = elmcan_config
         self._disconnect_time = 0.0
-        self._dbc2val = dbc2val
-        self._val2dbc = val2dbc
-        self._canclient = None
-        self._transmit = False
+        self._dbc2val_enabled = dbc2val
+        self._val2dbc_enabled = val2dbc
+        self._canclient: Optional[CANClient] = None
+        self._transmit: bool = False
 
     def start(
         self,
-        canport,
-        dbc_file_names,
-        mappingfile,
-        dbc_default_file,
-        candumpfile,
-        use_j1939=False,
-        use_strict_parsing=False
+        canport: str,
+        dbc_file_names: List[str],
+        mappingfile: str,
+        dbc_default_file: Optional[str],
+        candumpfile: Optional[str],
+        use_j1939: bool = False,
+        use_strict_parsing: bool = False
     ):
 
         self._running = True
@@ -160,42 +159,27 @@ class Feeder:
             expect_extended_frame_ids=use_j1939,
             can_signal_default_values_file=dbc_default_file)
 
-        self._client_wrapper.start()
+        self._kuksa_client.start()
         threads = []
 
-        if self._dbc2val and self._mapper.has_dbc2vss_mapping():
+        if self._dbc2val_enabled and self._mapper.has_dbc2vss_mapping():
+
             log.info("Setting up reception of CAN signals")
             if use_j1939:
                 log.info("Using J1939 reader")
-                self._reader = j1939reader.J1939Reader(self._can_queue, self._mapper)
+                self._reader = j1939reader.J1939Reader(self._dbc2vss_queue, self._mapper, canport, candumpfile)
             else:
                 log.info("Using DBC reader")
-                self._reader = dbcreader.DBCReader(self._can_queue, self._mapper)
+                self._reader = dbcreader.DBCReader(self._dbc2vss_queue, self._mapper, canport, candumpfile)
 
-            if candumpfile:
-                # use dumpfile
-                log.info(
-                    "Using virtual bus to replay CAN messages (channel: %s) (dumpfile: %s)",
-                    canport,
-                    candumpfile
-                )
-                self._reader.start_listening(
-                    bustype="virtual",
-                    channel=canport,
-                    bitrate=500000
-                )
-                self._player = canplayer.CANplayer(dumpfile=candumpfile)
-                self._player.start_replaying(canport=canport)
-            else:
+            if canport == 'elmcan':
+                log.info("Using elmcan. Trying to set up elm2can bridge")
+                whitelisted_frame_ids: List[int] = []
+                for filter in self._mapper.can_frame_id_whitelist():
+                    whitelisted_frame_ids.append(filter.can_id)  # type: ignore
+                elm2canbridge.elm2canbridge(canport, self._elmcan_config, whitelisted_frame_ids)
 
-                if canport == 'elmcan':
-
-                    log.info("Using elmcan. Trying to set up elm2can bridge")
-                    elm2canbridge.elm2canbridge(canport, self._elmcan_config, self._reader._canidwl)
-
-                # use socketCAN
-                log.info("Using socket CAN device '%s'", canport)
-                self._reader.start_listening(bustype="socketcan", channel=canport)
+            self._reader.start()
 
             receiver = threading.Thread(target=self._run_receiver)
             receiver.start()
@@ -203,8 +187,8 @@ class Feeder:
         else:
             log.info("No dbc2val mappings found or dbc2val disabled!")
 
-        if self._val2dbc and self._mapper.has_vss2dbc_mapping():
-            if not self._client_wrapper.supports_subscription():
+        if self._val2dbc_enabled and self._mapper.has_vss2dbc_mapping():
+            if not self._kuksa_client.supports_subscription():
                 log.error("Subscribing to VSS signals not supported by chosen client!")
                 self.stop()
             else:
@@ -212,7 +196,7 @@ class Feeder:
                 # For now creating another bus
                 # Maybe support different buses for downstream/upstream in the future
 
-                self._canclient = canclient.CANClient(bustype="socketcan", channel=canport)
+                self._canclient = CANClient(interface="socketcan", channel=canport)
 
                 transmitter = threading.Thread(target=self._run_transmitter)
                 transmitter.start()
@@ -229,16 +213,12 @@ class Feeder:
         # Tell others to stop
         if self._reader is not None:
             self._reader.stop()
-        if self._player is not None:
-            self._player.stop()
-        self._client_wrapper.stop()
+        self._kuksa_client.stop()
         if self._canclient:
             self._canclient.stop()
-            self._canclient = None
-        self._mapper = None
         self._transmit = False
 
-    def is_running(self):
+    def is_running(self) -> bool:
         return self._running
 
     def _register_datapoints(self) -> bool:
@@ -254,7 +234,7 @@ class Feeder:
         all_registered = True
         for vss_name in self._mapper.get_vss_names():
             log.debug("Checking if signal %s is registered", vss_name)
-            resp = self._client_wrapper.is_signal_defined(vss_name)
+            resp = self._kuksa_client.is_signal_defined(vss_name)
             if not resp:
                 all_registered = False
         return all_registered
@@ -265,7 +245,7 @@ class Feeder:
         last_sent_log_entry = 0
         queue_max_size = 0
         while self._running is True:
-            if self._client_wrapper.is_connected():
+            if self._kuksa_client.is_connected():
                 self._disconnect_time = 0.0
             else:
                 # As we actually cannot register
@@ -287,36 +267,40 @@ class Feeder:
                 if not processing_started:
                     processing_started = True
                     log.info("Starting to process CAN signals")
-                queue_size = self._can_queue.qsize()
+                queue_size = self._dbc2vss_queue.qsize()
                 if queue_size > queue_max_size:
                     queue_max_size = queue_size
-                vss_observation = self._can_queue.get(timeout=1)
+                vss_observation = self._dbc2vss_queue.get(timeout=1)
                 vss_mapping = self._mapper.get_dbc2vss_mapping(vss_observation.dbc_name, vss_observation.vss_name)
                 value = vss_mapping.transform_value(vss_observation.raw_value)
                 if value is None:
-                    log.warning(f"Value ignored for  dbc {vss_observation.dbc_name} to VSS {vss_observation.vss_name},"
-                                f" from raw value {value} of type {type(value)}")
+                    log.warning(
+                        "Value ignored for dbc %s to VSS %s, from raw value %s of type %s",
+                        vss_observation.dbc_name, vss_observation.vss_name, value, type(value)
+                    )
                 elif not vss_mapping.change_condition_fulfilled(value):
-                    log.debug(f"Value condition not fulfilled for VSS {vss_observation.vss_name}, value {value}")
+                    log.debug("Value condition not fulfilled for VSS %s, value %s", vss_observation.vss_name, value)
                 else:
-                    # get values out of the canreplay and map to desired signals
+                    # update current value in KUKSA.val
                     target = vss_observation.vss_name
 
-                    success = self._client_wrapper.update_datapoint(target, value)
+                    success = self._kuksa_client.update_datapoint(target, value)
                     if success:
                         log.debug("Succeeded sending DataPoint(%s, %s, %f)", target, value, vss_observation.time)
                         # Give status message after 1, 2, 4, 8, 16, 32, 64, .... messages have been sent
                         messages_sent += 1
                         if messages_sent >= (2 * last_sent_log_entry):
-                            log.info(f"Number of VSS messages sent so far: {messages_sent}, "
-                                     f"queue max size: {queue_max_size}")
+                            log.info(
+                                "Number of VSS messages sent so far: %d, queue max size: %d",
+                                messages_sent, queue_max_size
+                            )
                             last_sent_log_entry = messages_sent
             except queue.Empty:
                 pass
             except Exception:
                 log.error("Exception caught in main loop", exc_info=True)
 
-    async def vss_update(self, updates):
+    async def _vss_update(self, updates):
         log.debug("vss-Update callback!")
         dbc_ids = set()
         for update in updates:
@@ -353,7 +337,7 @@ class Feeder:
         Requests the client wrapper to start subscription.
         Checks every second if we have requested to stop reception and if so exits
         """
-        asyncio.create_task(self._client_wrapper.subscribe(self._mapper.get_vss2dbc_entries(), self.vss_update))
+        asyncio.create_task(self._kuksa_client.subscribe(self._mapper.get_vss2dbc_entries(), self._vss_update))
         while self._transmit:
             await asyncio.sleep(1)
 

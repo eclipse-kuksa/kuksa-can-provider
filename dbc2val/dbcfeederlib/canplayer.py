@@ -15,7 +15,7 @@ import logging
 import threading
 
 import can  # type: ignore
-from can.interfaces.virtual import VirtualBus  # type: ignore
+from can.interfaces.virtual import VirtualBus
 
 log = logging.getLogger(__name__)
 
@@ -36,46 +36,46 @@ class CANplayer:
     files suffix is one of the above (e.g. filename.asc.gz).
     """
 
-    def __init__(self, dumpfile):
-        self.run = False
-        self.messages = [can.message]
-        self.dumpfile = dumpfile
-
-    def process_log(self):
+    def __init__(self, dumpfile: str, can_port: str):
+        self._running = False
         # open the file for reading can messages
-        log.info("Replaying CAN message log {}".format(self.dumpfile))
+        log.info("Replaying CAN messages from log file %s", dumpfile)
+        self._messages = can.LogReader(dumpfile)
+        self._can_port = can_port
+        log.debug("Using virtual bus to replay CAN messages (channel: %s)", self._can_port)
+        self._bus = VirtualBus(channel=can_port, bitrate=500000)
+
+    def _process_log(self):
         # using MessageSync in order to consider timestamps of CAN messages
         # and the delays between them
-        log_reader = can.MessageSync(messages=can.LogReader(self.dumpfile), timestamps=True)
+        log_reader = can.MessageSync(messages=self._messages, timestamps=True)
         for msg in log_reader:
-            if not self.run:
-                break
+            if not self._running:
+                return
             try:
-                self.bus.send(msg)
-                log.debug(f"Message sent on {self.bus.channel_info}")
-                log.debug(f"Message: {msg}")
+                self._bus.send(msg)
+                if log.isEnabledFor(logging.DEBUG):
+                    log.debug("Sent message [channel: %s]: %s", self._bus.channel_info, msg)
             except can.CanError:
                 log.error("Failed to send message via CAN bus")
 
         log.info("Replayed all messages from CAN log file")
 
-    def txWorker(self):
-        log.info("Starting Tx thread")
+    def _tx_worker(self):
+        log.info("Starting to write CAN messages to bus")
 
-        while self.run:
-            self.process_log()
+        while self._running:
+            self._process_log()
 
-        log.info("Stopped Tx thread")
+        log.info("Stopped writing CAN messages to bus")
 
-    def start_replaying(self, canport):
-        log.debug("Using virtual bus to replay CAN messages (channel: %s)", canport)
-        self.bus = VirtualBus(channel=canport, bitrate=500000)
-        self.run = True
-        txThread = threading.Thread(target=self.txWorker)
-        txThread.start()
+    def start(self):
+        self._running = True
+        tx_thread = threading.Thread(target=self._tx_worker)
+        tx_thread.start()
 
     def stop(self):
-        self.run = False
-        if self.bus:
-            self.bus.shutdown()
-            self.bus = None
+        self._running = False
+        if self._bus:
+            self._bus.shutdown()
+            self._bus = None

@@ -51,7 +51,7 @@ def j1939reader(dbc2vss_queue: Queue) -> J1939Reader:
         dbc_file_names=[test_path + "/j1939.kcd"],
         expect_extended_frame_ids=True,
         use_strict_parsing=True)
-    return J1939Reader(dbc2vss_queue, mapper)
+    return J1939Reader(dbc2vss_queue, mapper, "vcan0")
 
 
 @pytest.fixture
@@ -61,7 +61,7 @@ def dbcreader(dbc2vss_queue: Queue) -> DBCReader:
         dbc_file_names=[test_path + "/standard_can.kcd"],
         expect_extended_frame_ids=False,
         use_strict_parsing=True)
-    return DBCReader(dbc2vss_queue, mapper)
+    return DBCReader(dbc2vss_queue, mapper, "vcan0")
 
 
 def test_j1939reader_processes_j1939_message(j1939reader: J1939Reader, dbc2vss_queue: Queue):
@@ -69,7 +69,7 @@ def test_j1939reader_processes_j1939_message(j1939reader: J1939Reader, dbc2vss_q
     # GIVEN a reader based on CAN message and mapping definitions
 
     # WHEN a message is received from the CAN bus for which a mapping gas been defined
-    j1939reader.on_message(priority=1, pgn=0x1FFFF, sa=0x45, timestamp=0, data=[0x10, 0x32, 0x54])
+    j1939reader._on_message(priority=1, pgn=0x1FFFF, source_address=0x45, timestamp=0, data=[0x10, 0x32, 0x54])
 
     # THEN the reader determines both VSS Data Entries that the CAN signals are mapped to
     signal_mappings: Dict[str, VSSObservation] = {}
@@ -86,7 +86,7 @@ def test_j1939reader_ignores_unknown_CAN_messages(j1939reader: J1939Reader, dbc2
     # GIVEN a reader based on CAN message and mapping definitions
 
     # WHEN a  message with an unknown PGN is received from the CAN bus
-    j1939reader.on_message(priority=1, pgn=0x1FFFA, sa=0x12, timestamp=0, data=[0x10, 0x32, 0x54])
+    j1939reader._on_message(priority=1, pgn=0x1FFFA, source_address=0x12, timestamp=0, data=[0x10, 0x32, 0x54])
 
     # THEN the reader ignores the message
     with pytest.raises(Empty):
@@ -98,7 +98,7 @@ def test_dbcreader_processes_can_message(dbcreader: DBCReader, dbc2vss_queue: Qu
     # GIVEN a reader based on CAN message and mapping definitions
 
     # WHEN a message is received from the CAN bus for which a mapping has been defined
-    dbcreader._process_message(frame_id=0x111A, data=bytearray([0x10, 0x32, 0x54]))
+    dbcreader._process_can_message(frame_id=0x111A, data=bytearray([0x10, 0x32, 0x54]))
 
     # THEN the reader determines both VSS Data Entries that the CAN signals are mapped to
     signal_mappings: Dict[str, VSSObservation] = {}
@@ -115,7 +115,7 @@ def test_dbcreader_ignores_unknown_CAN_messages(dbcreader: DBCReader, dbc2vss_qu
     # GIVEN a reader based on CAN message and mapping definitions
 
     # WHEN a message with an unknown frame ID is received from the CAN bus
-    dbcreader._process_message(frame_id=0x10AC, data=bytearray([0x10, 0x32, 0x54]))
+    dbcreader._process_can_message(frame_id=0x10AC, data=bytearray([0x10, 0x32, 0x54]))
 
     # THEN the reader ignores the message
     with pytest.raises(Empty):

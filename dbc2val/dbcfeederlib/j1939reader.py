@@ -24,65 +24,34 @@
 # $ pip3 install can-j1939
 
 import logging
-import time
+
+from queue import Queue
+from typing import Optional
 
 import j1939  # type: ignore[import]
+
+from dbcfeederlib import canreader
 from dbcfeederlib import dbc2vssmapper
-from queue import Queue
 
 log = logging.getLogger(__name__)
 
 
-class J1939Reader:
+class J1939Reader(canreader.CanReader):
 
-    def __init__(self, rxqueue: Queue, mapper: dbc2vssmapper.Mapper):
-        self._queue = rxqueue
-        self._mapper = mapper
+    def __init__(self, rxqueue: Queue, mapper: dbc2vssmapper.Mapper, can_port: str, dump_file: Optional[str] = None):
+        super().__init__(rxqueue, mapper, can_port, dump_file)
+
         self._ecu = j1939.ElectronicControlUnit()
+        self._ecu.subscribe(self._on_message)
 
-    def stop(self):
-        self._ecu.disconnect()
-
-    def start_listening(self, *args, **kwargs):
-        """Start listening to CAN bus
-
-        Arguments are passed directly to :class:`can.BusABC`. Typically these
-        may include:
-
-        :param channel:
-            Backend specific channel for the CAN interface.
-        :param str bustype:
-            Name of the interface. See
-            `python-can manual <https://python-can.readthedocs.io/en/latest/configuration.html#interface-names>`__
-            for full list of supported interfaces.
-        :param int bitrate:
-            Bitrate in bit/s.
-        """
-
-        # Connect to the CAN bus
-        self._ecu.connect(*args, **kwargs)
-        self._ecu.subscribe(self.on_message)
-
-    def on_message(self, priority: int, pgn: int, sa: int, timestamp: int, data):
+    def _on_message(self, priority: int, pgn: int, source_address: int, timestamp: int, data):
         # create an extended CAN frame ID from PGN and source address
-        extended_can_id: int = pgn << 8 | sa
-        message = self._mapper.get_message_for_canid(extended_can_id)
-        if message is not None:
-            log.debug("processing j1939 message [PGN: %#x]", pgn)
-            try:
-                decode = message.decode(bytes(data), allow_truncated=True)
-                if log.isEnabledFor(logging.DEBUG):
-                    log.debug("Decoded message: %s", str(decode))
+        extended_frame_id: int = pgn << 8 | source_address
+        log.debug("Processing j1939 message [frame_id: %d, PGN %#x]", extended_frame_id, pgn)
+        self._process_can_message(extended_frame_id, data)
 
-                rx_time = time.time()
-                for k, v in decode.items():  # type: ignore
-                    vss_mappings = self._mapper.get_dbc2vss_mappings(k)
-                    # Now time is defined per VSS signal, so handling needs to be different
-                    for signal in vss_mappings:
-                        if signal.time_condition_fulfilled(rx_time):
-                            log.debug("Queueing %s, triggered by %s, raw value %s", signal.vss_name, k, v)
-                            self._queue.put(dbc2vssmapper.VSSObservation(k, signal.vss_name, v, rx_time))
-                        else:
-                            log.debug("Ignoring %s, triggered by %s, raw value %s", signal.vss_name, k, v)
-            except Exception:
-                log.warning("Error decoding message %s [PGN: %#x]", message.name, pgn, exc_info=True)
+    def _start_can_bus_listener(self):
+        self._ecu.connect(**self._can_kwargs)
+
+    def _stop_can_bus_listener(self):
+        self._ecu.disconnect()
