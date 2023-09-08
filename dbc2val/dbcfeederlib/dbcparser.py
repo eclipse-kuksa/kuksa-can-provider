@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 ########################################################################
-# Copyright (c) 2023 Robert Bosch GmbH
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,8 +54,9 @@ class DBCParser:
                 # by default, do not mask any bits of standard (11-bit) frame IDs
                 mask = 0b11111111111
                 if expect_extended_frame_ids:
-                    # mask 3 priority bits of extended (29-bit) frame IDs
-                    mask = 0b00011111111111111111111111111
+                    # ignore 3 priority bits and 8 source address bits of extended
+                    # (29-bit) frame IDs when looking up message definitions
+                    mask = 0b00011111111111111111100000000
                 log.info("Reading definitions from DBC file %s", filename)
                 database = cantools.database.load_file(filename, strict=use_strict_parsing, frame_id_mask=mask)
                 # load_file can return multiple types of databases, make sure we have CAN database

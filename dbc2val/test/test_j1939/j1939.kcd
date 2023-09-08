@@ -19,14 +19,14 @@ SPDX-License-Identifier: Apache-2.0
 <NetworkDefinition xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://kayak.2codeornot2code.org/1.0 https://raw.githubusercontent.com/dschanoeh/Kayak/master/Kayak-kcd/src/main/resources/com/github/kayak/canio/kcd/loader/Definition.xsd"
     xmlns="http://kayak.2codeornot2code.org/1.0">
-    <Document name="test1_1.kcd" date="Wed Jul 05 15:13:39 CEST 2023"></Document>
+    <Document />
     <Bus name="Private">
-        <Message id="0x16" name="ID016DI_bmsRequest" length="1">
-            <Signal name="DI_bmsOpenContactorsRequest" offset="4">
-                <Value />
+        <Message id="0x01FFFF10" name="Test_Message" length="24" format="extended">
+            <Signal length="16" name="Signal_Two" offset="8">
+                <Value type="signed" />
             </Signal>
-            <Signal length="4" name="DI_bmsRequestInterfaceVersion" offset="0">
-                <Value max="15.0" />
+            <Signal length="8" name="Signal_One" offset="0">
+                <Value max="213" type="unsigned" />
             </Signal>
         </Message>
     </Bus>

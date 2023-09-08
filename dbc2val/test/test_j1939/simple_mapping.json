@@ -1,0 +1,28 @@
+{
+  "A": {
+    "children": {
+      "One": {
+        "datatype": "uint8",
+        "dbc2vss": {
+          "on_change": true,
+          "signal": "Signal_One"
+        },
+        "description": "...",
+        "type": "sensor",
+        "unit": "km"
+      },
+      "Two": {
+        "datatype": "int16",
+        "dbc2vss": {
+          "on_change": true,
+          "signal": "Signal_Two"
+        },
+        "description": "...",
+        "type": "sensor",
+        "unit": "ms"
+      }
+    },
+    "description": "Branch A.",
+    "type": "branch"
+  }
+}
