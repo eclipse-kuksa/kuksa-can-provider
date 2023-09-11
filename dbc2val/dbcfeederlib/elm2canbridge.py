@@ -175,9 +175,17 @@ class elm2canbridge:
             self.executecommand(elm, b'STFAC\r')
             for canid in self.whitelist:
                 if canid < 2048:
-                    cmd = "STFPA {:04x}, 7fff\r".format(canid)
+                    # standard CAN frame IDs are 11 bits long,
+                    # so we can safely ignore the 5 most significant bits
+                    # of the 16-bit integer representing the ID
+                    cmd = "STFPA {:04x}, 07ff\r".format(canid)
                 else:
-                    cmd = "STFPA {:08x}, 1fffffff\r".format(canid)
+                    # Extended CAN frame IDs are 29 bits long,
+                    # so we can safely ignore the 3 MSBs of the
+                    # 32-bit integer representing the ID.
+                    # We can also ignore the 3 MSBs of the ID which contain
+                    # the priority.
+                    cmd = "STFPA {:08x}, 03ffffff\r".format(canid)
                 print("Exec "+str(cmd))
                 self.executecommand(elm, cmd.encode('utf-8'))
 
