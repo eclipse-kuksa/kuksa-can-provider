@@ -13,10 +13,9 @@
 
 import logging
 import threading
-import can
 
-# fixes issues with pytinstaller not detecting can.interfaces.virtual usage
-from can.interfaces.virtual import VirtualBus  # noqa: F401
+import can  # type: ignore
+from can.interfaces.virtual import VirtualBus  # type: ignore
 
 log = logging.getLogger(__name__)
 
@@ -70,8 +69,7 @@ class CANplayer:
 
     def start_replaying(self, canport):
         log.debug("Using virtual bus to replay CAN messages (channel: %s)", canport)
-        self.bus = can.interface.Bus(bustype="virtual",  # pylint: disable=abstract-class-instantiated
-                                     channel=canport, bitrate=500000)
+        self.bus = VirtualBus(channel=canport, bitrate=500000)
         self.run = True
         txThread = threading.Thread(target=self.txWorker)
         txThread.start()

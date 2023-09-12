@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 ########################################################################
-# Copyright (c) 2020 Robert Bosch GmbH
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@
 
 import os
 import sys
-import serial  # type: ignore[import]
-import can
+import serial  # type: ignore
+import can  # type: ignore
 import threading
 from multiprocessing import Queue, Process
 

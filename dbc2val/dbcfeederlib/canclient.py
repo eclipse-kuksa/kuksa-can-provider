@@ -13,7 +13,7 @@
 
 import logging
 from typing import Optional
-import can
+import can  # type: ignore
 from dbcfeederlib import canmessage
 
 log = logging.getLogger(__name__)

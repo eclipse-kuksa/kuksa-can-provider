@@ -19,18 +19,18 @@
 ########################################################################
 
 from dbcfeederlib import dbc2vssmapper
-from dbcfeederlib import dbcparser
 import os
 
 # read config only once
 test_path = os.path.dirname(os.path.abspath(__file__))
 mapping_path = test_path + "/../../mapping/vss_4.0/vss_dbc.json"
-parser = dbcparser.DBCParser([test_path + "/../../Model3CAN.dbc"])
-mapper: dbc2vssmapper.Mapper = dbc2vssmapper.Mapper(mapping_path, parser)
+mapper: dbc2vssmapper.Mapper = dbc2vssmapper.Mapper(
+    mapping_definitions_file=mapping_path,
+    dbc_file_names=[test_path + "/../../Model3CAN.dbc"])
 
 
 def test_current_gear():
-    dbc_mapping = mapper.get_dbc2val_mappings("DI_gear")
+    dbc_mapping = mapper.get_dbc2vss_mappings("DI_gear")
     assert len(dbc_mapping) == 2
 
     # Do not make any assumption on which is which, we do not care
@@ -65,7 +65,7 @@ def test_current_gear():
 
 
 def test_parking_lock():
-    dbc_mapping = mapper.get_dbc2val_mappings("DI_gear")
+    dbc_mapping = mapper.get_dbc2vss_mappings("DI_gear")
     assert len(dbc_mapping) == 2
 
     # Do not make any assumption on which is which, we do not care
@@ -100,7 +100,7 @@ def test_parking_lock():
 
 
 def test_vehicle_speed():
-    dbc_mapping = mapper.get_dbc2val_mappings("DI_uiSpeed")
+    dbc_mapping = mapper.get_dbc2vss_mappings("DI_uiSpeed")
     assert len(dbc_mapping) == 2
 
     if dbc_mapping[0].vss_name == "Vehicle.Speed":
@@ -117,7 +117,7 @@ def test_vehicle_speed():
 
 
 def test_vehicle_obd_speed():
-    dbc_mapping = mapper.get_dbc2val_mappings("DI_uiSpeed")
+    dbc_mapping = mapper.get_dbc2vss_mappings("DI_uiSpeed")
     assert len(dbc_mapping) == 2
 
     if dbc_mapping[0].vss_name == "Vehicle.OBD.Speed":

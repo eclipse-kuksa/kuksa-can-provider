@@ -35,13 +35,12 @@ import threading
 import asyncio
 
 from signal import SIGINT, SIGTERM, signal
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from dbcfeederlib import canclient
 from dbcfeederlib import canplayer
 from dbcfeederlib import dbc2vssmapper
 from dbcfeederlib import dbcreader
-from dbcfeederlib import dbcparser
 from dbcfeederlib import j1939reader
 from dbcfeederlib import databrokerclientwrapper
 from dbcfeederlib import serverclientwrapper
@@ -128,9 +127,9 @@ class Feeder:
     """
     def __init__(self, client_wrapper: clientwrapper.ClientWrapper,
                  elmcan_config: Dict[str, Any], dbc2val: bool = True, val2dbc: bool = False):
-        self._shutdown = False
+        self._running = False
         self._reader = None
-        self._player = None
+        self._player: Optional[canplayer.CANplayer] = None
         self._mapper = None
         self._registered = False
         self._can_queue: queue.Queue[dbc2vssmapper.VSSObservation] = queue.Queue()
@@ -141,7 +140,6 @@ class Feeder:
         self._val2dbc = val2dbc
         self._canclient = None
         self._transmit = False
-        self._dbc_parser = None
 
     def start(
         self,
@@ -154,31 +152,25 @@ class Feeder:
         use_strict_parsing=False
     ):
 
-        # Read DBC file
-        self._dbc_parser = dbcparser.DBCParser(dbc_file_names, use_strict_parsing, use_j1939)
-
-        log.info("Using mapping: {}".format(mappingfile))
-        self._mapper = dbc2vssmapper.Mapper(mappingfile, self._dbc_parser, dbc_default_file)
+        self._running = True
+        self._mapper = dbc2vssmapper.Mapper(
+            mapping_definitions_file=mappingfile,
+            dbc_file_names=dbc_file_names,
+            use_strict_parsing=use_strict_parsing,
+            expect_extended_frame_ids=use_j1939,
+            can_signal_default_values_file=dbc_default_file)
 
         self._client_wrapper.start()
         threads = []
 
-        if self._dbc2val and self._mapper.has_dbc2val_mapping():
+        if self._dbc2val and self._mapper.has_dbc2vss_mapping():
             log.info("Setting up reception of CAN signals")
             if use_j1939:
                 log.info("Using J1939 reader")
-                self._reader = j1939reader.J1939Reader(
-                    rxqueue=self._can_queue,
-                    mapper=self._mapper,
-                    dbc_parser=self._dbc_parser
-                )
+                self._reader = j1939reader.J1939Reader(self._can_queue, self._mapper)
             else:
                 log.info("Using DBC reader")
-                self._reader = dbcreader.DBCReader(
-                    rxqueue=self._can_queue,
-                    mapper=self._mapper,
-                    dbc_parser=self._dbc_parser
-                )
+                self._reader = dbcreader.DBCReader(self._can_queue, self._mapper)
 
             if candumpfile:
                 # use dumpfile
@@ -199,7 +191,7 @@ class Feeder:
                 if canport == 'elmcan':
 
                     log.info("Using elmcan. Trying to set up elm2can bridge")
-                    elm2canbridge.elm2canbridge(canport, self._elmcan_config, self._reader.canidwl)
+                    elm2canbridge.elm2canbridge(canport, self._elmcan_config, self._reader._canidwl)
 
                 # use socketCAN
                 log.info("Using socket CAN device '%s'", canport)
@@ -211,7 +203,7 @@ class Feeder:
         else:
             log.info("No dbc2val mappings found or dbc2val disabled!")
 
-        if self._val2dbc and self._mapper.has_val2dbc_mapping():
+        if self._val2dbc and self._mapper.has_vss2dbc_mapping():
             if not self._client_wrapper.supports_subscription():
                 log.error("Subscribing to VSS signals not supported by chosen client!")
                 self.stop()
@@ -233,7 +225,7 @@ class Feeder:
 
     def stop(self):
         log.info("Shutting down...")
-        self._shutdown = True
+        self._running = False
         # Tell others to stop
         if self._reader is not None:
             self._reader.stop()
@@ -246,8 +238,8 @@ class Feeder:
         self._mapper = None
         self._transmit = False
 
-    def is_stopping(self):
-        return self._shutdown
+    def is_running(self):
+        return self._running
 
     def _register_datapoints(self) -> bool:
         """
@@ -272,7 +264,7 @@ class Feeder:
         messages_sent = 0
         last_sent_log_entry = 0
         queue_max_size = 0
-        while self._shutdown is False:
+        while self._running is True:
             if self._client_wrapper.is_connected():
                 self._disconnect_time = 0.0
             else:
@@ -299,7 +291,7 @@ class Feeder:
                 if queue_size > queue_max_size:
                     queue_max_size = queue_size
                 vss_observation = self._can_queue.get(timeout=1)
-                vss_mapping = self._mapper.get_dbc2val_mapping(vss_observation.dbc_name, vss_observation.vss_name)
+                vss_mapping = self._mapper.get_dbc2vss_mapping(vss_observation.dbc_name, vss_observation.vss_name)
                 value = vss_mapping.transform_value(vss_observation.raw_value)
                 if value is None:
                     log.warning(f"Value ignored for  dbc {vss_observation.dbc_name} to VSS {vss_observation.vss_name},"
@@ -345,13 +337,13 @@ class Feeder:
 
         can_ids = set()
         for dbc_id in dbc_ids:
-            can_id = self._dbc_parser.get_canid_for_signal(dbc_id)
+            can_id = self._mapper.get_canid_for_signal(dbc_id)
             can_ids.add(can_id)
 
         for can_id in can_ids:
             log.debug("CAN id to be sent, this is %#x", can_id)
             sig_dict = self._mapper.get_value_dict(can_id)
-            message_definition = self._dbc_parser.get_message_for_canid(can_id)
+            message_definition = self._mapper.get_message_for_canid(can_id)
             if message_definition is not None:
                 data = message_definition.encode(sig_dict)
                 self._canclient.send(arbitration_id=message_definition.frame_id, data=data)
@@ -361,7 +353,7 @@ class Feeder:
         Requests the client wrapper to start subscription.
         Checks every second if we have requested to stop reception and if so exits
         """
-        asyncio.create_task(self._client_wrapper.subscribe(self._mapper.get_val2dbc_entries(), self.vss_update))
+        asyncio.create_task(self._client_wrapper.subscribe(self._mapper.get_vss2dbc_entries(), self.vss_update))
         while self._transmit:
             await asyncio.sleep(1)
 
@@ -620,7 +612,7 @@ def main(argv):
         log.info("Received signal %s, stopping...", signal_received)
 
         # If we get told to shutdown a second time. Just do it.
-        if feeder.is_stopping():
+        if not feeder.is_running():
             log.warning("Shutting down now!")
             sys.exit(-1)
 

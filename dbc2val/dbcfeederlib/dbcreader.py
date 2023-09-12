@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 ########################################################################
-# Copyright (c) 2020,2023 Robert Bosch GmbH
+# Copyright (c) 2020,2023 Contributors to the Eclipse Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,9 @@
 import threading
 import time
 import logging
+
 from queue import Queue
+
 from dbcfeederlib import dbc2vssmapper
 from dbcfeederlib import canclient
 
@@ -29,14 +31,13 @@ log = logging.getLogger(__name__)
 
 
 class DBCReader:
-    def __init__(self, rxqueue: Queue, mapper, dbc_parser):
-        self.queue = rxqueue
-        self.mapper = mapper
-        self.dbc_parser = dbc_parser
-        self.canidwl = self.get_whitelist()
-        log.info("CAN ID whitelist={}".format(self.canidwl))
-        self.run = True
-        self.canclient = None
+    def __init__(self, rxqueue: Queue, mapper: dbc2vssmapper.Mapper):
+        self._queue = rxqueue
+        self._mapper = mapper
+        self._canidwl = self.get_whitelist()
+        log.info("CAN ID whitelist=%s", self._canidwl)
+        self._running = False
+        self._canclient = None
 
     def start_listening(self, *args, **kwargs):
         """Start listening to CAN bus
@@ -53,53 +54,57 @@ class DBCReader:
         :param int bitrate:
             Bitrate in bit/s.
         """
-        self.canclient = canclient.CANClient(*args, **kwargs)
-        rx_thread = threading.Thread(target=self.rx_worker)
+        self._running = True
+        self._canclient = canclient.CANClient(*args, **kwargs)
+        rx_thread = threading.Thread(target=self._rx_worker)
         rx_thread.start()
 
     def get_whitelist(self):
         log.debug("Generating CAN ID whitelist")
         white_list = []
-        for signal_name in self.mapper.get_dbc2val_entries():
-            canid = self.dbc_parser.get_canid_for_signal(signal_name)
+        for signal_name in self._mapper.get_dbc2vss_entries():
+            canid = self._mapper.get_canid_for_signal(signal_name)
             if canid is not None and canid not in white_list:
                 log.debug("Adding CAN frame id %d of message containing signal %s to white list", canid, signal_name)
                 white_list.append(canid)
         return white_list
 
-    def rx_worker(self):
-        log.info("Starting Rx thread")
-        while self.run:
-            msg = self.canclient.recv(timeout=1)
-            if msg and msg.get_arbitration_id() in self.canidwl:
-                log.debug("processing message with frame ID %#x from CAN bus", msg.get_arbitration_id())
-                try:
-                    message_def = self.dbc_parser.get_message_for_canid(msg.get_arbitration_id())
-                    if message_def is not None:
-                        decode = message_def.decode(data=msg.get_data())
-                    else:
-                        # no message definition found for frame ID
-                        continue
-                except Exception:
-                    log.warning("Error Decoding frame with ID: %#x", msg.get_arbitration_id(), exc_info=True)
-                    continue
+    def _process_message(self, frame_id: int, data: bytearray):
 
+        log.debug("processing message with frame ID %#x from CAN bus", frame_id)
+        try:
+            message_def = self._mapper.get_message_for_canid(frame_id)
+            if message_def is not None:
+                decode = message_def.decode(bytes(data), allow_truncated=True)
                 if log.isEnabledFor(logging.DEBUG):
                     log.debug("Decoded message: %s", str(decode))
 
                 rx_time = time.time()
-                for k, v in decode.items():
-                    vss_mappings = self.mapper.get_dbc2val_mappings(k)
+                for k, v in decode.items():  # type: ignore
+                    vss_mappings = self._mapper.get_dbc2vss_mappings(k)
                     for signal in vss_mappings:
                         if signal.time_condition_fulfilled(rx_time):
-                            log.debug("Queueing %s, triggered by %s, raw value %s ", signal.vss_name, k, v)
-                            self.queue.put(dbc2vssmapper.VSSObservation(k, signal.vss_name, v, rx_time))
+                            log.debug("Queueing %s, triggered by %s, raw value %s", signal.vss_name, k, v)
+                            self._queue.put(dbc2vssmapper.VSSObservation(k, signal.vss_name, v, rx_time))
                         else:
-                            log.debug("Ignoring %s, triggered by %s, raw value %s ", signal.vss_name, k, v)
+                            log.debug("Ignoring %s, triggered by %s, raw value %s", signal.vss_name, k, v)
+        except Exception:
+            log.warning("Error decoding message with frame ID: %#x", frame_id, exc_info=True)
+
+    def _rx_worker(self):
+        log.info("Starting Rx thread")
+        while self._running:
+            can_message = self._canclient.recv(timeout=1)
+            if can_message is not None:
+                frame_id = can_message.get_arbitration_id()
+                if frame_id in self._canidwl:
+                    self._process_message(frame_id, can_message.get_data())
+                else:
+                    log.debug("ignoring CAN message with frame ID %s not on whitelist", frame_id)
         log.info("Stopped Rx thread")
 
     def stop(self):
-        self.run = False
-        if self.canclient:
-            self.canclient.stop()
-            self.canclient = None
+        self._running = False
+        if self._canclient:
+            self._canclient.stop()
+            self._canclient = None

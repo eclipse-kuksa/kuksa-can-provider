@@ -12,7 +12,7 @@
 ########################################################################
 
 import logging
-import can
+import can  # type: ignore
 
 log = logging.getLogger(__name__)
 

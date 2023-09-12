@@ -22,7 +22,7 @@ import logging
 import sys
 import os
 
-import cantools.database
+import cantools.database  # type: ignore
 
 from types import MappingProxyType
 from typing import cast, Dict, Optional, List, Set, Tuple
@@ -128,6 +128,6 @@ class DBCParser:
     def get_message_for_canid(self, canid: int) -> Optional[cantools.database.Message]:
         try:
             return self._db.get_message_by_frame_id(canid)
-        except Exception:
+        except KeyError:
             log.debug("No DBC mapping registered for CAN frame id %#x", canid)
             return None

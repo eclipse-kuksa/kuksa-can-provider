@@ -14,8 +14,7 @@
 #################################################################################
 
 import logging
-from typing import Any
-from typing import Dict, List
+from typing import Any, Dict, List, Optional
 
 import os
 import contextlib
@@ -52,7 +51,7 @@ class DatabrokerClientWrapper(clientwrapper.ClientWrapper):
         """
         super().__init__(ip, port, token_path, tls)
         self._grpc_client = None
-        self._name_to_type: dict[str, DataType] = {}
+        self._name_to_type: Dict[str, DataType] = {}
         self._rpc_kwargs: Dict[str, str] = {}
         self._connected = False
         self._exit_stack = contextlib.ExitStack()
@@ -211,7 +210,7 @@ class DatabrokerClientWrapper(clientwrapper.ClientWrapper):
 
         # If there is a path VSSClient will request a secure connection
         if self._tls and self._root_ca_path:
-            root_path = Path(self._root_ca_path)
+            root_path: Optional[Path] = Path(self._root_ca_path)
         else:
             root_path = None
 

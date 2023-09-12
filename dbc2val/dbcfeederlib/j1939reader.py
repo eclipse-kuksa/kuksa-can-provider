@@ -35,14 +35,13 @@ log = logging.getLogger(__name__)
 
 class J1939Reader:
 
-    def __init__(self, rxqueue: Queue, mapper, dbc_parser):
-        self.queue = rxqueue
-        self.mapper = mapper
-        self.dbc_parser = dbc_parser
-        self.ecu = j1939.ElectronicControlUnit()
+    def __init__(self, rxqueue: Queue, mapper: dbc2vssmapper.Mapper):
+        self._queue = rxqueue
+        self._mapper = mapper
+        self._ecu = j1939.ElectronicControlUnit()
 
     def stop(self):
-        self.ecu.disconnect()
+        self._ecu.disconnect()
 
     def start_listening(self, *args, **kwargs):
         """Start listening to CAN bus
@@ -61,27 +60,29 @@ class J1939Reader:
         """
 
         # Connect to the CAN bus
-        self.ecu.connect(*args, **kwargs)
-        self.ecu.subscribe(self.on_message)
+        self._ecu.connect(*args, **kwargs)
+        self._ecu.subscribe(self.on_message)
 
     def on_message(self, priority: int, pgn: int, sa: int, timestamp: int, data):
         # create an extended CAN frame ID from PGN and source address
         extended_can_id: int = pgn << 8 | sa
-        message = self.dbc_parser.get_message_for_canid(extended_can_id)
+        message = self._mapper.get_message_for_canid(extended_can_id)
         if message is not None:
             log.debug("processing j1939 message [PGN: %#x]", pgn)
             try:
                 decode = message.decode(bytes(data), allow_truncated=True)
-                # log.debug("Decoded message: %s", str(decode))
-                rxTime = time.time()
-                for k, v in decode.items():
-                    if k in self.mapper:
-                        # Now time is defined per VSS signal, so handling needs to be different
-                        for signal in self.mapper[k]:
-                            if signal.time_condition_fulfilled(rxTime):
-                                log.debug("Queueing %s, triggered by %s, raw value %s", signal.vss_name, k, v)
-                                self.queue.put(dbc2vssmapper.VSSObservation(k, signal.vss_name, v, rxTime))
-                            else:
-                                log.debug("Ignoring %s, triggered by %s, raw value %s", signal.vss_name, k, v)
+                if log.isEnabledFor(logging.DEBUG):
+                    log.debug("Decoded message: %s", str(decode))
+
+                rx_time = time.time()
+                for k, v in decode.items():  # type: ignore
+                    vss_mappings = self._mapper.get_dbc2vss_mappings(k)
+                    # Now time is defined per VSS signal, so handling needs to be different
+                    for signal in vss_mappings:
+                        if signal.time_condition_fulfilled(rx_time):
+                            log.debug("Queueing %s, triggered by %s, raw value %s", signal.vss_name, k, v)
+                            self._queue.put(dbc2vssmapper.VSSObservation(k, signal.vss_name, v, rx_time))
+                        else:
+                            log.debug("Ignoring %s, triggered by %s, raw value %s", signal.vss_name, k, v)
             except Exception:
-                log.warning("Error decoding message %s [PGN: %#x]", message.name(), pgn, exc_info=True)
+                log.warning("Error decoding message %s [PGN: %#x]", message.name, pgn, exc_info=True)
