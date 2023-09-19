@@ -464,7 +464,7 @@ def _get_command_line_args_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--server-type",
         help="The type of KUKSA.val server to write/read VSS signal to/from",
-        choices=[server_type.name for server_type in ServerType]
+        choices=[server_type.value for server_type in ServerType]
     )
     parser.add_argument(
         "--lax-dbc-parsing",
