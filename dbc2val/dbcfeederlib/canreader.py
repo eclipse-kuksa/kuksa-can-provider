@@ -18,6 +18,8 @@ import time
 
 from abc import ABC, abstractmethod
 
+import cantools.database  # type: ignore
+
 from dbcfeederlib.canplayer import CANplayer
 from dbcfeederlib.dbc2vssmapper import Mapper, VSSObservation
 from typing import Any, Dict, Optional
@@ -89,7 +91,25 @@ class CanReader(ABC):
                     log.debug("Decoded message: %s", str(decode))
                 rx_time = time.time()
                 for signal_name, raw_value in decode.items():  # type: ignore
+                    signal: cantools.database.Signal = message_def.get_signal_by_name(signal_name)
+                    if isinstance(raw_value, (int, float)):
+                        # filter out signals with values out of defined range
+                        # which is usually because the signal's value is unavailable
+                        # (represented as e.g. "all bits set")
+                        if signal.minimum is not None and raw_value < signal.minimum:
+                            log.debug(
+                                "discarding out-of-range value [signal: %s, min: %s, value: %s]",
+                                signal_name, signal.minimum, raw_value
+                            )
+                            continue
+                        if signal.maximum is not None and raw_value > signal.maximum:
+                            log.debug(
+                                "discarding out-of-range value [signal: %s, max: %s, value: %s]",
+                                signal_name, signal.maximum, raw_value
+                            )
+                            continue
                     for signal_mapping in self._mapper.get_dbc2vss_mappings(signal_name):
+
                         if signal_mapping.time_condition_fulfilled(rx_time):
                             log.debug(
                                 "Queueing %s, triggered by %s, raw value %s",

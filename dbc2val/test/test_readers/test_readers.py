@@ -18,105 +18,196 @@
 # SPDX-License-Identifier: Apache-2.0
 ########################################################################
 
-import os
+import unittest.mock as mock
 
-from queue import Empty, Queue
-from typing import Dict
+from queue import Queue
+from typing import Dict, List
 
-import pytest  # type: ignore
+import pytest  # type: ignore # noqa: F401
 
-from dbcfeederlib.dbc2vssmapper import Mapper, VSSObservation
-from dbcfeederlib.dbcreader import DBCReader
+from cantools.database import Message, Signal
+from dbcfeederlib.canreader import CanReader
+from dbcfeederlib.dbc2vssmapper import Mapper, VSSObservation, VSSMapping
 from dbcfeederlib.j1939reader import J1939Reader
 
-test_path = os.path.dirname(os.path.abspath(__file__))
+
+class TestCanReader():
+
+    class NoopCanReader(CanReader):
+        def __init__(self, rxqueue: Queue, mapper: Mapper):
+            super().__init__(rxqueue, mapper, "vcan0")
+
+        def _start_can_bus_listener(self):
+            pass
+
+        def _stop_can_bus_listener(self):
+            pass
+
+    def test_process_can_message_handles_known_messages(self) -> None:
+
+        # GIVEN a reader based on CAN message and mapping definitions
+        decoded_message = {"UnboundedSignal": 10}
+        message_def = Message(
+            frame_id=0x0102,
+            name="MyMessage",
+            length=8,
+            signals=[
+                Signal(name="UnboundedSignal", start=0, length=8),
+            ])
+        message_def.decode = mock.Mock(return_value=decoded_message)  # type: ignore
+        mapper = mock.create_autospec(spec=Mapper)
+        mapper.get_message_for_canid.return_value = message_def
+        mapper.get_dbc2vss_mappings.return_value = [VSSMapping(
+            vss_name="Vehicle.Custom",
+            dbc_name="UnboundedSignal",
+            transform={},
+            interval_ms=0,
+            on_change=True,
+            datatype="uint8",
+            description="some custom signal")]
+        queue = mock.create_autospec(spec=Queue)
+        reader = TestCanReader.NoopCanReader(queue, mapper)
+
+        # WHEN a message with a known frame ID is received
+        reader._process_can_message(0x0102, bytes())
+
+        # THEN its signals are mapped to VSS data entries
+        mapper.get_dbc2vss_mappings.assert_called_once_with("UnboundedSignal")
+        queue.put.assert_called_once()
+        assert queue.put.call_args.args[0].dbc_name == "UnboundedSignal"
+        assert queue.put.call_args.args[0].vss_name == "Vehicle.Custom"
+
+    def test_process_can_message_ignores_out_of_range_values(self) -> None:
+
+        # GIVEN a reader based on a CAN message definition that defines signals
+        # with min and max values
+        decoded_message = {"HasMinSignal": 3, "HasMaxSignal": 255}
+        message_def = Message(
+            frame_id=0x103,
+            name="MyMessage",
+            length=16,
+            signals=[
+                Signal(name="HasMinSignal", start=0, length=8, minimum=5),
+                Signal(name="HasMaxSignal", start=8, length=8, maximum=254),
+            ])
+        message_def.decode = mock.Mock(return_value=decoded_message)  # type: ignore
+        mapper = mock.create_autospec(spec=Mapper)
+        mapper.get_message_for_canid.return_value = message_def
+        queue = mock.create_autospec(spec=Queue)
+        reader = TestCanReader.NoopCanReader(queue, mapper)
+
+        # WHEN a  message is received from the CAN bus which only contains signals
+        # with values out of range
+        reader._process_can_message(0x103, bytes())
+
+        # THEN the reader ignores the signal values
+        mapper.get_message_for_canid.assert_called_once_with(0x0103)
+        mapper.get_dbc2vss_mappings.assert_not_called()
+        queue.put.assert_not_called()
+
+    def test_process_can_message_ignores_unknown_messages(self) -> None:
+        # GIVEN a reader based on an empty mapping definitions database
+        queue = mock.create_autospec(spec=Queue)
+        mapper = mock.create_autospec(spec=Mapper)
+        mapper.get_message_for_canid.return_value = None
+        reader = TestCanReader.NoopCanReader(queue, mapper)
+
+        # WHEN a  message with an unknown PGN is received from the CAN bus
+        reader._process_can_message(0x0102, bytes())
+
+        # THEN the reader ignores the message
+        mapper.get_message_for_canid.assert_called_once_with(0x0102)
+        queue.put.assert_not_called()
 
 
-def _assert_signal_mappings(signal_mappings: Dict[str, VSSObservation]):
+def get_dbc2vss_mappings(signal_name: str) -> List[VSSMapping]:
+    if signal_name == "Signal_One":
+        return [VSSMapping(
+                vss_name="A.One",
+                dbc_name=signal_name,
+                transform={},
+                interval_ms=0,
+                on_change=True,
+                datatype="uint8",
+                description="some custom signal")]
+    elif signal_name == "Signal_Two":
+        return [VSSMapping(
+                vss_name="A.Two",
+                dbc_name=signal_name,
+                transform={},
+                interval_ms=0,
+                on_change=True,
+                datatype="int16",
+                description="some custom signal")]
+    else:
+        return []
+
+
+def get_message_definition(frame_id: int, is_extended_frame: bool) -> Message:
+    decoded_message = {"Signal_One": 0x10, "Signal_Two": 0x5432}
+    msg_def = Message(
+            frame_id=frame_id,
+            name="Test_Message",
+            length=24,
+            is_extended_frame=is_extended_frame,
+            signals=[
+                Signal(name="Signal_One", start=0, length=8, maximum=213),
+                Signal(name="Signal_Two", start=8, length=16, is_signed=True),
+            ])
+    msg_def.decode = mock.Mock(return_value=decoded_message)  # type: ignore
+    return msg_def
+
+
+def assert_signal_mappings(signal_mappings: Dict[str, VSSObservation]) -> None:
     assert signal_mappings["Signal_One"].vss_name == "A.One"
     assert signal_mappings["Signal_One"].raw_value == 0x10
     assert signal_mappings["Signal_Two"].vss_name == "A.Two"
     assert signal_mappings["Signal_Two"].raw_value == 0x5432
 
 
-@pytest.fixture
-def dbc2vss_queue() -> Queue:
-    return Queue(10)
+class TestJ1939Reader():
+
+    def test_j1939reader_processes_j1939_message(self) -> None:
+
+        # GIVEN a reader based on CAN message and mapping definitions
+        queue = mock.create_autospec(spec=Queue)
+        message_def = get_message_definition(0x01FFFF10, True)
+        mapper = mock.create_autospec(spec=Mapper)
+        mapper.get_message_for_canid.return_value = message_def
+        mapper.get_dbc2vss_mappings.side_effect = get_dbc2vss_mappings
+        j1939reader = J1939Reader(queue, mapper, "vcan0")
+
+        # WHEN a message is received from the CAN bus for which a mapping gas been defined
+        j1939reader._on_message(priority=1, pgn=0x1FFFF, source_address=0x45, timestamp=0, data=[0x10, 0x32, 0x54])
+
+        # THEN the reader determines both VSS Data Entries that the CAN signals are mapped to
+        assert queue.put.call_count == 2
+        signal_mappings = {}
+        for obs in queue.put.call_args_list:
+            signal_mappings[obs.args[0].dbc_name] = obs.args[0]
+
+        assert_signal_mappings(signal_mappings)
 
 
-@pytest.fixture
-def j1939reader(dbc2vss_queue: Queue) -> J1939Reader:
-    mapper = Mapper(
-        mapping_definitions_file=test_path + "/simple_mapping.json",
-        dbc_file_names=[test_path + "/j1939.kcd"],
-        expect_extended_frame_ids=True,
-        use_strict_parsing=True)
-    return J1939Reader(dbc2vss_queue, mapper, "vcan0")
+class TestDBCReader():
 
+    def test_dbcreader_processes_can_message(self) -> None:
 
-@pytest.fixture
-def dbcreader(dbc2vss_queue: Queue) -> DBCReader:
-    mapper = Mapper(
-        mapping_definitions_file=test_path + "/simple_mapping.json",
-        dbc_file_names=[test_path + "/standard_can.kcd"],
-        expect_extended_frame_ids=False,
-        use_strict_parsing=True)
-    return DBCReader(dbc2vss_queue, mapper, "vcan0")
+        # GIVEN a reader based on CAN message and mapping definitions
+        queue = mock.create_autospec(spec=Queue)
+        message_def = get_message_definition(0x011A, False)
+        mapper = mock.create_autospec(spec=Mapper)
+        mapper.get_message_for_canid.return_value = message_def
+        mapper.get_dbc2vss_mappings.side_effect = get_dbc2vss_mappings
+        dbcreader = J1939Reader(queue, mapper, "vcan0")
 
+        # WHEN a message is received from the CAN bus for which a mapping has been defined
+        dbcreader._process_can_message(frame_id=0x111A, data=bytearray([0x10, 0x32, 0x54]))
 
-def test_j1939reader_processes_j1939_message(j1939reader: J1939Reader, dbc2vss_queue: Queue):
+        # THEN the reader determines both VSS Data Entries that the CAN signals are mapped to
+        assert queue.put.call_count == 2
+        signal_mappings = {}
+        for obs in queue.put.call_args_list:
+            signal_mappings[obs.args[0].dbc_name] = obs.args[0]
 
-    # GIVEN a reader based on CAN message and mapping definitions
-
-    # WHEN a message is received from the CAN bus for which a mapping gas been defined
-    j1939reader._on_message(priority=1, pgn=0x1FFFF, source_address=0x45, timestamp=0, data=[0x10, 0x32, 0x54])
-
-    # THEN the reader determines both VSS Data Entries that the CAN signals are mapped to
-    signal_mappings: Dict[str, VSSObservation] = {}
-    obs: VSSObservation = dbc2vss_queue.get(block=False)
-    signal_mappings[obs.dbc_name] = obs
-    obs = dbc2vss_queue.get(block=False)
-    signal_mappings[obs.dbc_name] = obs
-
-    _assert_signal_mappings(signal_mappings)
-
-
-def test_j1939reader_ignores_unknown_CAN_messages(j1939reader: J1939Reader, dbc2vss_queue: Queue):
-
-    # GIVEN a reader based on CAN message and mapping definitions
-
-    # WHEN a  message with an unknown PGN is received from the CAN bus
-    j1939reader._on_message(priority=1, pgn=0x1FFFA, source_address=0x12, timestamp=0, data=[0x10, 0x32, 0x54])
-
-    # THEN the reader ignores the message
-    with pytest.raises(Empty):
-        dbc2vss_queue.get(block=False)
-
-
-def test_dbcreader_processes_can_message(dbcreader: DBCReader, dbc2vss_queue: Queue):
-
-    # GIVEN a reader based on CAN message and mapping definitions
-
-    # WHEN a message is received from the CAN bus for which a mapping has been defined
-    dbcreader._process_can_message(frame_id=0x111A, data=bytearray([0x10, 0x32, 0x54]))
-
-    # THEN the reader determines both VSS Data Entries that the CAN signals are mapped to
-    signal_mappings: Dict[str, VSSObservation] = {}
-    obs: VSSObservation = dbc2vss_queue.get(block=False)
-    signal_mappings[obs.dbc_name] = obs
-    obs = dbc2vss_queue.get(block=False)
-    signal_mappings[obs.dbc_name] = obs
-
-    _assert_signal_mappings(signal_mappings)
-
-
-def test_dbcreader_ignores_unknown_CAN_messages(dbcreader: DBCReader, dbc2vss_queue: Queue):
-
-    # GIVEN a reader based on CAN message and mapping definitions
-
-    # WHEN a message with an unknown frame ID is received from the CAN bus
-    dbcreader._process_can_message(frame_id=0x10AC, data=bytearray([0x10, 0x32, 0x54]))
-
-    # THEN the reader ignores the message
-    with pytest.raises(Empty):
-        dbc2vss_queue.get(block=False)
+        assert_signal_mappings(signal_mappings)
