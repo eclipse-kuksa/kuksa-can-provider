@@ -8,7 +8,7 @@ argparse-addons==0.12.0
     # via cantools
 attrs==23.1.0
     # via cmd2
-bitstruct==8.17.0
+bitstruct==8.18.0
     # via cantools
 can-j1939==2.0.12
     # via -r requirements.in
@@ -20,45 +20,43 @@ colorama==0.4.6
     # via cmd2
 crccheck==1.3.0
     # via cantools
-decorator==5.1.1
-    # via jsonpath-ng
-diskcache==5.6.1
+diskcache==5.6.3
     # via cantools
-exceptiongroup==1.1.2
+exceptiongroup==1.1.3
     # via pytest
-grpcio==1.56.2
+grpcio==1.59.0
     # via grpcio-tools
-grpcio-tools==1.56.2
+grpcio-tools==1.59.0
     # via kuksa-client
 iniconfig==2.0.0
     # via pytest
-jsonpath-ng==1.5.3
+jsonpath-ng==1.6.0
     # via kuksa-client
-kuksa-client==0.4.0
+kuksa-client==0.4.1
     # via -r requirements.in
-msgpack==1.0.5
+msgpack==1.0.7
     # via python-can
-numpy==1.25.1
+numpy==1.26.1
     # via can-j1939
-packaging==23.1
+packaging==23.2
     # via
     #   pytest
     #   python-can
-pluggy==1.2.0
+pluggy==1.3.0
     # via pytest
 ply==3.11
     # via jsonpath-ng
-protobuf==4.23.4
+protobuf==4.24.4
     # via grpcio-tools
 py-expression-eval==0.3.14
     # via -r requirements.in
-pygments==2.15.1
+pygments==2.16.1
     # via kuksa-client
 pyperclip==1.8.2
     # via cmd2
 pyserial==3.5
     # via -r requirements.in
-pytest==7.4.0
+pytest==7.4.3
     # via can-j1939
 python-can==4.2.2
     # via
@@ -67,23 +65,21 @@ python-can==4.2.2
     #   cantools
 pyyaml==6.0.1
     # via -r requirements.in
-six==1.16.0
-    # via jsonpath-ng
 textparser==0.24.0
     # via cantools
 tomli==2.0.1
     # via pytest
-types-protobuf==4.23.0.2
+types-protobuf==4.24.0.4
     # via -r requirements.in
-types-pyyaml==6.0.12.11
+types-pyyaml==6.0.12.12
     # via -r requirements.in
-typing-extensions==4.7.1
+typing-extensions==4.8.0
     # via
     #   cantools
     #   python-can
-wcwidth==0.2.6
+wcwidth==0.2.8
     # via cmd2
-websockets==11.0.3
+websockets==12.0
     # via kuksa-client
 wrapt==1.15.0
     # via python-can
