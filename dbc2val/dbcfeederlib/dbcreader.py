@@ -41,7 +41,7 @@ class DBCReader(canreader.CanReader):
         while self.is_running():
             msg = self._canclient.recv(timeout=1)
             if msg is not None:
-                log.debug("Processing CAN message with frame ID %#x", msg.get_arbitration_id)
+                log.debug("Processing CAN message with frame ID %#x", msg.get_arbitration_id())
                 self._process_can_message(msg.get_arbitration_id(), msg.get_data())
         log.info("Stopped receiving CAN messages from bus")
 
