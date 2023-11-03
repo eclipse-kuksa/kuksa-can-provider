@@ -57,7 +57,7 @@ class DBCParser:
                 continue
             processed_files.add(filename)
             if first:
-                log.info("Reading definitions from DBC file %s", filename)
+                log.info("Reading definitions from bus description file %s", filename)
                 database = cantools.database.load_file(
                     filename,
                     strict=use_strict_parsing,
