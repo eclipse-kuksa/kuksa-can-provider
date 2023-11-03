@@ -143,6 +143,7 @@ class Feeder:
     def start(
         self,
         canport: str,
+        can_fd: bool,
         dbc_file_names: List[str],
         mappingfile: str,
         dbc_default_file: Optional[str],
@@ -170,7 +171,7 @@ class Feeder:
                 self._reader = j1939reader.J1939Reader(self._dbc2vss_queue, self._mapper, canport, candumpfile)
             else:
                 log.info("Using DBC reader")
-                self._reader = dbcreader.DBCReader(self._dbc2vss_queue, self._mapper, canport, candumpfile)
+                self._reader = dbcreader.DBCReader(self._dbc2vss_queue, self._mapper, canport, can_fd, candumpfile)
 
             if canport == 'elmcan':
                 log.info("Using elmcan. Trying to set up elm2can bridge")
@@ -196,7 +197,7 @@ class Feeder:
                 # For now creating another bus
                 # Maybe support different buses for downstream/upstream in the future
 
-                self._canclient = CANClient(interface="socketcan", channel=canport)
+                self._canclient = CANClient(interface="socketcan", channel=canport, can_fd=can_fd)
 
                 transmitter = threading.Thread(target=self._run_transmitter)
                 transmitter.start()
@@ -452,6 +453,11 @@ def _get_command_line_args_parser() -> argparse.ArgumentParser:
         help="Use SocketCAN (overriding any use of --dumpfile)",
     )
     parser.add_argument(
+        '--canfd',
+        action='store_true',
+        help="Open bus interface in CAN-FD mode"
+    )
+    parser.add_argument(
         "--mapping",
         metavar="FILE",
         help="The file to read definitions for mapping CAN signals to VSS datapoints from",
@@ -613,7 +619,8 @@ def main(argv):
         dbc_default_file=dbc_default,
         candumpfile=candumpfile,
         use_j1939=use_j1939,
-        use_strict_parsing=args.strict
+        use_strict_parsing=args.strict,
+        can_fd=args.canfd
     )
 
     return 0

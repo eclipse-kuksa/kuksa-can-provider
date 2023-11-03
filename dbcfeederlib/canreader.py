@@ -32,7 +32,7 @@ class CanReader(ABC):
     """
     Provides means to read messages from a CAN bus.
     """
-    def __init__(self, rxqueue: Queue, mapper: Mapper, can_port: str, dump_file: Optional[str] = None):
+    def __init__(self, rxqueue: Queue, mapper: Mapper, can_port: str, dump_file: Optional[str] = None, can_fd:bool=False):
         """
         This init method is only supposed to be called by subclass' __init__ functions.
         """
@@ -44,7 +44,7 @@ class CanReader(ABC):
 
         can_filters = mapper.can_frame_id_whitelist()
         log.info("Using CAN frame ID whitelist=%s", can_filters)
-        self._can_kwargs: Dict[str, Any] = {"interface": "socketcan", "channel": can_port, "can_filters": can_filters}
+        self._can_kwargs: Dict[str, Any] = {"interface": "socketcan", "channel": can_port, "can_filters": can_filters, "fd": can_fd}
         if dump_file is not None:
             self._can_kwargs["interface"] = "virtual"
             self._can_kwargs["bitrate"] = 500000
