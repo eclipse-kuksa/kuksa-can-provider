@@ -83,44 +83,58 @@ class CanReader(ABC):
         self._stop_can_bus_listener()
 
     def _process_can_message(self, frame_id: int, data: Any):
-        try:
-            message_def = self._mapper.get_message_for_canid(frame_id)
-            if message_def is not None:
-                decode = message_def.decode(bytes(data), allow_truncated=True)
-                if log.isEnabledFor(logging.DEBUG):
-                    log.debug("Decoded message: %s", str(decode))
-                rx_time = time.time()
-                for signal_name, raw_value in decode.items():  # type: ignore
-                    signal: cantools.database.Signal = message_def.get_signal_by_name(signal_name)
-                    if isinstance(raw_value, (int, float)):
-                        # filter out signals with values out of defined range
-                        # which is usually because the signal's value is unavailable
-                        # (represented as e.g. "all bits set")
-                        if signal.minimum is not None and raw_value < signal.minimum:
-                            log.debug(
-                                "discarding out-of-range value [signal: %s, min: %s, value: %s]",
-                                signal_name, signal.minimum, raw_value
-                            )
-                            continue
-                        if signal.maximum is not None and raw_value > signal.maximum:
-                            log.debug(
-                                "discarding out-of-range value [signal: %s, max: %s, value: %s]",
-                                signal_name, signal.maximum, raw_value
-                            )
-                            continue
-                    for signal_mapping in self._mapper.get_dbc2vss_mappings(signal_name):
+        message_def = self._mapper.get_message_for_canid(frame_id)
+        if message_def is not None:
+            try:
+                decode = message_def.decode(bytes(data), allow_truncated=True, decode_containers=True)
+            except Exception as e:
+                log.warning("Error processing CAN message with frame ID: %#x", frame_id, exc_info=True)
 
-                        if signal_mapping.time_condition_fulfilled(rx_time):
-                            log.debug(
-                                "Queueing %s, triggered by %s, raw value %s",
-                                signal_mapping.vss_name, signal_name, raw_value
-                            )
-                            self._queue.put(VSSObservation(
-                                signal_name, signal_mapping.vss_name, raw_value, rx_time))
-                        else:
-                            log.debug(
-                                "Ignoring %s, triggered by %s, raw value %s",
-                                signal_mapping.vss_name, signal_name, raw_value
-                            )
-        except Exception:
-            log.warning("Error processing CAN message with frame ID: %#x", frame_id, exc_info=True)
+            if log.isEnabledFor(logging.DEBUG):
+                log.debug("Decoded message: %s", str(decode))
+            rx_time = time.time()
+
+            if isinstance(decode, dict):
+                # handle normal frame
+                self._handle_decoded_frame(message_def, decode, rx_time)
+            else:
+                # handle container frame
+                for tmp in decode:
+                    if isinstance(tmp[1],bytes):
+                        continue
+                    self._handle_decoded_frame(tmp[0], tmp[1], rx_time)
+
+
+    def _handle_decoded_frame(self, message_def, decoded, rx_time):
+        for signal_name, raw_value in decoded.items():  # type: ignore
+            signal: cantools.database.Signal = message_def.get_signal_by_name(signal_name)
+            if isinstance(raw_value, (int, float)):
+                # filter out signals with values out of defined range
+                # which is usually because the signal's value is unavailable
+                # (represented as e.g. "all bits set")
+                if signal.minimum is not None and raw_value < signal.minimum:
+                    log.debug(
+                        "discarding out-of-range value [signal: %s, min: %s, value: %s]",
+                        signal_name, signal.minimum, raw_value
+                    )
+                    continue
+                if signal.maximum is not None and raw_value > signal.maximum:
+                    log.debug(
+                        "discarding out-of-range value [signal: %s, max: %s, value: %s]",
+                        signal_name, signal.maximum, raw_value
+                    )
+                    continue
+            for signal_mapping in self._mapper.get_dbc2vss_mappings(signal_name):
+
+                if signal_mapping.time_condition_fulfilled(rx_time):
+                    log.debug(
+                        "Queueing %s, triggered by %s, raw value %s",
+                        signal_mapping.vss_name, signal_name, raw_value
+                    )
+                    self._queue.put(VSSObservation(
+                        signal_name, signal_mapping.vss_name, raw_value, rx_time))
+                else:
+                    log.debug(
+                        "Ignoring %s, triggered by %s, raw value %s",
+                        signal_mapping.vss_name, signal_name, raw_value
+                    )
