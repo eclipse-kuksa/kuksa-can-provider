@@ -111,12 +111,14 @@ class DBCParser:
             return self._signal_to_canid[sig_to_find]
 
         for msg in self._db.messages:
-            for signal in msg.signals:
-                if signal.name == sig_to_find:
-                    frame_id = msg.frame_id
-                    log.debug("Found signal %s in CAN message with frame ID %#x", signal.name, frame_id)
-                    self._signal_to_canid[sig_to_find] = frame_id
-                    return frame_id
+            for inner_msg in [msg, *(msg.contained_messages or [])]:
+                for signal in inner_msg.signals:
+                    if signal.name == sig_to_find:
+                        frame_id = msg.frame_id
+                        log.debug("Found signal %s in CAN message with frame ID %#x", signal.name, frame_id)
+                        self._signal_to_canid[sig_to_find] = frame_id
+                        return frame_id
+                    
         log.warning("Signal %s not found in CAN message database", sig_to_find)
         self._signal_to_canid[sig_to_find] = None
         return None
@@ -127,10 +129,11 @@ class DBCParser:
             return self._canid_to_signals[canid]
 
         names: Set[str] = set()
-        message = self.get_message_for_canid(canid)
-        if message is not None:
-            for signal in message.signals:
-                names.add(signal.name)
+        msg = self.get_message_for_canid(canid)
+        if msg is not None:
+            for inner_msg in [msg, *(msg.contained_messages or [])]:
+                for signal in inner_msg.signals:
+                    names.add(signal.name)
         self._canid_to_signals[canid] = names
         return names
 
