@@ -39,8 +39,8 @@ class CANplayer:
     def __init__(self, dumpfile: str, can_port: str):
         self._running = False
         # open the file for reading can messages
-        log.info("Replaying CAN messages from log file %s", dumpfile)
-        self._messages = can.LogReader(dumpfile)
+        log.info("Starting repeated replay of CAN messages from log file %s", dumpfile)
+        self._dumpfile = dumpfile
         self._can_port = can_port
         log.debug("Using virtual bus to replay CAN messages (channel: %s)", self._can_port)
         self._bus = VirtualBus(channel=can_port, bitrate=500000)
@@ -48,7 +48,9 @@ class CANplayer:
     def _process_log(self):
         # using MessageSync in order to consider timestamps of CAN messages
         # and the delays between them
-        log_reader = can.MessageSync(messages=self._messages, timestamps=True)
+
+        messages = can.LogReader(self._dumpfile)
+        log_reader = can.MessageSync(messages=messages, timestamps=True)
         for msg in log_reader:
             if not self._running:
                 return
@@ -58,7 +60,6 @@ class CANplayer:
                     log.debug("Sent message [channel: %s]: %s", self._bus.channel_info, msg)
             except can.CanError:
                 log.error("Failed to send message via CAN bus")
-
         log.info("Replayed all messages from CAN log file")
 
     def _tx_worker(self):
