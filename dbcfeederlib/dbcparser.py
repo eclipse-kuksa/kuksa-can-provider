@@ -118,7 +118,7 @@ class DBCParser:
                         log.debug("Found signal %s in CAN message with frame ID %#x", signal.name, frame_id)
                         self._signal_to_canid[sig_to_find] = frame_id
                         return frame_id
-                    
+
         log.warning("Signal %s not found in CAN message database", sig_to_find)
         self._signal_to_canid[sig_to_find] = None
         return None
