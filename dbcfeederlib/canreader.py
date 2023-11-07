@@ -32,7 +32,8 @@ class CanReader(ABC):
     """
     Provides means to read messages from a CAN bus.
     """
-    def __init__(self, rxqueue: Queue, mapper: Mapper, can_port: str, dump_file: Optional[str] = None, can_fd:bool=False):
+    def __init__(self, rxqueue: Queue, mapper: Mapper, can_port: str,
+                 dump_file: Optional[str] = None, can_fd: bool = False):
         """
         This init method is only supposed to be called by subclass' __init__ functions.
         """
@@ -44,7 +45,12 @@ class CanReader(ABC):
 
         can_filters = mapper.can_frame_id_whitelist()
         log.info("Using CAN frame ID whitelist=%s", can_filters)
-        self._can_kwargs: Dict[str, Any] = {"interface": "socketcan", "channel": can_port, "can_filters": can_filters, "fd": can_fd}
+        self._can_kwargs: Dict[str, Any] = {
+            "interface": "socketcan",
+            "channel": can_port,
+            "can_filters": can_filters,
+            "fd": can_fd
+        }
         if dump_file is not None:
             self._can_kwargs["interface"] = "virtual"
             self._can_kwargs["bitrate"] = 500000
@@ -89,6 +95,7 @@ class CanReader(ABC):
                 decode = message_def.decode(bytes(data), allow_truncated=True, decode_containers=True)
             except Exception as e:
                 log.warning("Error processing CAN message with frame ID: %#x", frame_id, exc_info=True)
+                log.warning("Error:  ", e)
 
             if log.isEnabledFor(logging.DEBUG):
                 log.debug("Decoded message: %s", str(decode))
@@ -100,10 +107,9 @@ class CanReader(ABC):
             else:
                 # handle container frame
                 for tmp in decode:
-                    if isinstance(tmp[1],bytes):
+                    if isinstance(tmp[1], bytes):
                         continue
                     self._handle_decoded_frame(tmp[0], tmp[1], rx_time)
-
 
     def _handle_decoded_frame(self, message_def, decoded, rx_time):
         for signal_name, raw_value in decoded.items():  # type: ignore
