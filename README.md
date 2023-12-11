@@ -2,6 +2,8 @@
 ![KUKSA Logo](./doc/img/logo.png)
 
 
+**Note: Migration in progress! Please do not use yet!**
+
 This is a DBC CAN feeder for the [KUKSA.val](https://github.com/eclipse/kuksa.val) Server and Databroker.
 For [KUKSA.val Server](https://github.com/boschglobal/kuksa.val/tree/master/kuksa-val-server)
 it supports receiving data from CAN and sending to Server.
@@ -82,7 +84,7 @@ $ pip install -r requirements-dev.txt
 
 ## CAN Mapping
 
-The CAN provider requires a mapping file as input. 
+The CAN provider requires a mapping file as input.
 The mapping file describes mapping between VSS signals and CAN (DBC) signals.
 It shall be a JSON file with VSS syntax with metadata for dbc information.
 Please see [mapping documentation](mapping/mapping.md) for more information.
