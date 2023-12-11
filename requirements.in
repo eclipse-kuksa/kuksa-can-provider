@@ -24,6 +24,10 @@ cantools ~= 38.0
 pyyaml ~= 6.0
 can-j1939 ~= 2.0
 py_expression_eval ~= 0.3
-kuksa-client ~= 0.4.1
+kuksa-client ~= 0.4.2
 types-PyYAML ~= 6.0
 types-protobuf ~= 4.21
+
+# If you want to generate a requirements.txt file usable on Python 3.8
+# then you may need the line below as numpy>1.24 do not support 3.8
+# -numpy ~= 1.24.0

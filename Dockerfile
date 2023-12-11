@@ -23,17 +23,21 @@ RUN echo "-- Running on $BUILDPLATFORM, building for $TARGETPLATFORM"
 # cmake and opanblas-dev needed for aarch build
 RUN apk update && apk add alpine-sdk linux-headers cmake openblas-dev
 
-COPY . /
-
 RUN python3 -m venv /opt/venv
 
 ENV PATH="/opt/venv/bin:$PATH"
 
-RUN /opt/venv/bin/python3 -m pip install --upgrade pip \
-    && pip3 install --no-cache-dir -r requirements.txt
+COPY requirements.txt /
 
+RUN /opt/venv/bin/python3 -m pip install --upgrade pip
+RUN pip3 install --no-cache-dir wheel scons
+RUN pip3 install --no-cache-dir pyinstaller
+RUN pip3 install --no-cache-dir -r requirements.txt
 
-RUN pip3 install wheel scons && pip3 install pyinstaller
+# Copy "all" files first when dependencies have been installed to reuse
+# cached layers as much as possible
+
+COPY . /
 
 # By default we use certificates and tokens from kuksa_certificates, so they must be included
 RUN pyinstaller --collect-data kuksa_certificates --hidden-import can.interfaces.socketcan --clean -F -s dbcfeeder.py

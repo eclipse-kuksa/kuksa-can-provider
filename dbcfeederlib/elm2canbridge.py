@@ -57,7 +57,7 @@ class elm2canbridge:
 
         self._init_elm(elm, cfg['speed'], cfg['canack'])
         # pylint: disable=abstract-class-instantiated
-        can_device = can.interface.Bus(channel=canport, interface='socketcan')
+        can_device = can.Bus(channel=canport, interface='socketcan')
         ser_queue: Queue = Queue(QUEUE_MAX_ELEMENTS)
 
         # mt = threading.Thread(target=self._serial_procesor, args=(ser_queue, can))
@@ -101,7 +101,7 @@ class elm2canbridge:
                 continue
             index += 1
 
-    def _serial_procesor(self, q: Queue, can_device: can.interface.Bus):
+    def _serial_procesor(self, q: Queue, can_device: can.BusABC):
         print("elm2canbridge: Waiting for incoming...")
 
         while True:
