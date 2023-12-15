@@ -1,0 +1,41 @@
+name: dash
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  check-dash:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # taken from here: https://github.com/eclipse/dash-licenses#example-python
+      - name: Create Dash Dependency Report
+        run: |
+          python3 -m venv ./.venv/kuksa-can-provider
+          source ./.venv/kuksa-can-provider/bin/activate
+
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+          deactivate
+
+          python3 -m venv ./.venv/pipdeptree
+          source ./.venv/pipdeptree/bin/activate
+
+          pip install --upgrade pip
+          pip install pipdeptree
+          pipdeptree -a -f --python ./.venv/kuksa-can-provider/bin/python \
+          | sed -E -e 's|([^= ]+)==([^= ]+)|pypi/pypi/-/\1/\2|' -e 's| ||g' \
+          | sort | uniq \
+          > dependencies.txt
+
+      - name: Dash license check
+        uses: eclipse-kuksa/kuksa-actions/check-dash@2
+        with:
+          dashinput: ${{github.workspace}}/dependencies.txt
