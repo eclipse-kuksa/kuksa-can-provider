@@ -1,9 +1,6 @@
 # KUKSA CAN Provider
 ![KUKSA Logo](./doc/img/logo.png)
 
-
-**Note: Migration in progress! Please do not use yet!**
-
 This is a DBC CAN provider for the
 [KUKSA.val](https://raw.githubusercontent.com/eclipse-kuksa/kuksa-can-provider/main/doc/img/logo.png) Server and Databroker.
 For [KUKSA Server](https://github.com/boschglobal/kuksa.val/tree/master/kuksa-val-server)
