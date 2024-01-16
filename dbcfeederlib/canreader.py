@@ -94,8 +94,7 @@ class CanReader(ABC):
             try:
                 decode = message_def.decode(bytes(data), allow_truncated=True, decode_containers=True)
             except Exception as e:
-                log.warning("Error processing CAN message with frame ID: %#x", frame_id, exc_info=True)
-                log.warning("Error:  ", e)
+                log.warning(f"Error processing CAN message with frame ID 0x{frame_id: x}: {e}", exc_info=True)
 
             if log.isEnabledFor(logging.DEBUG):
                 log.debug("Decoded message: %s", str(decode))
