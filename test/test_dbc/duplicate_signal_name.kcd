@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<NetworkDefinition xmlns="http://kayak.2codeornot2code.org/1.0">
+    <Document name="duplicate signal name" date="Wed Jul 05 15:13:39 CEST 2023"></Document>
+    <Bus name="Private">
+        <Message id="0x16" name="First" length="1">
+            <Signal length="4" name="SignalOne" offset="0">
+                <Value max="14.0"/>
+            </Signal>
+            <Signal name="SignalTwo" offset="4">
+                <Value/>
+            </Signal>
+        </Message>
+        <Message id="0x1A" name="Second" length="1">
+            <Signal length="8" name="SignalOne" offset="0">
+                <Value max="196.0"/>
+            </Signal>
+        </Message>
+    </Bus>
+</NetworkDefinition>

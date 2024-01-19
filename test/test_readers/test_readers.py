@@ -56,7 +56,7 @@ class TestCanReader():
             ])
         message_def.decode = mock.Mock(return_value=decoded_message)  # type: ignore
         mapper = mock.create_autospec(spec=Mapper)
-        mapper.get_message_for_canid.return_value = message_def
+        mapper.get_message_by_frame_id.return_value = message_def
         mapper.get_dbc2vss_mappings.return_value = [VSSMapping(
             vss_name="Vehicle.Custom",
             dbc_name="UnboundedSignal",
@@ -92,7 +92,7 @@ class TestCanReader():
             ])
         message_def.decode = mock.Mock(return_value=decoded_message)  # type: ignore
         mapper = mock.create_autospec(spec=Mapper)
-        mapper.get_message_for_canid.return_value = message_def
+        mapper.get_message_by_frame_id.return_value = message_def
         queue = mock.create_autospec(spec=Queue)
         reader = TestCanReader.NoopCanReader(queue, mapper)
 
@@ -101,7 +101,7 @@ class TestCanReader():
         reader._process_can_message(0x103, bytes())
 
         # THEN the reader ignores the signal values
-        mapper.get_message_for_canid.assert_called_once_with(0x0103)
+        mapper.get_message_by_frame_id.assert_called_once_with(0x0103)
         mapper.get_dbc2vss_mappings.assert_not_called()
         queue.put.assert_not_called()
 
@@ -109,14 +109,14 @@ class TestCanReader():
         # GIVEN a reader based on an empty mapping definitions database
         queue = mock.create_autospec(spec=Queue)
         mapper = mock.create_autospec(spec=Mapper)
-        mapper.get_message_for_canid.return_value = None
+        mapper.get_message_by_frame_id.return_value = None
         reader = TestCanReader.NoopCanReader(queue, mapper)
 
         # WHEN a  message with an unknown PGN is received from the CAN bus
         reader._process_can_message(0x0102, bytes())
 
         # THEN the reader ignores the message
-        mapper.get_message_for_canid.assert_called_once_with(0x0102)
+        mapper.get_message_by_frame_id.assert_called_once_with(0x0102)
         queue.put.assert_not_called()
 
 
@@ -146,14 +146,14 @@ def get_dbc2vss_mappings(signal_name: str) -> List[VSSMapping]:
 def get_message_definition(frame_id: int, is_extended_frame: bool) -> Message:
     decoded_message = {"Signal_One": 0x10, "Signal_Two": 0x5432}
     msg_def = Message(
-            frame_id=frame_id,
-            name="Test_Message",
-            length=24,
-            is_extended_frame=is_extended_frame,
-            signals=[
-                Signal(name="Signal_One", start=0, length=8, maximum=213),
-                Signal(name="Signal_Two", start=8, length=16, is_signed=True),
-            ])
+        frame_id=frame_id,
+        name="Test_Message",
+        length=24,
+        is_extended_frame=is_extended_frame,
+        signals=[
+            Signal(name="Signal_One", start=0, length=8, maximum=213),
+            Signal(name="Signal_Two", start=8, length=16, is_signed=True),
+        ])
     msg_def.decode = mock.Mock(return_value=decoded_message)  # type: ignore
     return msg_def
 
@@ -173,7 +173,7 @@ class TestJ1939Reader():
         queue = mock.create_autospec(spec=Queue)
         message_def = get_message_definition(0x01FFFF10, True)
         mapper = mock.create_autospec(spec=Mapper)
-        mapper.get_message_for_canid.return_value = message_def
+        mapper.get_message_by_frame_id.return_value = message_def
         mapper.get_dbc2vss_mappings.side_effect = get_dbc2vss_mappings
         j1939reader = J1939Reader(queue, mapper, "vcan0")
 
@@ -197,7 +197,7 @@ class TestDBCReader():
         queue = mock.create_autospec(spec=Queue)
         message_def = get_message_definition(0x011A, False)
         mapper = mock.create_autospec(spec=Mapper)
-        mapper.get_message_for_canid.return_value = message_def
+        mapper.get_message_by_frame_id.return_value = message_def
         mapper.get_dbc2vss_mappings.side_effect = get_dbc2vss_mappings
         dbcreader = J1939Reader(queue, mapper, "vcan0")
 
