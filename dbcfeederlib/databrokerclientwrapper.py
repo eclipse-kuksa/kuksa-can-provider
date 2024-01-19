@@ -201,11 +201,11 @@ class DatabrokerClientWrapper(clientwrapper.ClientWrapper):
 
     async def subscribe(self, vss_names: List[str], callback):
         """Create a subscription and invoke the callback when data received."""
-        entries = []
+        entries: List[SubscribeEntry] = []
         for name in vss_names:
             # Always subscribe to target
             subscribe_entry = SubscribeEntry(name, View.FIELDS, [Field.ACTUATOR_TARGET])
-            log.info(f"Subscribe entry: {subscribe_entry}")
+            log.info("Subscribe entry: %s", subscribe_entry)
             entries.append(subscribe_entry)
 
         # If there is a path VSSClient will request a secure connection

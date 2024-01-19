@@ -89,13 +89,15 @@ class VSSMapping:
         Value (on_change) condition not evaluated
         """
         fulfilled = True
-        log.debug("Checking interval for %s. Time is %s, last sent %s", self.vss_name, time, self.last_time)
+        log.debug(
+            "Checking interval for %s. Time is %#.3f, last sent %#.3f",
+            self.vss_name, time, self.last_time)
 
         # First shall always evaluate to true
         if (self.interval_ms > 0) and (self.last_time != 0.0):
             diff_ms = (time - self.last_time) * 1000.0
             if diff_ms < self.interval_ms:
-                log.debug("Interval not exceeded for %s. Time is %s", self.vss_name, time)
+                log.debug("Interval not exceeded for %s. Time is %#.3f", self.vss_name, time)
                 fulfilled = False
 
         # We must set time already now even if a value check is performed later
@@ -192,7 +194,8 @@ class Mapper(DBCParser):
                  dbc_file_names: List[str],
                  expect_extended_frame_ids: bool = False,
                  use_strict_parsing: bool = False,
-                 can_signal_default_values_file: Optional[str] = None):
+                 can_signal_default_values_file: Optional[str] = None,
+                 fail_on_duplicate_signal_definitions: bool = False):
 
         super().__init__(dbc_file_names, use_strict_parsing, expect_extended_frame_ids)
 
@@ -230,6 +233,7 @@ class Mapper(DBCParser):
         self._mapped_can_frame_ids: Set[int] = set()
         self._can_filters: List[CanFilter] = []
 
+        self._fail_on_duplicate_signal_definitions = fail_on_duplicate_signal_definitions
         self._traverse_vss_node("", jsonmapping)
 
     def can_frame_id_whitelist(self) -> List[CanFilter]:
@@ -346,15 +350,9 @@ class Mapper(DBCParser):
                                    node["datatype"], node["description"])
         self._dbc2vss_mapping[can_signal_name].append(mapping_entry)
 
-        can_frame_id = self.get_canid_for_signal(can_signal_name)
-        if can_frame_id is None:
-            log.error(
-                """Could not find CAN message definition for signal %s used in dbc2vss
-                mapping definition for %s""",
-                can_signal_name, expanded_name)
-        else:
+        for msg_def in self.get_messages_for_signal(can_signal_name):
             # Make sure that CAN frames with this ID pass CAN filtering
-            self._mapped_can_frame_ids.add(can_frame_id)
+            self._mapped_can_frame_ids.add(msg_def.frame_id)
 
     def _analyze_vss2dbc(self, expanded_name, node: dict, vss2dbc: dict):
         """
@@ -365,6 +363,31 @@ class Mapper(DBCParser):
         if can_signal_name == "":
             log.error("Mapping definition for %s has no \"signal\" property", expanded_name)
             sys.exit(-1)
+
+        dbc_message_defs = self.get_messages_for_signal(can_signal_name)
+        if len(dbc_message_defs) == 0:
+            log.error(
+                "VSS datapoint %s is mapped to CAN signal %s which is not used in any message definition",
+                expanded_name, can_signal_name
+            )
+            return
+
+        if len(dbc_message_defs) > 1 and log.isEnabledFor(logging.WARNING):
+            message_names = ', '.join([msg_def.name for msg_def in dbc_message_defs])
+            if self._fail_on_duplicate_signal_definitions:
+                log.error(
+                    """Mapping of VSS datapoint %s to CAN signal %s is ambiguous because signal is used by multiple
+                    CAN messages (%s)""",
+                    expanded_name, can_signal_name, message_names)
+                sys.exit(-1)
+            else:
+                log.warning(
+                    """Mapping of VSS datapoint %s to CAN signal %s is ambiguous because signal is used by multiple
+                    CAN messages (%s). Make sure that signal %s has the same semantics in all messages in order to
+                    prevent unexpected messages being sent on the CAN bus when the VSS datapoint's target value
+                    is being set.""",
+                    expanded_name, can_signal_name, message_names, can_signal_name)
+
         transform = self._extract_verify_transform(expanded_name, vss2dbc)
         # For now we only support on_change, and we actually do not use the values
         on_change: bool = True
@@ -381,16 +404,10 @@ class Mapper(DBCParser):
         self._vss2dbc_mapping[expanded_name].append(mapping_entry)
 
         # Also add CAN-id
-        can_frame_id = self.get_canid_for_signal(can_signal_name)
-        if can_frame_id is None:
-            log.error(
-                """Could not find CAN message definition for signal %s used in vss2dbc
-                mapping definition for %s""",
-                can_signal_name, expanded_name)
-            return
-        if can_frame_id not in self._vss2dbc_can_id_mapping:
-            self._vss2dbc_can_id_mapping[can_frame_id] = []
-        self._vss2dbc_can_id_mapping[can_frame_id].append(mapping_entry)
+        for msg_def in self.get_messages_for_signal(can_signal_name):
+            if msg_def.frame_id not in self._vss2dbc_can_id_mapping:
+                self._vss2dbc_can_id_mapping[msg_def.frame_id] = []
+            self._vss2dbc_can_id_mapping[msg_def.frame_id].append(mapping_entry)
 
     def _analyze_signal(self, expanded_name, node):
         """
@@ -475,11 +492,10 @@ class Mapper(DBCParser):
             return self._dbc2vss_mapping[dbc_name]
         return []
 
-    def handle_update(self, vss_name, value: Any) -> Set[str]:
+    def handle_update(self, vss_name: str, value: Any) -> Set[str]:
         """
-        Finds dbc signals using this VSS-signal, transform value accordingly
-        and updated stored value.
-        Returns set of affected CAN signal identifiers.
+        Update the last known CAN signal value of mappings defined for a given VSS Data Entry.
+        Return a set of affected CAN signal identifiers.
         Types of values tested so far: int, bool
         """
         dbc_ids = set()
@@ -494,11 +510,11 @@ class Mapper(DBCParser):
     def get_default_values(self, can_id) -> Dict[str, Any]:
 
         res = {}
-        for signal in self.get_signals_for_canid(can_id):
-            if signal in self._dbc_default:
-                res[signal] = self._dbc_default[signal]
+        for signal in self.get_signals_by_frame_id(can_id):
+            if signal.name in self._dbc_default:
+                res[signal.name] = self._dbc_default[signal]
             else:
-                log.error("No default value for CAN signal %s in message with frame ID %#x", signal, can_id)
+                log.error("No default value for CAN signal %s in message with frame ID %#x", signal.name, can_id)
         return res
 
     def get_value_dict(self, can_id):

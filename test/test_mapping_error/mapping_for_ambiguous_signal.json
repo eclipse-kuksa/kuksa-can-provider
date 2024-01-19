@@ -1,0 +1,17 @@
+{
+  "A": {
+    "children": {
+      "B": {
+        "datatype": "uint8",
+        "description": "...",
+        "type": "sensor",
+        "unit": "km",
+        "vss2dbc": {
+          "signal": "SignalOne"
+        }
+      }
+    },
+    "description": "Branch A.",
+    "type": "branch"
+  }
+}

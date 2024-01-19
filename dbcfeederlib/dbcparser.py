@@ -25,7 +25,7 @@ import os
 import cantools.database  # type: ignore
 
 from types import MappingProxyType
-from typing import cast, Dict, Optional, List, Set, Tuple
+from typing import cast, Dict, List, Set, Tuple
 
 log = logging.getLogger(__name__)
 
@@ -75,8 +75,33 @@ class DBCParser:
                 self._add_db_file(filename)
 
         # Init some dictionaries to speed up search
-        self._signal_to_canid: Dict[str, Optional[int]] = {}
-        self._canid_to_signals: Dict[int, Set[str]] = {}
+        self._signal_to_message_definitions = self._populate_signal_to_message_map()
+
+    def _populate_signal_to_message_map(self) -> Dict[str, Set[cantools.database.Message]]:
+
+        signal_to_message_defs: Dict[str, Set[cantools.database.Message]] = {}
+
+        for msg_definition in self._db.messages:
+            for inner_msg in [msg_definition, *(msg_definition.contained_messages or [])]:
+                for signal in inner_msg.signals:
+                    if signal.name in signal_to_message_defs:
+                        signal_to_message_defs[signal.name].add(msg_definition)
+                    else:
+                        signal_to_message_defs[signal.name] = {msg_definition}
+
+        if log.isEnabledFor(logging.WARNING):
+            for (sig_name, messages) in signal_to_message_defs.items():
+                if len(messages) > 1:
+                    log.warning(
+                        "Signal name %s is being used in multiple CAN messages (%s).",
+                        sig_name, ', '.join([msg_def.name for msg_def in messages])
+                    )
+            log.warning(
+                """Make sure that signals have the same semantics in all CAN messages where they are used
+                to prevent unexpected behaviour when mapping VSS Data Entries to these signals."""
+            )
+
+        return signal_to_message_defs
 
     def _determine_db_format_and_encoding(self, filename) -> Tuple[str, str]:
         db_format = os.path.splitext(filename)[1][1:].lower()
@@ -105,42 +130,31 @@ class DBCParser:
         """Get the frame ID bit mask used for filtering messages received from CAN bus."""
         return self._frame_id_mask
 
-    def get_canid_for_signal(self, sig_to_find: str) -> Optional[int]:
-        """Get the frame ID of the CAN message that contains a given signal"""
-        if sig_to_find in self._signal_to_canid:
-            return self._signal_to_canid[sig_to_find]
-
-        for msg in self._db.messages:
-            for inner_msg in [msg, *(msg.contained_messages or [])]:
-                for signal in inner_msg.signals:
-                    if signal.name == sig_to_find:
-                        frame_id = msg.frame_id
-                        log.debug("Found signal %s in CAN message with frame ID %#x", signal.name, frame_id)
-                        self._signal_to_canid[sig_to_find] = frame_id
-                        return frame_id
+    def get_messages_for_signal(self, sig_to_find: str) -> Set[cantools.database.Message]:
+        """Get all CAN message definitions that use a given CAN signal name."""
+        if sig_to_find in self._signal_to_message_definitions:
+            return self._signal_to_message_definitions[sig_to_find]
 
         log.warning("Signal %s not found in CAN message database", sig_to_find)
-        self._signal_to_canid[sig_to_find] = None
-        return None
+        empty_set: Set[cantools.database.Message] = set()
+        self._signal_to_message_definitions[sig_to_find] = empty_set
+        return empty_set
 
-    def get_signals_for_canid(self, canid: int) -> Set[str]:
-        """Get the names of the signals contained in a CAN message"""
-        if canid in self._canid_to_signals:
-            return self._canid_to_signals[canid]
+    def get_message_by_frame_id(self, frame_id: int) -> cantools.database.Message:
+        """
+        Get the CAN message definition for a given CAN frame ID.
+        Raises KeyError if no message definition for the given frame ID exists.
+        """
+        return self._db.get_message_by_frame_id(frame_id)
 
-        names: Set[str] = set()
-        msg = self.get_message_for_canid(canid)
-        if msg is not None:
-            for inner_msg in [msg, *(msg.contained_messages or [])]:
-                for signal in inner_msg.signals:
-                    names.add(signal.name)
-        self._canid_to_signals[canid] = names
-        return names
-
-    def get_message_for_canid(self, canid: int) -> Optional[cantools.database.Message]:
-        """Look up a CAN message definition by frame ID"""
+    def get_signals_by_frame_id(self, frame_id: int) -> List[cantools.database.Signal]:
+        """Get the signals of the CAN message definition for a given CAN frame ID."""
         try:
-            return self._db.get_message_by_frame_id(canid)
-        except KeyError:
-            log.debug("No DBC mapping registered for CAN frame id %#x", canid)
-            return None
+            msg = self.get_message_by_frame_id(frame_id)
+            signals: List[cantools.database.Signal] = list()
+            for inner_msg in [msg, *(msg.contained_messages or [])]:
+                signals.extend(inner_msg.signals)
+            return signals
+        except Exception:
+            log.warning("CAN id %s not found in CAN message database", frame_id)
+            return []

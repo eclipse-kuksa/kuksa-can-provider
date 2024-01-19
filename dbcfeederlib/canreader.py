@@ -20,6 +20,7 @@ from abc import ABC, abstractmethod
 
 import cantools.database  # type: ignore
 
+from cantools.typechecking import SignalMappingType
 from dbcfeederlib.canplayer import CANplayer
 from dbcfeederlib.dbc2vssmapper import Mapper, VSSObservation
 from typing import Any, Dict, Optional
@@ -89,28 +90,28 @@ class CanReader(ABC):
         self._stop_can_bus_listener()
 
     def _process_can_message(self, frame_id: int, data: Any):
-        message_def = self._mapper.get_message_for_canid(frame_id)
-        if message_def is not None:
-            try:
+        try:
+            message_def = self._mapper.get_message_by_frame_id(frame_id)
+            if message_def is not None:
                 decode = message_def.decode(bytes(data), allow_truncated=True, decode_containers=True)
-            except Exception as e:
-                log.warning(f"Error processing CAN message with frame ID 0x{frame_id: x}: {e}", exc_info=True)
+                if log.isEnabledFor(logging.DEBUG):
+                    log.debug("Decoded message: %s", str(decode))
+                rx_time = time.time()
 
-            if log.isEnabledFor(logging.DEBUG):
-                log.debug("Decoded message: %s", str(decode))
-            rx_time = time.time()
+                if isinstance(decode, dict):
+                    # handle normal frame
+                    self._handle_decoded_frame(message_def, decode, rx_time)
+                else:
+                    # handle container frame
+                    for tmp in decode:
+                        if isinstance(tmp[1], bytes):
+                            continue
+                        self._handle_decoded_frame(tmp[0], tmp[1], rx_time)
 
-            if isinstance(decode, dict):
-                # handle normal frame
-                self._handle_decoded_frame(message_def, decode, rx_time)
-            else:
-                # handle container frame
-                for tmp in decode:
-                    if isinstance(tmp[1], bytes):
-                        continue
-                    self._handle_decoded_frame(tmp[0], tmp[1], rx_time)
+        except Exception:
+            log.warning("Error processing CAN message with frame ID: %#x", frame_id, exc_info=True)
 
-    def _handle_decoded_frame(self, message_def, decoded, rx_time):
+    def _handle_decoded_frame(self, message_def: cantools.database.Message, decoded: SignalMappingType, rx_time: float):
         for signal_name, raw_value in decoded.items():  # type: ignore
             signal: cantools.database.Signal = message_def.get_signal_by_name(signal_name)
             if isinstance(raw_value, (int, float)):

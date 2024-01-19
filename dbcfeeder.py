@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ########################################################################
-# Copyright (c) 2020,2023 Robert Bosch GmbH
+# Copyright (c) 2020,2023 Contributors to the Eclipse Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ Feeder parsing CAN data and sending to KUKSA.val
 """
 
 import argparse
+import asyncio
 import configparser
 import enum
 import errno
@@ -30,12 +31,14 @@ import logging
 import os
 import queue
 import sys
-import time
 import threading
-import asyncio
+import time
 
 from signal import SIGINT, SIGTERM, signal
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
+
+from cantools.database import Message
+from kuksa_client.grpc import EntryUpdate  # type: ignore
 
 from dbcfeederlib.canclient import CANClient
 from dbcfeederlib.canreader import CanReader
@@ -125,8 +128,9 @@ class Feeder:
     Start listening to the queue and transform CAN messages to VSS data and if conditions
     are fulfilled send them to the client wrapper which in turn send it to the bckend supported by the wrapper.
     """
+
     def __init__(self, kuksa_client: clientwrapper.ClientWrapper,
-                 elmcan_config: Dict[str, Any], dbc2val: bool = True, val2dbc: bool = False):
+                 elmcan_config: Dict[str, Any], dbc2vss: bool = True, vss2dbc: bool = False):
         self._running: bool = False
         self._reader: Optional[CanReader] = None
         self._mapper: Optional[dbc2vssmapper.Mapper] = None
@@ -135,8 +139,8 @@ class Feeder:
         self._kuksa_client = kuksa_client
         self._elmcan_config = elmcan_config
         self._disconnect_time = 0.0
-        self._dbc2val_enabled = dbc2val
-        self._val2dbc_enabled = val2dbc
+        self._dbc2vss_enabled = dbc2vss
+        self._vss2dbc_enabled = vss2dbc
         self._canclient: Optional[CANClient] = None
         self._transmit: bool = False
 
@@ -163,8 +167,11 @@ class Feeder:
         self._kuksa_client.start()
         threads = []
 
-        if self._dbc2val_enabled and self._mapper.has_dbc2vss_mapping():
-
+        if not self._dbc2vss_enabled:
+            log.info("Mapping of CAN signals to VSS Data Entries is disabled.")
+        elif not self._mapper.has_dbc2vss_mapping():
+            log.info("No mappings from CAN signals to VSS Data Entries defined.")
+        else:
             log.info("Setting up reception of CAN signals")
             if use_j1939:
                 log.info("Using J1939 reader")
@@ -185,25 +192,28 @@ class Feeder:
             receiver = threading.Thread(target=self._run_receiver)
             receiver.start()
             threads.append(receiver)
+
+        if not self._vss2dbc_enabled:
+            log.info("Mapping of VSS Data Entries to CAN signals is disabled.")
+        elif not self._mapper.has_vss2dbc_mapping():
+            log.info("No mappings from VSS Data Entries to CAN signals defined.")
+        elif not self._kuksa_client.supports_subscription():
+            log.error(
+                "The configured kuksa.val client [%s] does not support subscribing to VSS Data Entry changes!",
+                type(self._kuksa_client)
+            )
+            self.stop()
         else:
-            log.info("No dbc2val mappings found or dbc2val disabled!")
+            log.info("Starting thread for processing VSS Data Entry changes, writing to CAN device %s", canport)
+            # For now creating another bus
+            # Maybe support different buses for downstream/upstream in the future
 
-        if self._val2dbc_enabled and self._mapper.has_vss2dbc_mapping():
-            if not self._kuksa_client.supports_subscription():
-                log.error("Subscribing to VSS signals not supported by chosen client!")
-                self.stop()
-            else:
-                log.info("Starting transmit thread, using %s", canport)
-                # For now creating another bus
-                # Maybe support different buses for downstream/upstream in the future
+            self._canclient = CANClient(interface="socketcan", channel=canport, can_fd=can_fd)
 
-                self._canclient = CANClient(interface="socketcan", channel=canport, can_fd=can_fd)
+            transmitter = threading.Thread(target=self._run_transmitter)
+            transmitter.start()
+            threads.append(transmitter)
 
-                transmitter = threading.Thread(target=self._run_transmitter)
-                transmitter.start()
-                threads.append(transmitter)
-        else:
-            log.info("No val2dbc mappings found or val2dbc disabled!!")
         # Wait for all of them to finish
         for thread in threads:
             thread.join()
@@ -292,7 +302,10 @@ class Feeder:
                         messages_sent += 1
                         if messages_sent >= (2 * last_sent_log_entry):
                             log.info(
-                                "Number of VSS messages sent so far: %d, queue max size: %d",
+                                """
+                                Update datapoint requests sent to kuksa.val so far: %d,
+                                maximum number of queued CAN messages so far: %d
+                                """,
                                 messages_sent, queue_max_size
                             )
                             last_sent_log_entry = messages_sent
@@ -301,35 +314,42 @@ class Feeder:
             except Exception:
                 log.error("Exception caught in main loop", exc_info=True)
 
-    async def _vss_update(self, updates):
-        log.debug("vss-Update callback!")
-        dbc_ids = set()
-        for update in updates:
-            if update.entry.value is not None:
-                # This shall currently never happen as we do not subscribe to this
-                log.warning(
-                    "Current value for %s is now: %s of type %s",
-                    update.entry.path, update.entry.value.value, type(update.entry.value.value)
-                )
+    async def _vss_update(self, updates: List[EntryUpdate]):
+        if self._mapper is None:
+            # this should not happen because we always create a mapper
+            log.warning("Ignoring updated VSS Data Entries, no mapping information available")
+        elif self._canclient is None:
+            # this should not happen because we always create a CAN client
+            log.warning("Ignoring updated VSS Data Entries, no CAN bus client available")
+        else:
+            log.debug("Processing %d VSS Data Entry updates", len(updates))
+            dbc_signal_names: Set[str] = set()
+            for update in updates:
+                if update.entry.value is not None:
+                    # This should never happen as we do not subscribe to current value
+                    log.warning(
+                        "Current value for %s is now: %s of type %s",
+                        update.entry.path, update.entry.value.value, type(update.entry.value.value)
+                    )
 
-            if update.entry.actuator_target is not None:
+                if update.entry.actuator_target is not None:
+                    log.debug(
+                        "Target value for %s is now: %s of type %s",
+                        update.entry.path, update.entry.actuator_target, type(update.entry.actuator_target.value)
+                    )
+                    affected_signals = self._mapper.handle_update(update.entry.path, update.entry.actuator_target.value)
+                    dbc_signal_names.update(affected_signals)
+
+            messages_to_send: Set[Message] = set()
+            for signal_name in dbc_signal_names:
+                messages_to_send.update(self._mapper.get_messages_for_signal(signal_name))
+
+            for message_definition in messages_to_send:
                 log.debug(
-                    "Target value for %s is now: %s of type %s",
-                    update.entry.path, update.entry.actuator_target, type(update.entry.actuator_target.value)
+                    "sending CAN message %s with frame ID %#x",
+                    message_definition.name, message_definition.frame_id
                 )
-                new_dbc_ids = self._mapper.handle_update(update.entry.path, update.entry.actuator_target.value)
-                dbc_ids.update(new_dbc_ids)
-
-        can_ids = set()
-        for dbc_id in dbc_ids:
-            can_id = self._mapper.get_canid_for_signal(dbc_id)
-            can_ids.add(can_id)
-
-        for can_id in can_ids:
-            log.debug("CAN id to be sent, this is %#x", can_id)
-            sig_dict = self._mapper.get_value_dict(can_id)
-            message_definition = self._mapper.get_message_for_canid(can_id)
-            if message_definition is not None:
+                sig_dict = self._mapper.get_value_dict(message_definition.frame_id)
                 data = message_definition.encode(sig_dict)
                 self._canclient.send(arbitration_id=message_definition.frame_id, data=data)
 
@@ -596,7 +616,7 @@ def main(argv):
         elmcan_config = config[CONFIG_SECTION_ELMCAN]
 
     kuksa_val_client = _get_kuksa_val_client(args, config)
-    feeder = Feeder(kuksa_val_client, elmcan_config, dbc2val=use_dbc2val, val2dbc=use_val2dbc)
+    feeder = Feeder(kuksa_val_client, elmcan_config, dbc2vss=use_dbc2val, vss2dbc=use_val2dbc)
 
     def signal_handler(signal_received, *_):
         log.info("Received signal %s, stopping...", signal_received)
@@ -638,7 +658,7 @@ def parse_env_log(env_log, default=logging.INFO):
                 "critical",
             ]:
                 return specified_level.upper()
-            raise Exception(f"could not parse '{specified_level}' as a log level")
+            raise ValueError(f"could not parse '{specified_level}' as a log level")
         return default
 
     parsed_loglevels = {}
@@ -650,7 +670,7 @@ def parse_env_log(env_log, default=logging.INFO):
             if len(spec_parts) == 1:
                 # This is a root level spec
                 if "root" in parsed_loglevels:
-                    raise Exception("multiple root loglevels specified")
+                    raise ValueError("multiple root loglevels specified")
                 parsed_loglevels["root"] = parse_level(spec_parts[0])
             if len(spec_parts) == 2:
                 logger_name = spec_parts[0]
