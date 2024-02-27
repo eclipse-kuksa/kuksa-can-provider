@@ -85,7 +85,7 @@ $ pip install -r requirements-dev.txt
 The CAN provider requires a mapping file as input.
 The mapping file describes mapping between VSS signals and CAN (DBC) signals.
 It shall be a JSON file with VSS syntax with metadata for dbc information.
-Please see [mapping documentation](mapping/mapping.md) for more information.
+Please see [mapping documentation](mapping/README.md) for more information.
 
 ## Configuring and Using the CAN Provider
 

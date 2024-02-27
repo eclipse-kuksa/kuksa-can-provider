@@ -31,6 +31,7 @@ for the DBC feeder, like in the example below.
                         "math": "(x+100)/40"
                       }
                     }
+ }
 ```
 
 Two types of mapping exists.
@@ -147,22 +148,59 @@ If transform is not specified values will be transformed as is.
 
 A Math transformation can be defined by the `math` attribute.
 It accepts [py-expression-eval](https://github.com/AxiaCore/py-expression-eval/) formulas as argument.
-The DBC feeder expects the DBC value to be represented as `x` like in the example below.
+The DBC feeder expects the DBC value to be represented as `x`.
+
+When evaluating what transformation is needed one must study both the DBC signal and the VSS signal. An example is given below for mirror tilt of left mirror.
+
+**DBC**
+
+The signal `VCLEFT_mirrorTiltYPosition` provides mirror tilt.
+
+```
+SG_ VCLEFT_mirrorTiltYPosition : 41|8@1+ (0.02,0) [0|5] "V"  Receiver
+```
+
+An introduction to DBC file syntax can be found [here](https://www.csselectronics.com/pages/can-dbc-file-database-intro).
+The specification above shows that on CAN the tilt is represented as 0-5 Volts.
+The value is sent with a scaling of 0.02 and uses 8 bits, i.e. 5 Volts is transmitted as 250,
+but that information is not needed when configuring the mapping of the kuksa-can-provider,
+as the transformation defined in the DBC is performed automatically when CAN frames are read.
+For the input to the mapping you will need to consider just a value between 0 and 5 V in this example.
+
+**VSS**
+
+The corresponding signal in VSS uses -100 percent to +100 percent as range and int8 as datatype:
+
+```
+Vehicle.Body.Mirrors.DriverSide.Tilt:
+  datatype: int8
+  unit: percent
+  min: -100
+  max: 100
+  type: actuator
+  description: Mirror tilt as a percent. 0 = Center Position. 100 = Fully Upward Position. -100 = Fully Downward Position.
+  ```
+
+With an assumptions that 5 Volts corresponds to fully upward (+100%) and 0 Volts corresponds to
+fully downward (-100%) then one could define mapping like in the example below.
+This results in that kuksa-can-provider will take the value from the CAN signal and inject to Databroker as actual value.
 
 ```yaml
-Vehicle.OBD.EngineLoad:
-  type: sensor
-  datatype: float
-  dbc:
-    signal: RearPower266
-    interval_ms: 4000
+  Vehicle.Body.Mirrors.DriverSide.Tilt:
+  datatype: int8
+  type: actuator
+  dbc2vss:
+    signal: VCLEFT_mirrorTiltYPosition
+    interval_ms: 100
     transform:
-      math: "floor(abs(x/5))"
+      math: "floor((x*40)-100)"
 ```
+
+I.e. 2 Volts corresponds to `(2*40)-100` = -20%.
 
 Transformation may fail. Typical reasons may include that the DBC value is not numerical,
 or that the transformation fails on certain values like division by zero.
-If transformation fails the signal will be ignored.
+If transformation fails the received CAN signal will be ignored.
 
 ### Mapping Transformation
 
@@ -239,7 +277,6 @@ There are some minor changes in what constructs that are possible to specify in 
 * It was previously theoretically possible to have a mapping multiple DBC signals to the same VSS signal.
   That is no longer possible as each VSS signal must appear at most once in the new format.
 
-
 ### Math Migration
 
 Migrating Math-mapping is straightforward as shown in this example:
@@ -277,7 +314,6 @@ Vehicle.Chassis.SteeringWheel.Angle:
 
 Migrating mapping is also relative straightforward.
 The example below also shows how to migrate a mapping where one DBC signal maps to multiple VSS signals.
-
 
 Old format:
 
