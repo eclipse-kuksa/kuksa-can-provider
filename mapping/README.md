@@ -93,7 +93,7 @@ git submodule update --init
 vss-tools/vspec2json.py -e vss2dbc,dbc2vss,dbc -o dbc_overlay.vspec -u spec/units.yaml  --json-pretty ./spec/VehicleSignalSpecification.vspec vss_dbc.json
 ```
 
-An alternative approach is download a tar archive from an [official VSS release](https://github.com/COVESA/vehicle_signal_specification/releases)
+An alternative approach is download the `*.yaml` files from an [official VSS release](https://github.com/COVESA/vehicle_signal_specification/releases)
 and use the included Yaml file as base.
 
 ```
