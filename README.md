@@ -13,7 +13,7 @@ The basic operation is as follows:
 
 The provider connects to a socket CAN interface. In dbc2val-mode it reads raw CAN data, that will be parsed based on a DBC file.
 The mapping file (called `vss_dbc.json` in the picture) describes mappings between VSS signals and DBC signals.
-The respective data point is then sent to KULSA.
+The respective data point is then sent to KUKSA Databroker or Server.
 It is also possible to replay CAN dumpfiles without the SocketCAN interface being available, e.g. in a CI test environment.
 See "Steps for a local dbc2val test with replaying a can dump file"
 
