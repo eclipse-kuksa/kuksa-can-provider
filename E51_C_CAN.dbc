@@ -1,0 +1,509 @@
+VERSION ""
+
+
+NS_ : 
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+	BO_TX_BU_
+	BA_DEF_REL_
+	BA_REL_
+	BA_DEF_DEF_REL_
+	BU_SG_REL_
+	BU_EV_REL_
+	BU_BO_REL_
+	SG_MUL_VAL_
+
+BS_:
+
+BU_: MMI ESC PMS_C BCM ACU FCS PMS_S IC
+VAL_TABLE_ HazardSts 1 "Active" 0 "Inactive" ;
+VAL_TABLE_ OK_NOK 1 "NOK" 0 "OK" ;
+VAL_TABLE_ MotorDCPower 4095 "Invalid" ;
+VAL_TABLE_ BattCurr 65535 "Invalid" ;
+VAL_TABLE_ BattSOC 255 "Signal Invalid" ;
+VAL_TABLE_ BattSOH 255 "Signal Invalid" ;
+VAL_TABLE_ ChgStatus 15 "Reserved" 14 "Reserved" 13 "Reserved" 12 "Reserved" 11 "Reserved" 10 "Reserved" 9 "Reserved" 8 "Reserved" 7 "Other Charge Stop" 6 "Charge Pause" 5 "Cooling" 4 "Heating" 3 "Error Charge Stop" 2 "Charge end" 1 "Charging" 0 "Default" ;
+VAL_TABLE_ AcceleratorPedalPosition 255 "Invalid" ;
+VAL_TABLE_ TachographVehicleSpeed 65535 "Invalid" ;
+VAL_TABLE_ TotalVehicleDistance -1 "Invalid" ;
+VAL_TABLE_ Reset_Progress 3 "Reserved" 2 "Reset ended, failed" 1 "Reset ended successfully" 0 "Reset ongoing " ;
+VAL_TABLE_ SeatVentnSts 3 "Level 3_high" 2 "Level 2_middle" 1 "Level 1_low" 0 "OFF" ;
+VAL_TABLE_ AEBState 15 "Not available" 14 "Error indication" 13 "Reserved" 12 "Reserved" 11 "Reserved" 10 "Reserved" 9 "Reserved" 8 "Reserved" 7 "Reserved" 6 "Reserved" 5 "System is warning" 4 "Driver overrides system" 3 "Ready" 2 "Deactivated by driver" 1 "Temporarily not available" 0 "Not ready" ;
+VAL_TABLE_ LDWSystemState 15 "Not available" 14 "Error indication" 13 "Reserved" 12 "Reserved" 11 "Reserved" 10 "Reserved" 9 "Reserved" 8 "Reserved" 7 "Reserved" 6 "Reserved" 5 "System is warning" 4 "Driver overrides system" 3 "Ready" 2 "Deactivated by driver" 1 "Temporarily not available" 0 "Not ready" ;
+VAL_TABLE_ SteerWhlHeatgOnCmd 3 "Hi" 2 "Mid" 1 "Lo" 0 "Off" ;
+VAL_TABLE_ SeatVentnLvlSet 3 "Level 3_High" 2 "Level 2_Middle" 1 "Level 1_Low" 0 "OFF" ;
+VAL_TABLE_ TPMS_Reset_Set 3 "Invalid" 2 "Reserved" 1 "Request reset" 0 "No request" ;
+VAL_TABLE_ HomeSafetyLightsTimeSet 4 "Reserved" 3 "90s" 2 "60s" 1 "30s" 0 "No Delay" ;
+VAL_TABLE_ AEBS_DriveActiveDemand 3 "Dont' care" 2 "Reserved" 1 "Want warn" 0 "Not want warn" ;
+VAL_TABLE_ LDWEnableCommand 3 "DonÂ´t care" 2 "Reserved" 1 "Enable Lane Departure Warning" 0 "Disable Lane Departure Warning" ;
+VAL_TABLE_ OTA_DownloadRequest 1 "Request" 0 "Not request" ;
+VAL_TABLE_ OTA_DownloadState 3 "Download Software failure" 2 "Download Software success" 1 "Download Software in progress" 0 "Default" ;
+VAL_TABLE_ OTA_UpdateRequest 1 "Request" 0 "Not request" ;
+VAL_TABLE_ OTA_UpdateState 7 "Reserved" 6 "OTA Update roll back success" 5 "OTA Update roll back failure" 4 "OTA Update continue from restart" 3 "OTA Update failure" 2 "OTA Update success" 1 "OTA Update in progress" 0 "Default" ;
+VAL_TABLE_ OTA_Mode 1 "Enter OTA Mode" 0 "Exit OTA Mode" ;
+VAL_TABLE_ OTA_DownloadProgress 255 "Invalid" 101 "Invalid" ;
+VAL_TABLE_ OTA_Status 1 "NOK" 0 "OK" ;
+VAL_TABLE_ OTA_PreConditionDetect 1 "Detecting" 0 "No Detect" ;
+VAL_TABLE_ OTA_DisclaimerWarning 1 "Warning" 0 "No Warning" ;
+VAL_TABLE_ OTA_InfoShowStatus 3 "Reserved" 2 "OTA information show failure" 1 "OTA information show successful" 0 "Default" ;
+VAL_TABLE_ OTA_DownloadSelected 3 "Reserved" 2 "OTA Download Confirmed" 1 "OTA Download Cancelled" 0 "Default" ;
+VAL_TABLE_ OTA_UpdateSelected 3 "Reserved" 2 "OTA Update Confirmed" 1 "OTA Update Cancelled" 0 "Default" ;
+VAL_TABLE_ OTA_UpdateResultConfirm 1 "Confirm" 0 "No Confirm" ;
+VAL_TABLE_ OTA_DeclimerSelected 3 "Reserved" 2 "OTA Declimer Confirmed" 1 "OTA Declimer Cancelled" 0 "Default" ;
+VAL_TABLE_ DrvSeatbeltBucklestatus 1 "Safety belt not tied Switch on" 0 "Safety belt tied Switch off" ;
+VAL_TABLE_ PassSeatbeltBucklestatus 1 "Safety belt warning on" 0 "Safety belt warning off" ;
+VAL_TABLE_ GearPositionInd 252 "Forward gear" 251 "Parking gear(Reserved)" 250 "Climbing gear(Reserved)" 223 "Reverse gear" 125 "Neutral" ;
+VAL_TABLE_ PowerMode 7 "Reserved" 6 "Reserved" 5 "Reserved" 4 "START" 3 "Reserved" 2 "ON" 1 "ACC" 0 "OFF" ;
+VAL_TABLE_ DoorAjarStatus 1 "DoorAjar" 0 "DoorClosed" ;
+VAL_TABLE_ AnyDoorAjar 1 "Active" 0 "Inactive" ;
+VAL_TABLE_ HomeSafetyLightsTimeResp 4 "Set Resp Fail" 3 "90s" 2 "60s" 1 "30s" 0 "No Delay" ;
+VAL_TABLE_ HeatdSteerWhlDiagc 7 "SigFair" 6 "FltSwtHiSide" 5 "FltPwrSplyErr" 4 "SnsrFltT" 3 "EdgeSho" 2 "NotEdgePres" 1 "CmnFair" 0 "OK" ;
+VAL_TABLE_ DiagFairSWSM 3 "Spare(Reserved)" 2 "CoupldFailr(Reserved)" 1 "CmnFair" 0 "NoFair" ;
+VAL_TABLE_ Simple_Button_Status 1 "Pressed" 0 "Not Pressed" ;
+VAL_TABLE_ On_Off_Status 1 "On" 0 "Off" ;
+VAL_TABLE_ Button_Status 3 "Reserved" 2 "Long Pressed" 1 "Short Pressed" 0 "Not Pressed" ;
+VAL_TABLE_ Signal_Invalid 1 "Invalid" 0 "Valid" ;
+VAL_TABLE_ Charging_Status 15 "Reserved" 8 "Reserved" 7 "Other Charge Stop" 6 "Charge Pause" 5 "Cooling" 4 "Heating" 3 "Error Charge Stop" 2 "Charge end" 1 "Charging" 0 "Default" ;
+VAL_TABLE_ Central_unLock_CMD 1 "active" 0 "inactive" ;
+VAL_TABLE_ MirrorDefrostKeyRequest 3 "Reserved" 2 "On" 1 "Off" 0 "No Request" ;
+VAL_TABLE_ MirrorFoldRequest 3 "Reserved" 2 "On" 1 "Off" 0 "No Request" ;
+VAL_TABLE_ PTReadyInd 3 "Invalid" 2 "Error" 1 "Ready" 0 "No Ready" ;
+VAL_TABLE_ HandbrakeSts 3 "Invalid" 2 "Error" 1 "Locked" 0 "Released" ;
+VAL_TABLE_ IgniteSts 3 "Invalid" 2 "Reserved" 1 "IGN ON" 0 "IGN OFF" ;
+VAL_TABLE_ PMS_HV_Status 3 "Invalid" 2 "Error" 1 "Active" 0 "Inactive" ;
+VAL_TABLE_ Valid_Flag 1 "Invalid" 0 "Valid" ;
+
+
+BO_ 3221225472 VECTOR__INDEPENDENT_SIG_MSG: 0 Vector__XXX
+ SG_ BAT_Mode_Test : 0|8@0+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 2564502513 Func_DiagReq: 8 Vector__XXX
+
+BO_ 2564485441 MMI_DiagResp: 8 MMI
+
+BO_ 2564440561 MMI_DiagReq: 8 Vector__XXX
+
+BO_ 2566565927 PMS_PTInfoIndicate: 8 Vector__XXX
+ SG_ PMS_HV_Status : 62|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ PMS_IgniteSts : 50|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ PMS_HandbrakeSts : 40|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ PMS_PTReadyInd : 4|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ PMS_GearPositionInd : 32|8@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 2365239591 PMS_BodyControlInfo: 8 Vector__XXX
+ SG_ PMS_VehicleSpd_flag : 51|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ PMS_VehicleSpd : 8|16@1+ (0.00390625,0) [0|0] "km/h" Vector__XXX
+
+BO_ 2561271841 MMI_FLIC: 8 MMI
+ SG_ MMI_LDWEnableCommand : 0|2@1+ (1,0) [0|3] "" FCS 
+
+BO_ 2349572129 MMI_AEBS2: 8 MMI
+ SG_ DrvDcdc11v_Rd_ErrCnt : 24|16@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ DrvDcdc11v_Rd_Dcdc11v_Mode : 40|8@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ MMI_AEBS2_MessageChecksum : 60|4@1+ (1,0) [0|15] ""  FCS
+ SG_ MMI_AEBS2_MessageCounter : 56|4@1+ (1,0) [0|15] ""  FCS
+ SG_ MMI_AEBS_DriveActiveDemand : 0|2@1+ (1,0) [0|3] ""  FCS
+
+BO_ 2566867777 MMI_Safety_Command: 8 MMI
+ SG_ MMI_OTA_DeclimerSelected : 27|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ MMI_OTA_UpdateResultConfirm : 26|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ MMI_OTA_UpdateSelected : 24|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ MMI_OTA_DownloadSelected : 22|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ MMI_OTA_InfoShowStatus : 20|2@1+ (1,0) [0|3] "" Vector__XXX
+
+BO_ 2566873921 MMI_OTAStatus: 8 MMI
+ SG_ MMI_OTA_DisclaimerWarning : 24|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ MMI_OTA_PreConditionDetect : 23|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ MMI_OTA_FailedReason_HVStatus : 22|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ MMI_OTA_FailedReason_ChgStatus : 21|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ MMI_OTA_FailedReason_HandBrake : 20|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ MMI_OTA_FailedReason_BattVol : 19|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ MMI_OTA_FailedReason_VehicleSpd : 18|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ MMI_OTA_FailedReason_GearPos : 17|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ MMI_OTA_FailedReason_PowerMode : 16|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ MMI_OTA_DownloadProgress : 8|8@1+ (1,0) [0|100] "" Vector__XXX
+ SG_ MMI_OTA_Mode : 7|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ MMI_OTA_UpdateState : 4|3@1+ (1,0) [0|7] "" Vector__XXX
+ SG_ MMI_OTA_UpdateRequest : 3|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ MMI_OTA_DownloadState : 1|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ MMI_OTA_DownloadRequest : 0|1@1+ (1,0) [0|1] "" Vector__XXX
+
+BO_ 2566903873 MMI_SoftSwSet: 8 MMI
+ SG_ MMI_RearDefrostKeyRequest : 62|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ MMI_HomeSafetyLightsTimeSet : 27|3@1+ (1,0) [0|7] ""  BCM
+
+BO_ 2566903617 MMI_ShowApp: 8 MMI
+ SG_ MMI_RearJustRequest : 18|2@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ MMI_TPMS_Reset_Set : 16|2@1+ (1,0) [0|3] ""  ESC,PMS_C,BCM
+ SG_ MMI_PassSeatVentnLvlSet : 14|2@1+ (1,0) [0|3] ""  ESC,PMS_C,BCM
+ SG_ MMI_DrvSeatVentnLvlSet : 12|2@1+ (1,0) [0|3] ""  ESC,PMS_C,BCM
+ SG_ MMI_PassSeatHeatgLvlSet : 10|2@1+ (1,0) [0|3] ""  ESC,PMS_C,BCM
+ SG_ MMI_DrvSeatHeatgLvlSet : 8|2@1+ (1,0) [0|3] ""  ESC,PMS_C,BCM
+ SG_ MMI_SteerWhlHeatgOnCmd : 0|2@1+ (1,0) [0|3] ""  ESC,PMS_C,BCM
+
+BO_ 2565870091 ESC_ABS_BrakeSysSts: 8 ESC
+ SG_ ECS_Reset_Progress : 59|2@1+ (1,0) [0|3] ""  MMI
+
+BO_ 2566850337 SwmCem_Lin4Fr02: 8 BCM
+ SG_ SWM_SteerWhlHeatgPwrOn : 2|1@1+ (1,0) [0|1] ""  MMI
+
+BO_ 2566553377 SWS_LIN: 8 BCM
+ SG_ RotyDirReq5 : 14|2@1+ (1,0) [0|3] ""  MMI
+ SG_ RotyPosReq5 : 12|2@1+ (1,0) [0|3] ""  MMI
+ SG_ DiagcFailrSWSM : 10|2@1+ (1,0) [0|3] ""  MMI
+ SG_ BtnR7Req : 7|1@1+ (1,0) [0|3] ""  MMI
+ SG_ BtnR6Req : 8|2@1+ (1,0) [0|1] ""  MMI
+ SG_ BtnR5Req : 6|1@1+ (1,0) [0|1] ""  MMI
+ SG_ BtnR4Req : 16|2@1+ (1,0) [0|1] ""  MMI
+ SG_ BtnR3Req : 3|2@1+ (1,0) [0|3] ""  MMI
+ SG_ BtnR2Req : 1|2@1+ (1,0) [0|3] ""  MMI
+ SG_ BtnR1Req : 0|1@1+ (1,0) [0|1] ""  MMI
+
+BO_ 2566903073 BCM_MMIFBSts: 8 BCM
+ SG_ BCM_RearDefrostKeyRequest : 28|2@1+ (2,0) [0|3] "" Vector__XXX
+ SG_ BCM_RearfoldRequest : 30|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ BCM_SWM_HeatdSteerWhlDiagc : 25|3@1+ (1,0) [0|7] ""  MMI
+ SG_ BCM_HomeSafetyLightsTimeResp : 10|3@1+ (1,0) [0|7] ""  MMI
+
+BO_ 2566883105 BCM_LightChimeReq: 8 BCM
+ SG_ BCM_AnyDoorAjar : 11|1@1+ (1,0) [0|1] ""  MMI,FCS,IC
+ SG_ BCM_FrontRightDoorAjarStatus : 5|1@1+ (1,0) [0|1] ""  MMI,FCS,IC
+ SG_ BCM_FrontLeftDoorAjarStatus : 4|1@1+ (1,0) [0|1] ""  MMI,FCS,IC
+
+BO_ 2566882849 BCM_StateUpdate: 8 BCM
+ SG_ BCM_Central_unLock_CMD : 10|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ BCM_HazardSts : 15|1@1+ (1,0) [0|1] ""  PMS_S
+ SG_ BCM_AutoLightSts : 5|1@1+ (1,0) [0|1] ""  PMS_S
+ SG_ BCM_PowerMode : 32|3@1+ (1,0) [0|7] ""  PMS_S,MMI,IC
+ SG_ BCM_PositionLight : 21|1@1+ (1,0) [0|1] ""  PMS_S,MMI,IC
+ SG_ BCM_RearFogLightSts : 8|1@1+ (1,0) [0|1] ""  PMS_S,MMI,IC
+ SG_ BCM_HighBeamSts : 6|1@1+ (1,0) [0|1] ""  PMS_S,MMI,IC
+ SG_ BCM_LowBeamSts : 3|1@1+ (1,0) [0|1] ""  PMS_S,MMI,IC
+
+BO_ 2566571152 ACU_Status: 8 ACU
+ SG_ ACU_PassSeatbeltBuckleInvalid : 9|1@1+ (1,0) [0|1] ""  MMI,IC
+ SG_ ACU_DrvSeatbeltBuckleInvalid : 8|1@1+ (1,0) [0|1] ""  MMI,IC
+ SG_ ACU_PassSeatbeltBucklestatus : 1|1@1+ (1,0) [0|1] ""  MMI,IC
+ SG_ ACU_DrvSeatbeltBucklestatus : 0|1@1+ (1,0) [0|1] ""  MMI,IC
+
+BO_ 2566806504 FCS_FLI2: 8 FCS
+ SG_ FCS_LDWSystemState : 8|4@1+ (1,0) [0|15] ""  MMI,IC
+
+BO_ 2364551072 FCS_AEBS1: 8 FCS
+ SG_ FCS_AEBState : 0|4@1+ (1,0) [0|15] ""  MMI,IC,ACU
+
+BO_ 2566890879 HVSM_MMIFBSts: 1 PMS_S
+ SG_ HVSM_PassSeatVentnSts : 6|2@1+ (1,0) [0|3] ""  MMI
+ SG_ HVSM_PassSeatHeatSts : 2|2@1+ (1,0) [0|3] ""  MMI
+ SG_ HVSM_DrvSeatVentnSts : 4|2@1+ (1,0) [0|3] ""  MMI
+ SG_ HVSM_DrvSeatHeatSts : 0|2@1+ (1,0) [0|3] ""  MMI
+
+BO_ 2365567633 SasChas1Fr01: 2 PMS_C
+ SG_ SteerWhlSnsrAg : 0|15@1- (0.0009765625,0) [-14.5|14.5] "rad"  ACU,ESC,MMI,FCS
+
+BO_ 2566832407 IC_VDHR: 8 IC
+ SG_ IC_TotalVehicleDistance : 0|32@1+ (5,0) [0|21055406000] ""  BCM,MMI,FCS
+
+BO_ 2365484055 IC_TCO1: 8 IC
+ SG_ IC_TachographVehicleSpeed : 48|16@1+ (0.00390625,0) [0|250.996] ""  MMI,FCS
+
+
+
+CM_ BO_ 3221225472 "This is a message for not used signals, created by Vector CANdb++ DBC OLE DB Provider.";
+CM_ SG_ 2566565927 PMS_GearPositionInd "?îñ?êÈ (current gear)";
+CM_ SG_ 2566903873 MMI_RearDefrostKeyRequest "Mirror heating demand setting";
+CM_ SG_ 2566903617 MMI_RearJustRequest "Mirror Folding Requirement Setting";
+CM_ SG_ 2566903073 BCM_RearDefrostKeyRequest "Mirror heating demand setting response";
+CM_ SG_ 2566903073 BCM_RearfoldRequest "Mirror folding request setting answer";
+CM_ SG_ 2566882849 BCM_Central_unLock_CMD "Central control unlock command";
+BA_DEF_ SG_  "GenSigCycleTime" INT 0 0;
+BA_DEF_ SG_  "GenSigInactiveValue" INT 0 65535;
+BA_DEF_ SG_  "GenSigSendType" ENUM  "Cyclic","OnWrite","OnWriteWithRepetition","OnChange","OnChangeWithRepetition","IfActive","IfActiveWithRepetition","NoSigSendType";
+BA_DEF_ SG_  "GenSigStartValue" INT 0 0;
+BA_DEF_ SG_  "GenSigEVName" STRING ;
+BA_DEF_ SG_  "GenSigEnvVarType" ENUM  "int","float","undef";
+BA_DEF_ SG_  "SignalCategory" HEX 10 15;
+BA_DEF_ SG_  "UndefinedValueRangeBegin" INT 0 0;
+BA_DEF_ SG_  "GwSigMissingSourceType" ENUM  "Undef","OldValue","DefaultValue","InitialValue";
+BA_DEF_ SG_  "GwSigLatencyTime" INT 0 65535;
+BA_DEF_ SG_  "NmNetworkRequest" ENUM  "No","Yes";
+BA_DEF_ SG_  "NmNetworkRequestHoldingTime" INT 0 65535;
+BA_DEF_ SG_  "CmxSigEventTrigger" ENUM  "No","Yes";
+BA_DEF_ SG_  "CmxSigTxValidMaxTime" INT 0 2000;
+BA_DEF_ SG_  "GW_RoutingDestinationNumber" INT 0 65535;
+BA_DEF_ SG_  "GW_RoutingSourceNumber" INT 0 65535;
+BA_DEF_ SG_  "GW_TimeoutOldValueFlag" ENUM  "No","Yes";
+BA_DEF_ SG_  "GW_TimeoutValue" INT 0 65535;
+BA_DEF_ SG_  "CmxSigDefaultRaw" HEX 0 2147483647;
+BA_DEF_ BO_  "GenMsgCycleTime" INT 0 2000;
+BA_DEF_ BO_  "GenMsgSendType" ENUM  "Cyclic","not_used","not_used","not_used","not_used","not_used","not_used","not_used","NoMsgSendType";
+BA_DEF_ BO_  "GenMsgStartDelayTime" INT 0 140;
+BA_DEF_ BO_  "GenMsgCycleTimeFast" INT 0 500;
+BA_DEF_ BO_  "GenMsgDelayTime" INT 3 20;
+BA_DEF_ BO_  "GenMsgNrOfRepetition" INT 0 3;
+BA_DEF_ BO_  "GenMsgILSupport" ENUM  "No","Yes";
+BA_DEF_ BO_  "NmMessage" ENUM  "No","Yes";
+BA_DEF_ BO_  "TpTxIndex" INT 0 255;
+BA_DEF_ BO_  "GenMsgFastOnStart" INT 0 0;
+BA_DEF_ BO_  "DiagResponse" ENUM  "No","Yes";
+BA_DEF_ BO_  "DiagRequest" ENUM  "No","Yes";
+BA_DEF_ BO_  "DiagState" ENUM  "No","Yes";
+BA_DEF_ BU_  "PCANShutDownTime" INT 0 300;
+BA_DEF_ BU_  "NmStationAddress" HEX 0 255;
+BA_DEF_ BU_  "ILUsed" ENUM  "No","Yes";
+BA_DEF_ BU_  "NmCAN" INT 1 2;
+BA_DEF_ BU_  "NmNode" ENUM  "No","Yes";
+BA_DEF_ BU_  "GenNodSleepTime" INT 1375 1650;
+BA_DEF_ BU_  "NodeLayerModules" STRING ;
+BA_DEF_ BU_  "ECU" STRING ;
+BA_DEF_ BU_  "CANoeJitterMax" INT 0 0;
+BA_DEF_ BU_  "CANoeJitterMin" INT 0 0;
+BA_DEF_ BU_  "CANoeDrift" INT 0 0;
+BA_DEF_ BU_  "CANoeStartDelay" INT 0 0;
+BA_DEF_ BU_  "TpRxIdentifier" HEX 0 0;
+BA_DEF_ BU_  "TpTxIdentifier" HEX 0 0;
+BA_DEF_  "SyncJumpWidthMax" INT 1 8;
+BA_DEF_  "SyncJumpWidthMin" INT 1 4;
+BA_DEF_  "SamplePointMax" INT 50 85;
+BA_DEF_  "SamplePointMin" INT 55 85;
+BA_DEF_  "Baudrate" INT 50000 500000;
+BA_DEF_  "Manufacturer" STRING ;
+BA_DEF_  "NmMessageCount" INT 0 128;
+BA_DEF_  "NmBaseAddress" HEX 0 2047;
+BA_DEF_  "NmType" STRING ;
+BA_DEF_  "GenEnvVarEndingDsp" STRING ;
+BA_DEF_  "GenEnvVarEndingSnd" STRING ;
+BA_DEF_  "GenEnvVarPrefix" STRING ;
+BA_DEF_  "GenNWMApBusSleep" STRING ;
+BA_DEF_  "GenNWMApCanNormal" STRING ;
+BA_DEF_  "GenNWMApCanOff" STRING ;
+BA_DEF_  "GenNWMApCanOn" STRING ;
+BA_DEF_  "GenNWMApCanSleep" STRING ;
+BA_DEF_  "GenNWMApCanWakeUp" STRING ;
+BA_DEF_  "GenNWMGotoMode_Awake" STRING ;
+BA_DEF_  "GenNWMGotoMode_BusSleep" STRING ;
+BA_DEF_  "GenNWMSleepTime" INT 1375 1650;
+BA_DEF_  "GenNWMTalkNM" STRING ;
+BA_DEF_  "VersionDay" INT 1 31;
+BA_DEF_  "VersionMonth" INT 1 12;
+BA_DEF_  "VersionYear" INT 0 9999;
+BA_DEF_  "VersionWeek" INT 1 53;
+BA_DEF_  "VersionNumber" INT 0 9999;
+BA_DEF_  "VersionNumberInternal" INT 0 9999;
+BA_DEF_  "VersionNumberHistory" INT 0 9999;
+BA_DEF_  "BusType" STRING ;
+BA_DEF_REL_ BU_SG_REL_  "GenSigTimeoutTime" INT 30 5000;
+BA_DEF_REL_ BU_SG_REL_  "GenSigTimeoutMsg" INT 0 0;
+BA_DEF_DEF_  "GenSigCycleTime" 0;
+BA_DEF_DEF_  "GenSigInactiveValue" 0;
+BA_DEF_DEF_  "GenSigSendType" "NoSigSendType";
+BA_DEF_DEF_  "GenSigStartValue" 0;
+BA_DEF_DEF_  "GenSigEVName" "";
+BA_DEF_DEF_  "GenSigEnvVarType" "undef";
+BA_DEF_DEF_  "SignalCategory" 10;
+BA_DEF_DEF_  "UndefinedValueRangeBegin" 0;
+BA_DEF_DEF_  "GwSigMissingSourceType" "Undef";
+BA_DEF_DEF_  "GwSigLatencyTime" 40;
+BA_DEF_DEF_  "NmNetworkRequest" "No";
+BA_DEF_DEF_  "NmNetworkRequestHoldingTime" 0;
+BA_DEF_DEF_  "CmxSigEventTrigger" "No";
+BA_DEF_DEF_  "CmxSigTxValidMaxTime" 0;
+BA_DEF_DEF_  "GW_RoutingDestinationNumber" 0;
+BA_DEF_DEF_  "GW_RoutingSourceNumber" 0;
+BA_DEF_DEF_  "GW_TimeoutOldValueFlag" "No";
+BA_DEF_DEF_  "GW_TimeoutValue" 0;
+BA_DEF_DEF_  "CmxSigDefaultRaw" 0;
+BA_DEF_DEF_  "GenMsgCycleTime" 0;
+BA_DEF_DEF_  "GenMsgSendType" "NoMsgSendType";
+BA_DEF_DEF_  "GenMsgStartDelayTime" 0;
+BA_DEF_DEF_  "GenMsgCycleTimeFast" 0;
+BA_DEF_DEF_  "GenMsgDelayTime" 20;
+BA_DEF_DEF_  "GenMsgNrOfRepetition" 0;
+BA_DEF_DEF_  "GenMsgILSupport" "Yes";
+BA_DEF_DEF_  "NmMessage" "No";
+BA_DEF_DEF_  "TpTxIndex" 0;
+BA_DEF_DEF_  "GenMsgFastOnStart" 0;
+BA_DEF_DEF_  "DiagResponse" "No";
+BA_DEF_DEF_  "DiagRequest" "No";
+BA_DEF_DEF_  "DiagState" "No";
+BA_DEF_DEF_  "PCANShutDownTime" 0;
+BA_DEF_DEF_  "NmStationAddress" 0;
+BA_DEF_DEF_  "ILUsed" "Yes";
+BA_DEF_DEF_  "NmCAN" 1;
+BA_DEF_DEF_  "NmNode" "Yes";
+BA_DEF_DEF_  "GenNodSleepTime" 1500;
+BA_DEF_DEF_  "NodeLayerModules" "oseknm01.dll";
+BA_DEF_DEF_  "ECU" "";
+BA_DEF_DEF_  "CANoeJitterMax" 0;
+BA_DEF_DEF_  "CANoeJitterMin" 0;
+BA_DEF_DEF_  "CANoeDrift" 0;
+BA_DEF_DEF_  "CANoeStartDelay" 0;
+BA_DEF_DEF_  "TpRxIdentifier" 0;
+BA_DEF_DEF_  "TpTxIdentifier" 0;
+BA_DEF_DEF_  "SyncJumpWidthMax" 3;
+BA_DEF_DEF_  "SyncJumpWidthMin" 2;
+BA_DEF_DEF_  "SamplePointMax" 82;
+BA_DEF_DEF_  "SamplePointMin" 75;
+BA_DEF_DEF_  "Baudrate" 100000;
+BA_DEF_DEF_  "Manufacturer" "SYMC";
+BA_DEF_DEF_  "NmMessageCount" 128;
+BA_DEF_DEF_  "NmBaseAddress" 1024;
+BA_DEF_DEF_  "NmType" "Vector";
+BA_DEF_DEF_  "GenEnvVarEndingDsp" "Dsp_";
+BA_DEF_DEF_  "GenEnvVarEndingSnd" "_";
+BA_DEF_DEF_  "GenEnvVarPrefix" "Env";
+BA_DEF_DEF_  "GenNWMApBusSleep" "ApplNmCanBusSleep()";
+BA_DEF_DEF_  "GenNWMApCanNormal" "ApplNmCanNormal()";
+BA_DEF_DEF_  "GenNWMApCanOff" "ApplCanOffline()";
+BA_DEF_DEF_  "GenNWMApCanOn" "ApplCanOnline()";
+BA_DEF_DEF_  "GenNWMApCanSleep" "ApplNmCanSleep()";
+BA_DEF_DEF_  "GenNWMApCanWakeUp" "ApplCanWakeUp()";
+BA_DEF_DEF_  "GenNWMGotoMode_Awake" "GotoMode_Awake()";
+BA_DEF_DEF_  "GenNWMGotoMode_BusSleep" "GotoMode_BusSleep()";
+BA_DEF_DEF_  "GenNWMSleepTime" 1500;
+BA_DEF_DEF_  "GenNWMTalkNM" "TalkNM()";
+BA_DEF_DEF_  "VersionDay" 1;
+BA_DEF_DEF_  "VersionMonth" 1;
+BA_DEF_DEF_  "VersionYear" 2006;
+BA_DEF_DEF_  "VersionWeek" 1;
+BA_DEF_DEF_  "VersionNumber" 0;
+BA_DEF_DEF_  "VersionNumberInternal" 0;
+BA_DEF_DEF_  "VersionNumberHistory" 0;
+BA_DEF_DEF_  "BusType" "CAN";
+BA_DEF_DEF_REL_ "GenSigTimeoutTime" 1400;
+BA_DEF_DEF_REL_ "GenSigTimeoutMsg" 0;
+BA_ "GenMsgCycleTime" BO_ 2566565927 100;
+BA_ "GenMsgSendType" BO_ 2566565927 0;
+BA_ "GenMsgCycleTime" BO_ 2365239591 10;
+BA_ "GenMsgSendType" BO_ 2365239591 0;
+BA_ "GenMsgSendType" BO_ 2561271841 0;
+BA_ "GenMsgCycleTime" BO_ 2561271841 50;
+BA_ "GenMsgSendType" BO_ 2349572129 0;
+BA_ "GenMsgCycleTime" BO_ 2349572129 50;
+BA_ "GenMsgSendType" BO_ 2566867777 0;
+BA_ "GenMsgCycleTime" BO_ 2566867777 100;
+BA_ "GenMsgSendType" BO_ 2566873921 0;
+BA_ "GenMsgCycleTime" BO_ 2566873921 500;
+BA_ "GenMsgSendType" BO_ 2566903873 0;
+BA_ "GenMsgCycleTime" BO_ 2566903873 100;
+BA_ "GenMsgSendType" BO_ 2566903617 0;
+BA_ "GenMsgCycleTime" BO_ 2566903617 100;
+BA_ "GenMsgSendType" BO_ 2566850337 0;
+BA_ "GenMsgCycleTime" BO_ 2566850337 100;
+BA_ "GenMsgCycleTime" BO_ 2566553377 50;
+BA_ "GenMsgSendType" BO_ 2566883105 0;
+BA_ "GenMsgCycleTime" BO_ 2566883105 50;
+BA_ "GenMsgSendType" BO_ 2566882849 0;
+BA_ "GenMsgCycleTime" BO_ 2566882849 100;
+BA_ "GenMsgSendType" BO_ 2566571152 0;
+BA_ "GenMsgCycleTime" BO_ 2566571152 200;
+BA_ "GenMsgSendType" BO_ 2566806504 0;
+BA_ "GenMsgCycleTime" BO_ 2566806504 100;
+BA_ "GenMsgSendType" BO_ 2364551072 0;
+BA_ "GenMsgCycleTime" BO_ 2364551072 50;
+BA_ "GenMsgSendType" BO_ 2566890879 0;
+BA_ "GenMsgCycleTime" BO_ 2566890879 100;
+BA_ "GenMsgCycleTime" BO_ 2365567633 10;
+BA_ "GenMsgSendType" BO_ 2365567633 0;
+BA_ "GenMsgCycleTime" BO_ 2566832407 1000;
+BA_ "GenMsgSendType" BO_ 2566832407 0;
+BA_ "GenMsgCycleTime" BO_ 2365484055 50;
+BA_ "GenMsgSendType" BO_ 2365484055 0;
+BA_ "GenSigStartValue" SG_ 2556821504 LOG_McuAdc_Read_G1_CH13 0;
+BA_ "GenSigStartValue" SG_ 2349572129 DrvDcdc11v_Rd_ErrCnt 0;
+BA_ "GenSigStartValue" SG_ 2349572129 DrvDcdc11v_Rd_Dcdc11v_Mode 0;
+VAL_ 2566565927 PMS_HV_Status 3 "Invalid" 2 "Error" 1 "Active" 0 "Inactive" ;
+VAL_ 2566565927 PMS_IgniteSts 3 "Invalid" 2 "Reserved" 1 "IGN ON" 0 "IGN OFF" ;
+VAL_ 2566565927 PMS_HandbrakeSts 3 "Invalid" 2 "Error" 1 "Locked" 0 "Released" ;
+VAL_ 2566565927 PMS_PTReadyInd 3 "Invalid" 2 "Error" 1 "Ready" 0 "No Ready" ;
+VAL_ 2566565927 PMS_GearPositionInd 252 "Forward Gear" 251 "Reserved" 250 "Reserved" 223 "Reverse Gear" 125 "Neutral" ;
+VAL_ 2365239591 PMS_VehicleSpd_flag 1 "Invalid" 0 "Valid" ;
+VAL_ 2561271841 MMI_LDWEnableCommand 3 "DonÂ´t care" 2 "Reserved" 1 "Enable Lane Departure Warning" 0 "Disable Lane Departure Warning" ;
+VAL_ 2349572129 MMI_AEBS_DriveActiveDemand 3 "Dont' care" 2 "Reserved" 1 "Want warn" 0 "Not want warn" ;
+VAL_ 2566867777 MMI_OTA_DeclimerSelected 3 "Reserved" 2 "OTA Declimer Confirmed" 1 "OTA Declimer Cancelled" 0 "Default" ;
+VAL_ 2566867777 MMI_OTA_UpdateResultConfirm 1 "Confirm" 0 "No Confirm" ;
+VAL_ 2566867777 MMI_OTA_UpdateSelected 3 "Reserved" 2 "OTA Update Confirmed" 1 "OTA Update Cancelled" 0 "Default" ;
+VAL_ 2566867777 MMI_OTA_DownloadSelected 3 "Reserved" 2 "OTA Download Confirmed" 1 "OTA Download Cancelled" 0 "Default" ;
+VAL_ 2566867777 MMI_OTA_InfoShowStatus 3 "Reserved" 2 "OTA information show failure" 1 "OTA information show successful" 0 "Default" ;
+VAL_ 2566873921 MMI_OTA_DisclaimerWarning 1 "Warning" 0 "No Warning" ;
+VAL_ 2566873921 MMI_OTA_PreConditionDetect 1 "Detecting" 0 "No Detect" ;
+VAL_ 2566873921 MMI_OTA_FailedReason_HVStatus 1 "NOK" 0 "OK" ;
+VAL_ 2566873921 MMI_OTA_FailedReason_ChgStatus 1 "NOK" 0 "OK" ;
+VAL_ 2566873921 MMI_OTA_FailedReason_HandBrake 1 "NOK" 0 "OK" ;
+VAL_ 2566873921 MMI_OTA_FailedReason_BattVol 1 "NOK" 0 "OK" ;
+VAL_ 2566873921 MMI_OTA_FailedReason_VehicleSpd 1 "NOK" 0 "OK" ;
+VAL_ 2566873921 MMI_OTA_FailedReason_GearPos 1 "NOK" 0 "OK" ;
+VAL_ 2566873921 MMI_OTA_FailedReason_PowerMode 1 "NOK" 0 "OK" ;
+VAL_ 2566873921 MMI_OTA_DownloadProgress 255 "Invalid" 101 "Invalid" ;
+VAL_ 2566873921 MMI_OTA_Mode 1 "Enter OTA Mode" 0 "Exit OTA Mode" ;
+VAL_ 2566873921 MMI_OTA_UpdateState 7 "Reserved" 6 "OTA Update roll back success" 5 "OTA Update roll back failure" 4 "OTA Update continue from restart" 3 "OTA Update failure" 2 "OTA Update success" 1 "OTA Update in progress" 0 "Default" ;
+VAL_ 2566873921 MMI_OTA_UpdateRequest 1 "Request" 0 "Not request" ;
+VAL_ 2566873921 MMI_OTA_DownloadState 3 "Download Software failure" 2 "Download Software success" 1 "Download Software in progress" 0 "Default" ;
+VAL_ 2566873921 MMI_OTA_DownloadRequest 1 "Request" 0 "Not request" ;
+VAL_ 2566903873 MMI_RearDefrostKeyRequest 3 "Reserved" 2 "On" 1 "Off" 0 "No Request" ;
+VAL_ 2566903873 MMI_HomeSafetyLightsTimeSet 4 "Reserved" 3 "90s" 2 "60s" 1 "30s" 0 "No Delay" ;
+VAL_ 2566903617 MMI_RearJustRequest 3 "Reserved" 2 "On" 1 "Off" 0 "No Request" ;
+VAL_ 2566903617 MMI_TPMS_Reset_Set 3 "Invalid" 2 "Reserved" 1 "Request reset" 0 "No request" ;
+VAL_ 2566903617 MMI_PassSeatVentnLvlSet 3 "Level 3_High" 2 "Level 2_Middle" 1 "Level 1_Low" 0 "OFF" ;
+VAL_ 2566903617 MMI_DrvSeatVentnLvlSet 3 "Level 3_High" 2 "Level 2_Middle" 1 "Level 1_Low" 0 "OFF" ;
+VAL_ 2566903617 MMI_PassSeatHeatgLvlSet 3 "Level 3_High" 2 "Level 2_Middle" 1 "Level 1_Low" 0 "OFF" ;
+VAL_ 2566903617 MMI_DrvSeatHeatgLvlSet 3 "Level 3_High" 2 "Level 2_Middle" 1 "Level 1_Low" 0 "OFF" ;
+VAL_ 2566903617 MMI_SteerWhlHeatgOnCmd 3 "Hi" 2 "Mid" 1 "Lo" 0 "Off" ;
+VAL_ 2565870091 ECS_Reset_Progress 3 "Reserved" 2 "Reset ended, failed" 1 "Reset ended successfully" 0 "Reset ongoing " ;
+VAL_ 2566850337 SWM_SteerWhlHeatgPwrOn 1 "On" 0 "Off" ;
+VAL_ 2566553377 RotyDirReq5 3 "Reserved" 2 "Long Pressed" 1 "Short Pressed" 0 "Not Pressed" ;
+VAL_ 2566553377 RotyPosReq5 3 "Reserved" 2 "Long Pressed" 1 "Short Pressed" 0 "Not Pressed" ;
+VAL_ 2566553377 DiagcFailrSWSM 3 "Spare(Reserved)" 2 "CoupldFailr(Reserved)" 1 "CmnFair" 0 "NoFair" ;
+VAL_ 2566553377 BtnR7Req 1 "Pressed" 0 "Not Pressed" ;
+VAL_ 2566553377 BtnR6Req 3 "Reserved" 2 "Long Pressed" 1 "Short Pressed" 0 "Not Pressed" ;
+VAL_ 2566553377 BtnR5Req 1 "Pressed" 0 "Not Pressed" ;
+VAL_ 2566553377 BtnR4Req 1 "Pressed" 0 "Not Pressed" ;
+VAL_ 2566553377 BtnR3Req 3 "Reserved" 2 "Long Pressed" 1 "Short Pressed" 0 "Not Pressed" ;
+VAL_ 2566553377 BtnR2Req 3 "Reserved" 2 "Long Pressed" 1 "Short Pressed" 0 "Not Pressed" ;
+VAL_ 2566553377 BtnR1Req 1 "Pressed" 0 "Not Pressed" ;
+VAL_ 2566903073 BCM_RearDefrostKeyRequest 3 "Reserved" 2 "On" 1 "Off" 0 "No Request" ;
+VAL_ 2566903073 BCM_RearfoldRequest 3 "Reserved" 2 "On" 1 "Off" 0 "No Request" ;
+VAL_ 2566903073 BCM_SWM_HeatdSteerWhlDiagc 7 "SigFair" 6 "FltSwtHiSide" 5 "FltPwrSplyErr" 4 "SnsrFltT" 3 "EdgeSho" 2 "NotEdgePres" 1 "CmnFair" 0 "OK" ;
+VAL_ 2566903073 BCM_HomeSafetyLightsTimeResp 4 "Set Resp Fail" 3 "90s" 2 "60s" 1 "30s" 0 "No Delay" ;
+VAL_ 2566883105 BCM_AnyDoorAjar 1 "Active" 0 "Inactive" ;
+VAL_ 2566883105 BCM_FrontRightDoorAjarStatus 1 "DoorAjar" 0 "DoorClosed" ;
+VAL_ 2566883105 BCM_FrontLeftDoorAjarStatus 1 "DoorAjar" 0 "DoorClosed" ;
+VAL_ 2566882849 BCM_Central_unLock_CMD 1 "active" 0 "inactive" ;
+VAL_ 2566882849 BCM_HazardSts 1 "Active" 0 "Inactive" ;
+VAL_ 2566882849 BCM_AutoLightSts 1 "On" 0 "Off" ;
+VAL_ 2566882849 BCM_PowerMode 7 "Reserved" 6 "Reserved" 5 "Reserved" 4 "START" 3 "Reserved" 2 "ON" 1 "ACC" 0 "OFF" ;
+VAL_ 2566882849 BCM_PositionLight 1 "On" 0 "Off" ;
+VAL_ 2566882849 BCM_RearFogLightSts 1 "On" 0 "Off" ;
+VAL_ 2566882849 BCM_HighBeamSts 1 "On" 0 "Off" ;
+VAL_ 2566882849 BCM_LowBeamSts 1 "On" 0 "Off" ;
+VAL_ 2566571152 ACU_PassSeatbeltBuckleInvalid 1 "Invalid" 0 "Valid" ;
+VAL_ 2566571152 ACU_DrvSeatbeltBuckleInvalid 1 "Invalid" 0 "Valid" ;
+VAL_ 2566571152 ACU_PassSeatbeltBucklestatus 1 "Safety belt warning on" 0 "Safety belt warning off" ;
+VAL_ 2566571152 ACU_DrvSeatbeltBucklestatus 1 "Safety belt not tied Switch on" 0 "Safety belt tied Switch off" ;
+VAL_ 2566806504 FCS_LDWSystemState 15 "Not available" 14 "Error indication" 13 "Reserved" 12 "Reserved" 11 "Reserved" 10 "Reserved" 9 "Reserved" 8 "Reserved" 7 "Reserved" 6 "Reserved" 5 "System is warning" 4 "Driver overrides system" 3 "Ready" 2 "Deactivated by driver" 1 "Temporarily not available" 0 "Not ready" ;
+VAL_ 2364551072 FCS_AEBState 15 "Not available" 14 "Error indication" 13 "Reserved" 12 "Reserved" 11 "Reserved" 10 "Reserved" 9 "Reserved" 8 "Reserved" 7 "Reserved" 6 "Reserved" 5 "System is warning" 4 "Driver overrides system" 3 "Ready" 2 "Deactivated by driver" 1 "Temporarily not available" 0 "Not ready" ;
+VAL_ 2566890879 HVSM_PassSeatVentnSts 3 "Level 3_high" 2 "Level 2_middle" 1 "Level 1_low" 0 "OFF" ;
+VAL_ 2566890879 HVSM_PassSeatHeatSts 3 "Level 3_high" 2 "Level 2_middle" 1 "Level 1_low" 0 "OFF" ;
+VAL_ 2566890879 HVSM_DrvSeatVentnSts 3 "Level 3_high" 2 "Level 2_middle" 1 "Level 1_low" 0 "OFF" ;
+VAL_ 2566890879 HVSM_DrvSeatHeatSts 3 "Level 3_high" 2 "Level 2_middle" 1 "Level 1_low" 0 "OFF" ;
+VAL_ 2566832407 IC_TotalVehicleDistance -1 "Invalid" ;
+VAL_ 2365484055 IC_TachographVehicleSpeed 65535 "Invalid" ;
+

@@ -1,0 +1,147 @@
+# This is a VSS example overlay that is to be used when generating vss_dbc.json in this repository
+# The content shall just be seen as examples that can be used for prototyping.
+# It does not in any way represent an official mapping.
+#
+# How to regenerate vss_dbc.json:
+#
+# 1. Decide which VSS version to use
+#
+# Two good places to check:
+# * See what versions KUKSA.val supports: https://github.com/eclipse/kuksa.val/tree/master/data/vss-core
+# * See what VSS releases that exists: https://github.com/COVESA/vehicle_signal_specification/releases
+#
+# (You can also also clone the VSS-repo and use whatever version you like)
+#
+# 2. Download Yaml file for selected verison.
+#
+# As of today part of a *.tar.gz file in https://github.com/COVESA/vehicle_signal_specification/releases
+#
+# 3. Regenerate the json file
+#
+# vss-tools/vspec2json.py -e dbc -o dbc_overlay.vspec --json-pretty --no-uuid vss_rel_3.1.1.yaml vss_dbc.json
+#
+# (For this you must typically have cloned https://github.com/COVESA/vss-tools)
+
+#
+#
+# Type and datatype required, others will be inherited
+
+
+Vehicle.Speed:
+  type: sensor
+  datatype: float
+  dbc2vss:
+    signal: IC_TachographVehicleSpeed
+    interval_ms: 100
+
+Vehicle.OBD.Speed:
+  type: sensor
+  datatype: float
+  dbc2vss:
+    signal: IC_TachographVehicleSpeed
+    interval_ms: 100
+
+Vehicle.TraveledDistance:
+  type: sensor
+  datatype: float
+  dbc2vss:
+    signal: IC_TotalVehicleDistance
+    interval_ms: 1000
+
+Vehicle.Body.Lights.Beam.Low.IsOn:
+  type: actuator 
+  datatype: boolean 
+  dbc2vss:
+    signal: BCM_LowBeamSts
+    interval_ms: 100 
+    transform:
+       mapping:
+        - from: "Off" 
+          to: false
+        - from: "On"
+          to: true
+
+Vehicle.Body.Lights.Beam.High.IsOn:
+  type: actuator 
+  datatype: boolean 
+  dbc2vss:
+    signal: BCM_HighBeamSts
+    interval_ms: 100 
+    transform:
+       mapping:
+        - from: "Off" 
+          to: false
+        - from: "On"
+          to: true
+
+Vehicle.Body.Lights.Fog.Rear.IsOn:
+  type: actuator 
+  datatype: boolean 
+  dbc2vss:
+    signal: BCM_RearFogLightSts
+    interval_ms: 100 
+    transform:
+       mapping:
+        - from: "Off" 
+          to: false
+        - from: "On"
+          to: true
+
+Vehicle.Body.Lights.Hazard.IsSignaling:
+  type: actuator 
+  datatype: boolean 
+  dbc2vss:
+    signal: BCM_HazardSts
+    interval_ms: 100 
+    transform:
+       mapping:
+        - from: "Inactive" 
+          to: false
+        - from: "Active"
+          to: true
+
+Vehicle.Body.Lights.Running.IsOn:
+  type: actuator 
+  datatype: boolean 
+  dbc2vss:
+    signal: BCM_PositionLight
+    interval_ms: 100 
+    transform:
+       mapping:
+        - from: "Off" 
+          to: false
+        - from: "On"
+          to: true
+
+Vehicle.LowVoltageSystemState:
+  type: sensor 
+  datatype: string 
+  dbc2vss:
+    signal: BCM_PowerMode
+    interval_ms: 100 
+    transform:
+       mapping:
+        - from: "Reserved"
+          to: "UNDEFINED"
+        - from: "START"
+          to: "START"
+        - from: "ON" 
+          to: "ON"
+        - from: "ACC"
+          to: "ACC"
+        - from: "OFF" 
+          to: "OFF" 
+
+Vehicle.ADAS.LaneDepartureDetection.IsEnabled:
+  type: actuator
+  datatype: boolean
+  vss2dbc:
+    signal: MMI_LDWEnableCommand
+    interval_ms: 100
+    transform:
+      mapping:
+        - from: false
+          to: "Disable Lane Departure Warning"
+        - from: true
+          to: "Enable Lane Departure Warning"
+

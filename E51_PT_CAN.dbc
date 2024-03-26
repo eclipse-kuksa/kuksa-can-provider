@@ -1,0 +1,250 @@
+VERSION ""
+
+
+NS_ : 
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+	BO_TX_BU_
+	BA_DEF_REL_
+	BA_REL_
+	BA_DEF_DEF_REL_
+	BU_SG_REL_
+	BU_EV_REL_
+	BU_BO_REL_
+	SG_MUL_VAL_
+
+BS_:
+
+BU_:
+VAL_TABLE_ BMS_ChgStatus 7 "Other Charge Stop" 6 "Charge Pause" 5 "Cooling" 4 "Heating" 3 "Error Charge Stop" 2 "Charge end" 1 "Charging " 0 "Default" ;
+VAL_TABLE_ MCU_MotorDCPower 4095 "Invalid" ;
+VAL_TABLE_ BMS_BattCurr 65535 "Invalid" ;
+VAL_TABLE_ BMS_BattSOC 255 "Signal Invalid" ;
+VAL_TABLE_ BMS_BattSOH 255 "Signal Invalid" ;
+VAL_TABLE_ PMS_AcceleratorPedalPosition 255 "Signal Invalid" ;
+VAL_TABLE_ DCChgPlugSts 3 "Invalid" 2 "Reserved" 1 "Connected" 0 "Disconnected" ;
+
+
+BO_ 2566566695 PMS_VRI: 8 Vector__XXX
+ SG_ PMS_VehCruisingDistance : 0|32@1+ (0.125,0) [0|526385151.9] "km" Vector__XXX
+
+BO_ 2365239591 PMS_BodyControlInfo: 8 Vector__XXX
+ SG_ PMS_AcceleratorPedalPosition : 32|8@1+ (0.4,0) [0|100] "%" Vector__XXX
+
+BO_ 2566536948 BMS_ChgInfo: 8 Vector__XXX
+ SG_ BMS_DCChgPlugSts : 8|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ BMS_ChgStatus : 4|4@1+ (1,0) [0|15] "bit" Vector__XXX
+
+BO_ 2566537460 BMS_BatteryInfo: 8 Vector__XXX
+ SG_ BMS_BattSOH : 40|8@1+ (0.4,0) [0|100] "%" Vector__XXX
+ SG_ BMS_BattSOC : 32|8@1+ (0.4,0) [0|100] "%" Vector__XXX
+ SG_ BMS_BattCurr : 16|16@1+ (0.05,-1600) [-1600|1612.75] "A" Vector__XXX
+
+BO_ 2365194735 MCU_MotorElePara: 8 Vector__XXX
+ SG_ MCU_MotorDCPower : 32|16@1+ (0.1,-1000) [-1000|1000] "kW" Vector__XXX
+
+
+
+CM_ SG_ 2566566695 PMS_VehCruisingDistance "Total vehicle Mileage";
+CM_ BO_ 2365239591 "accelerator pedal opening";
+CM_ SG_ 2365239591 PMS_AcceleratorPedalPosition "accelerator pedal opening";
+CM_ SG_ 2566536948 BMS_ChgStatus "충전 상태";
+CM_ SG_ 2566537460 BMS_BattSOH "배터리 팩 SOH";
+CM_ SG_ 2566537460 BMS_BattSOC "배터리 팩 SOC";
+CM_ SG_ 2566537460 BMS_BattCurr "동력 배터리 팩 전류";
+CM_ SG_ 2365194735 MCU_MotorDCPower "모터 직류 출력";
+BA_DEF_ SG_  "GenSigCycleTime" INT 0 0;
+BA_DEF_ SG_  "GenSigInactiveValue" INT 0 65535;
+BA_DEF_ SG_  "GenSigSendType" ENUM  "Cyclic","OnWrite","OnWriteWithRepetition","OnChange","OnChangeWithRepetition","IfActive","IfActiveWithRepetition","NoSigSendType";
+BA_DEF_ SG_  "GenSigStartValue" INT 0 0;
+BA_DEF_ SG_  "GenSigEVName" STRING ;
+BA_DEF_ SG_  "GenSigEnvVarType" ENUM  "int","float","undef";
+BA_DEF_ SG_  "SignalCategory" HEX 10 15;
+BA_DEF_ SG_  "UndefinedValueRangeBegin" INT 0 0;
+BA_DEF_ SG_  "GwSigMissingSourceType" ENUM  "Undef","OldValue","DefaultValue","InitialValue";
+BA_DEF_ SG_  "GwSigLatencyTime" INT 0 65535;
+BA_DEF_ SG_  "NmNetworkRequest" ENUM  "No","Yes";
+BA_DEF_ SG_  "NmNetworkRequestHoldingTime" INT 0 65535;
+BA_DEF_ SG_  "CmxSigEventTrigger" ENUM  "No","Yes";
+BA_DEF_ SG_  "CmxSigTxValidMaxTime" INT 0 2000;
+BA_DEF_ SG_  "GW_RoutingDestinationNumber" INT 0 65535;
+BA_DEF_ SG_  "GW_RoutingSourceNumber" INT 0 65535;
+BA_DEF_ SG_  "GW_TimeoutOldValueFlag" ENUM  "No","Yes";
+BA_DEF_ SG_  "GW_TimeoutValue" INT 0 65535;
+BA_DEF_ SG_  "CmxSigDefaultRaw" HEX 0 2147483647;
+BA_DEF_ BO_  "GenMsgCycleTime" INT 0 2000;
+BA_DEF_ BO_  "GenMsgSendType" ENUM  "Cyclic","not_used","not_used","not_used","not_used","not_used","not_used","not_used","NoMsgSendType";
+BA_DEF_ BO_  "GenMsgStartDelayTime" INT 0 140;
+BA_DEF_ BO_  "GenMsgCycleTimeFast" INT 0 500;
+BA_DEF_ BO_  "GenMsgDelayTime" INT 3 20;
+BA_DEF_ BO_  "GenMsgNrOfRepetition" INT 0 3;
+BA_DEF_ BO_  "GenMsgILSupport" ENUM  "No","Yes";
+BA_DEF_ BO_  "NmMessage" ENUM  "No","Yes";
+BA_DEF_ BO_  "TpTxIndex" INT 0 255;
+BA_DEF_ BO_  "GenMsgFastOnStart" INT 0 0;
+BA_DEF_ BO_  "DiagResponse" ENUM  "No","Yes";
+BA_DEF_ BO_  "DiagRequest" ENUM  "No","Yes";
+BA_DEF_ BO_  "DiagState" ENUM  "No","Yes";
+BA_DEF_ BU_  "PCANShutDownTime" INT 0 300;
+BA_DEF_ BU_  "NmStationAddress" HEX 0 255;
+BA_DEF_ BU_  "ILUsed" ENUM  "No","Yes";
+BA_DEF_ BU_  "NmCAN" INT 1 2;
+BA_DEF_ BU_  "NmNode" ENUM  "No","Yes";
+BA_DEF_ BU_  "GenNodSleepTime" INT 1375 1650;
+BA_DEF_ BU_  "NodeLayerModules" STRING ;
+BA_DEF_ BU_  "ECU" STRING ;
+BA_DEF_ BU_  "CANoeJitterMax" INT 0 0;
+BA_DEF_ BU_  "CANoeJitterMin" INT 0 0;
+BA_DEF_ BU_  "CANoeDrift" INT 0 0;
+BA_DEF_ BU_  "CANoeStartDelay" INT 0 0;
+BA_DEF_ BU_  "TpRxIdentifier" HEX 0 0;
+BA_DEF_ BU_  "TpTxIdentifier" HEX 0 0;
+BA_DEF_  "SyncJumpWidthMax" INT 1 8;
+BA_DEF_  "SyncJumpWidthMin" INT 1 4;
+BA_DEF_  "SamplePointMax" INT 50 85;
+BA_DEF_  "SamplePointMin" INT 55 85;
+BA_DEF_  "Baudrate" INT 50000 500000;
+BA_DEF_  "Manufacturer" STRING ;
+BA_DEF_  "NmMessageCount" INT 0 128;
+BA_DEF_  "NmBaseAddress" HEX 0 2047;
+BA_DEF_  "NmType" STRING ;
+BA_DEF_  "GenEnvVarEndingDsp" STRING ;
+BA_DEF_  "GenEnvVarEndingSnd" STRING ;
+BA_DEF_  "GenEnvVarPrefix" STRING ;
+BA_DEF_  "GenNWMApBusSleep" STRING ;
+BA_DEF_  "GenNWMApCanNormal" STRING ;
+BA_DEF_  "GenNWMApCanOff" STRING ;
+BA_DEF_  "GenNWMApCanOn" STRING ;
+BA_DEF_  "GenNWMApCanSleep" STRING ;
+BA_DEF_  "GenNWMApCanWakeUp" STRING ;
+BA_DEF_  "GenNWMGotoMode_Awake" STRING ;
+BA_DEF_  "GenNWMGotoMode_BusSleep" STRING ;
+BA_DEF_  "GenNWMSleepTime" INT 1375 1650;
+BA_DEF_  "GenNWMTalkNM" STRING ;
+BA_DEF_  "VersionDay" INT 1 31;
+BA_DEF_  "VersionMonth" INT 1 12;
+BA_DEF_  "VersionYear" INT 0 9999;
+BA_DEF_  "VersionWeek" INT 1 53;
+BA_DEF_  "VersionNumber" INT 0 9999;
+BA_DEF_  "VersionNumberInternal" INT 0 9999;
+BA_DEF_  "VersionNumberHistory" INT 0 9999;
+BA_DEF_  "BusType" STRING ;
+BA_DEF_REL_ BU_SG_REL_  "GenSigTimeoutTime" INT 30 5000;
+BA_DEF_REL_ BU_SG_REL_  "GenSigTimeoutMsg" INT 0 0;
+BA_DEF_DEF_  "GenSigCycleTime" 0;
+BA_DEF_DEF_  "GenSigInactiveValue" 0;
+BA_DEF_DEF_  "GenSigSendType" "NoSigSendType";
+BA_DEF_DEF_  "GenSigStartValue" 0;
+BA_DEF_DEF_  "GenSigEVName" "";
+BA_DEF_DEF_  "GenSigEnvVarType" "undef";
+BA_DEF_DEF_  "SignalCategory" 10;
+BA_DEF_DEF_  "UndefinedValueRangeBegin" 0;
+BA_DEF_DEF_  "GwSigMissingSourceType" "Undef";
+BA_DEF_DEF_  "GwSigLatencyTime" 40;
+BA_DEF_DEF_  "NmNetworkRequest" "No";
+BA_DEF_DEF_  "NmNetworkRequestHoldingTime" 0;
+BA_DEF_DEF_  "CmxSigEventTrigger" "No";
+BA_DEF_DEF_  "CmxSigTxValidMaxTime" 0;
+BA_DEF_DEF_  "GW_RoutingDestinationNumber" 0;
+BA_DEF_DEF_  "GW_RoutingSourceNumber" 0;
+BA_DEF_DEF_  "GW_TimeoutOldValueFlag" "No";
+BA_DEF_DEF_  "GW_TimeoutValue" 0;
+BA_DEF_DEF_  "CmxSigDefaultRaw" 0;
+BA_DEF_DEF_  "GenMsgCycleTime" 0;
+BA_DEF_DEF_  "GenMsgSendType" "NoMsgSendType";
+BA_DEF_DEF_  "GenMsgStartDelayTime" 0;
+BA_DEF_DEF_  "GenMsgCycleTimeFast" 0;
+BA_DEF_DEF_  "GenMsgDelayTime" 20;
+BA_DEF_DEF_  "GenMsgNrOfRepetition" 0;
+BA_DEF_DEF_  "GenMsgILSupport" "Yes";
+BA_DEF_DEF_  "NmMessage" "No";
+BA_DEF_DEF_  "TpTxIndex" 0;
+BA_DEF_DEF_  "GenMsgFastOnStart" 0;
+BA_DEF_DEF_  "DiagResponse" "No";
+BA_DEF_DEF_  "DiagRequest" "No";
+BA_DEF_DEF_  "DiagState" "No";
+BA_DEF_DEF_  "PCANShutDownTime" 0;
+BA_DEF_DEF_  "NmStationAddress" 0;
+BA_DEF_DEF_  "ILUsed" "Yes";
+BA_DEF_DEF_  "NmCAN" 1;
+BA_DEF_DEF_  "NmNode" "Yes";
+BA_DEF_DEF_  "GenNodSleepTime" 1500;
+BA_DEF_DEF_  "NodeLayerModules" "oseknm01.dll";
+BA_DEF_DEF_  "ECU" "";
+BA_DEF_DEF_  "CANoeJitterMax" 0;
+BA_DEF_DEF_  "CANoeJitterMin" 0;
+BA_DEF_DEF_  "CANoeDrift" 0;
+BA_DEF_DEF_  "CANoeStartDelay" 0;
+BA_DEF_DEF_  "TpRxIdentifier" 0;
+BA_DEF_DEF_  "TpTxIdentifier" 0;
+BA_DEF_DEF_  "SyncJumpWidthMax" 3;
+BA_DEF_DEF_  "SyncJumpWidthMin" 2;
+BA_DEF_DEF_  "SamplePointMax" 82;
+BA_DEF_DEF_  "SamplePointMin" 75;
+BA_DEF_DEF_  "Baudrate" 100000;
+BA_DEF_DEF_  "Manufacturer" "SYMC";
+BA_DEF_DEF_  "NmMessageCount" 128;
+BA_DEF_DEF_  "NmBaseAddress" 1024;
+BA_DEF_DEF_  "NmType" "Vector";
+BA_DEF_DEF_  "GenEnvVarEndingDsp" "Dsp_";
+BA_DEF_DEF_  "GenEnvVarEndingSnd" "_";
+BA_DEF_DEF_  "GenEnvVarPrefix" "Env";
+BA_DEF_DEF_  "GenNWMApBusSleep" "ApplNmCanBusSleep()";
+BA_DEF_DEF_  "GenNWMApCanNormal" "ApplNmCanNormal()";
+BA_DEF_DEF_  "GenNWMApCanOff" "ApplCanOffline()";
+BA_DEF_DEF_  "GenNWMApCanOn" "ApplCanOnline()";
+BA_DEF_DEF_  "GenNWMApCanSleep" "ApplNmCanSleep()";
+BA_DEF_DEF_  "GenNWMApCanWakeUp" "ApplCanWakeUp()";
+BA_DEF_DEF_  "GenNWMGotoMode_Awake" "GotoMode_Awake()";
+BA_DEF_DEF_  "GenNWMGotoMode_BusSleep" "GotoMode_BusSleep()";
+BA_DEF_DEF_  "GenNWMSleepTime" 1500;
+BA_DEF_DEF_  "GenNWMTalkNM" "TalkNM()";
+BA_DEF_DEF_  "VersionDay" 1;
+BA_DEF_DEF_  "VersionMonth" 1;
+BA_DEF_DEF_  "VersionYear" 2006;
+BA_DEF_DEF_  "VersionWeek" 1;
+BA_DEF_DEF_  "VersionNumber" 0;
+BA_DEF_DEF_  "VersionNumberInternal" 0;
+BA_DEF_DEF_  "VersionNumberHistory" 0;
+BA_DEF_DEF_  "BusType" "CAN";
+BA_DEF_DEF_REL_ "GenSigTimeoutTime" 1400;
+BA_DEF_DEF_REL_ "GenSigTimeoutMsg" 0;
+BA_ "GenMsgSendType" BO_ 2566566695 0;
+BA_ "GenMsgCycleTime" BO_ 2566566695 1000;
+BA_ "GenMsgCycleTime" BO_ 2365239591 10;
+BA_ "GenMsgSendType" BO_ 2365239591 0;
+BA_ "GenMsgCycleTime" BO_ 2566536948 100;
+BA_ "GenMsgSendType" BO_ 2566536948 0;
+BA_ "GenMsgCycleTime" BO_ 2566537460 100;
+BA_ "GenMsgSendType" BO_ 2566537460 0;
+BA_ "GenMsgCycleTime" BO_ 2365194735 100;
+BA_ "GenMsgSendType" BO_ 2365194735 0;
+BA_ "GenSigStartValue" SG_ 2566537460 BMS_BattSOH 0;
+BA_ "GenSigStartValue" SG_ 2566537460 BMS_BattSOC 0;
+BA_ "GenSigStartValue" SG_ 2566537460 BMS_BattCurr 32000;
+VAL_ 2365239591 PMS_AcceleratorPedalPosition 255 "Signal Invalid" ;
+VAL_ 2566536948 BMS_DCChgPlugSts 3 "Invalid" 2 "Reserved" 1 "Connected" 0 "Disconnected" ;
+VAL_ 2566536948 BMS_ChgStatus 7 "Other Charge Stop" 6 "Charge Pause" 5 "Cooling" 4 "Heating" 3 "Error Charge Stop" 2 "Charge end" 1 "Charging " 0 "Default" ;
+VAL_ 2566537460 BMS_BattSOH 255 "Signal Invalid" ;
+VAL_ 2566537460 BMS_BattSOC 255 "Signal Invalid" ;
+VAL_ 2566537460 BMS_BattCurr 65535 "Invalid" ;
+VAL_ 2365194735 MCU_MotorDCPower 4095 "Invalid" ;
+
