@@ -512,7 +512,7 @@ class Mapper(DBCParser):
         res = {}
         for signal in self.get_signals_by_frame_id(can_id):
             if signal.name in self._dbc_default:
-                res[signal.name] = self._dbc_default[signal]
+                res[signal.name] = self._dbc_default[signal.name]
             else:
                 log.error("No default value for CAN signal %s in message with frame ID %#x", signal.name, can_id)
         return res
