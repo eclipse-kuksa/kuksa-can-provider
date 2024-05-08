@@ -65,7 +65,7 @@ class ServerClientWrapper(clientwrapper.ClientWrapper):
 
         self._kuksa = KuksaClientThread(self._client_config)
         self._kuksa.start()
-        self._kuksa.authorize()
+        self._kuksa.authorize(token_or_tokenfile=self._token_path)
 
     def is_connected(self) -> bool:
         # This one is quite unreliable, see https://github.com/eclipse/kuksa.val/issues/523
