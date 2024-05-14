@@ -36,6 +36,7 @@ jobs:
           > dependencies.txt
 
       - name: Dash license check
-        uses: eclipse-kuksa/kuksa-actions/check-dash@2
+        uses: eclipse-kuksa/kuksa-actions/check-dash@4
         with:
           dashinput: ${{github.workspace}}/dependencies.txt
+          dashtoken: ${{ secrets.ECLIPSE_GITLAB_API_TOKEN}}
