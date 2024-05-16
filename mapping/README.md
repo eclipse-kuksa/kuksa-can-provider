@@ -44,6 +44,8 @@ This is built on the assumption that the DBC provider always send target values 
 Having separate configurations (`dbc2vss` and `vss2dbc`) is needed as wanted value and actual value never are sent
 by the same DBC signal, they are not even part of the same CAN-frame.
 
+*This means that `vss2dbc` only can be used for actuators, as only actuators have target values!*
+
 ## Example mapping files
 
 Example mapping files for various VSS versions can be found in this folder.

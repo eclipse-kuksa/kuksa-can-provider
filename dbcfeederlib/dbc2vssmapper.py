@@ -426,7 +426,12 @@ class Mapper(DBCParser):
         if dbc2vss_def is not None:
             self._analyze_dbc2vss(expanded_name, node, dbc2vss_def)
         if "vss2dbc" in node:
-            self._analyze_vss2dbc(expanded_name, node, node["vss2dbc"])
+            if node["type"] == "actuator":
+                self._analyze_vss2dbc(expanded_name, node, node["vss2dbc"])
+            else:
+                # vss2dbc is handled by subscription to target value, so only makes sense for actuators
+                log.error("vss2dbc only allowed for actuators, VSS signal %s is not an actuator!", expanded_name)
+                sys.exit(-1)
 
     def _traverse_vss_node(self, name, node, prefix=""):
         """

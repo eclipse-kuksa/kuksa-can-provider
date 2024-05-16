@@ -301,8 +301,6 @@ Vehicle.Powertrain.ElectricMotor.Temperature:
   dbc2vss:
     signal: PTC_rightTempIGBT
     interval_ms: 1000
-  vss2dbc:
-    signal: PTC_rightTempIGBT
 
 Vehicle.Cabin.Door.Row1.DriverSide.IsOpen:
   type: actuator
