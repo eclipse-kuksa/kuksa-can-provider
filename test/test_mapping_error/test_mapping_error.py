@@ -40,6 +40,19 @@ def test_unknown_transform(caplog: pytest.LogCaptureFixture):
     assert error_msg in caplog.record_tuples
 
 
+def test_vss2dbc_sensor(caplog: pytest.LogCaptureFixture):
+
+    mapping_path = test_path + "/mapping_vss2dbc_not_actuator.json"
+    dbc_file_names = [test_path + "/../../Model3CAN.dbc"]
+
+    with pytest.raises(SystemExit) as excinfo:
+        dbc2vssmapper.Mapper(mapping_path, dbc_file_names)
+    assert excinfo.value.code == -1
+    error_msg = ("dbcfeederlib.dbc2vssmapper", logging.ERROR,
+                 "vss2dbc only allowed for actuators, VSS signal A.B is not an actuator!")
+    assert error_msg in caplog.record_tuples
+
+
 def test_mapper_fails_for_duplicate_signal_definition():
 
     mapping_path = test_path + "/mapping_for_ambiguous_signal.json"

@@ -7105,10 +7105,7 @@
                 },
                 "description": "Motor temperature.",
                 "type": "sensor",
-                "unit": "celsius",
-                "vss2dbc": {
-                  "signal": "PTC_rightTempIGBT"
-                }
+                "unit": "celsius"
               },
               "Torque": {
                 "datatype": "int16",

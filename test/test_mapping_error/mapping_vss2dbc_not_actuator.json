@@ -4,10 +4,10 @@
       "B": {
         "datatype": "uint8",
         "description": "...",
-        "type": "actuator",
+        "type": "sensor",
         "unit": "km",
         "vss2dbc": {
-          "signal": "SignalTwo"
+          "signal": "SignalOne"
         }
       }
     },
