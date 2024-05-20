@@ -259,10 +259,8 @@ class Feeder:
                         messages_sent += 1
                         if messages_sent >= (2 * last_sent_log_entry):
                             log.info(
-                                """
-                                Update datapoint requests sent to kuksa.val so far: %d,
-                                maximum number of queued CAN messages so far: %d
-                                """,
+                                "Update datapoint requests sent to kuksa.val so far: %d, "
+                                "maximum number of queued CAN messages so far: %d",
                                 messages_sent, queue_max_size
                             )
                             last_sent_log_entry = messages_sent
