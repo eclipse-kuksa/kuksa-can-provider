@@ -16,7 +16,17 @@ docker run  --net=host -e LOG_LEVEL=INFO can-provider:latest --server-type kuksa
 
 ## Pre-built Docker container
 
-A pre-built Docker container is available in the repository.
+A pre-built Docker container is available in the repository. The container is availablat the github container registry via
+
+```
+docker pull ghcr.io/eclipse-kuksa/kuksa-can-provider/can-provider
+```
+
+For users where the ghcr regsitry is not easily accesible, e.g. China mainland users, starting from release 0.4.4 we  also made the container images available at quay.io
+
+```
+docker pull quay.io/eclipse-kuksa/can-provider
+```
 
 ## KUKSA.val Server/Databroker Authentication when using Docker
 
@@ -37,4 +47,3 @@ docker run  --net=host -e LOG_LEVEL=INFO -v /home/user/kuksa.val/jwt:/jwt can-pr
 ```
 
 *Note that authentication in KUKSA Databroker by default is deactivated, and then no token needs to be given!*
-
