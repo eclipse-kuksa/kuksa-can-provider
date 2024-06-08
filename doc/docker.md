@@ -18,13 +18,13 @@ docker run  --net=host -e LOG_LEVEL=INFO can-provider:latest --server-type kuksa
 
 A pre-built Docker container is available in the repository. The container is availablat the github container registry via
 
-```
+```console
 docker pull ghcr.io/eclipse-kuksa/kuksa-can-provider/can-provider
 ```
 
-For users where the ghcr regsitry is not easily accesible, e.g. China mainland users, starting from release 0.4.4 we  also made the container images available at quay.io
+If the ghcr registry is not easily accessible to you, e.g. if you are a China mainland user, starting from release 0.4.4 we  also made the container images available at quay.io:
 
-```
+```console
 docker pull quay.io/eclipse-kuksa/can-provider
 ```
 
@@ -40,7 +40,6 @@ when starting the container. Below is an example based on that the token file
 [provide-all.token](https://github.com/eclipse/kuksa.val/blob/master/jwt/provide-all.token) is used and that `kuksa.val`
 is cloned to `/home/user/kuksa.val`. Then the token can be accessed by mounting the `jwt`folder using the `-v`
 and specify `token=/jwt/provide-all.token` in the [default configuration file](../config/dbc_feeder.ini).
-
 
 ```console
 docker run  --net=host -e LOG_LEVEL=INFO -v /home/user/kuksa.val/jwt:/jwt can-provider:latest
