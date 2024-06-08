@@ -1,4 +1,5 @@
 # KUKSA CAN Provider
+
 ![KUKSA Logo](./doc/img/logo.png)
 
 This is a DBC CAN provider for the
@@ -49,35 +50,33 @@ Default values shall be provided by a JSON file, an example file exists in [dbc_
 
 *By default only dbc2val-mode is enabled!*
 
-
-
 ## General Setup Requirements
 
-1. Install can utils, e.g. in Ubuntu do:
+Install can utils, e.g. in Ubuntu do:
 
 ```console
-$ sudo apt update
-$ sudo apt install can-utils
+sudo apt update
+sudo apt install can-utils
 ```
 
-2. Check that at least Python version 3.9 is installed
+Check that at least Python version 3.9 is installed
 
 ```console
-$ python -V
+python -V
 ```
 
-3. Install the needed python packages
+Install the needed python packages
 
 ```console
-$ pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 *Note - Sometimes DBC provider on main branch rely on a kuksa-client pre-release. Then you must add `--pre` to the command above!*
 
-4. If you want to run tests and linters, you will also need to install development dependencies
+If you want to run tests and linters, you will also need to install development dependencies
 
 ```console
-$ pip install -r requirements-dev.txt
+pip install -r requirements-dev.txt
 ```
 
 ## CAN Mapping
@@ -100,7 +99,6 @@ The KUKSA project publish the CAN provider as a Docker container.
 Please see [CAN Provider Docker Setup](doc/docker.md) for more information on how to build and use
 the CAN Provider as a Docker container.
 
-
 ## Provided can-dump  and DBC files
 
 CAN dump files are usable for test purposes. This repository contain two dump files which are used for testing and also used as basis for the examples in this repository.
@@ -110,7 +108,8 @@ is a CAN trace from  2018 Tesla M3 with software 2021.40.6.
 This data is interpreted using the [Model3CAN.dbc](./Model3CAN.dbc) [maintained by Josh Wardell](https://github.com/joshwardell/model3dbc).
 
 The canlog in the repo is compressed, to uncompress it (will be around 150MB) do
-```
+
+```console
 unxz candump-2021-12-08_151848.log.xz
 ```
 
@@ -123,6 +122,7 @@ A smaller excerpt from the above sample, with fewer signals.
 * [SAE-J1939 support](doc/j1939.md)
 
 ## Pre-commit set up
+
 This repository is set up to use [pre-commit](https://pre-commit.com/) hooks.
 Use `pip install pre-commit` to install pre-commit.
 After you clone the project, run `pre-commit install` to install pre-commit into your git hooks.
