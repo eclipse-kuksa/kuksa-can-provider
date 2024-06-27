@@ -3,7 +3,7 @@
 It is possible to build can-provider as a Docker container
 
 ```console
-docker build -f Dockerfile --progress=plain --build-arg TARGETPLATFORM=linux/amd64 -t can-provider:latest .
+docker build -f Dockerfile --progress=plain -t can-provider:latest .
 ```
 
 The same container can be used for both connecting to Databroker and Server:
@@ -12,6 +12,15 @@ The same container can be used for both connecting to Databroker and Server:
 docker run  --net=host -e LOG_LEVEL=INFO can-provider:latest --server-type kuksa_databroker
 
 docker run  --net=host -e LOG_LEVEL=INFO can-provider:latest --server-type kuksa_val_server
+```
+
+## Building for a different architecture
+
+You can build for a different architecture by using `buildx`and the `--platform` argument.
+You might need to install `qemu-user-static` depending on your distribution.
+
+```console
+docker buildx build -f Dockerfile --progress=plain --platform=linux/arm64 -t can-provider:latest .
 ```
 
 ## Pre-built Docker container
