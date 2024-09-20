@@ -27,6 +27,7 @@ VSS signal values as defined in a mapping.
 import json
 import logging
 import sys
+import cantools
 
 from dataclasses import dataclass
 from typing import Any, Dict, List, Set, Optional, KeysView
@@ -139,8 +140,27 @@ class VSSMapping:
         """
         vss_value = None
         if self.transform is None:
-            log.debug("No mapping to VSS %s, using raw value %s", self.vss_name, value)
-            vss_value = value
+            if isinstance(value, cantools.database.can.signal.NamedSignalValue):
+                # We try to be "smart" when doing implicit mapping for NamedSignalValues like
+                # VAL_ 599 DI_uiSpeedUnits 1 "DI_SPEED_KPH" 0 "DI_SPEED_MPH" ;
+                if self.datatype == "string":
+                    # Use string representation if VSS type is string
+                    vss_value = value.name
+                    log.debug("Using string value %s for %s", vss_value, self.vss_name)
+                else:
+                    # In all other cases try with numeric value
+                    vss_value = value.value
+                    log.debug("Using numeric value %s for %s",
+                              vss_value, self.vss_name)
+            elif isinstance(value, (int, float)):
+                vss_value = value
+                log.debug("Using int/float value %s for %s", vss_value, self.vss_name)
+            else:
+                vss_value = value
+                # It is not expected to end up here, if we find a use-case we should better handle that
+                # type exactly. That is the reason we use "info" here, to give better visibility.
+                log.info("Using raw value %s of type %s for %s", vss_value, type(vss_value), self.vss_name)
+
         else:
             if "mapping" in self.transform:
                 tmp = self.transform["mapping"]
