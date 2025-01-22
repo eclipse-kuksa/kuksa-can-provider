@@ -165,7 +165,7 @@ class Feeder:
             # For now creating another bus
             # Maybe support different buses for downstream/upstream in the future
 
-            self._canclient = CANClient(interface="socketcan", channel=canport, can_fd=can_fd)
+            self._canclient = CANClient(interface="socketcan", channel=canport, fd=can_fd)
 
             transmitter = threading.Thread(target=self._run_transmitter)
             transmitter.start()
