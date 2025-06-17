@@ -46,7 +46,7 @@ pluggy==1.5.0
     # via pytest
 ply==3.11
     # via jsonpath-ng
-protobuf==5.26.1
+protobuf==5.29.5
     # via grpcio-tools
 py-expression-eval==0.3.14
     # via -r requirements.in
