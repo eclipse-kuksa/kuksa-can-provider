@@ -13,7 +13,7 @@
 
 
 # Build stage, to create a Virtual Environent
-FROM --platform=$TARGETPLATFORM python:3.10-slim-bookworm as builder
+FROM --platform=$TARGETPLATFORM python:3.12-slim-bookworm as builder
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
@@ -41,10 +41,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . /
 
 # By default we use certificates and tokens from kuksa_client, so they must be included
-RUN pyinstaller --collect-data kuksa_client --hidden-import can.interfaces.socketcan --clean -F -s dbcfeeder.py
+# Do not strip, becasue strip destroys numpy
+# you would get errors like
+# "libscipyopenblas64-128b20d9.so: ELF load command address/offset not page-aligned"
+RUN pyinstaller --collect-data kuksa_client --hidden-import can.interfaces.socketcan --clean -F  dbcfeeder.py
 #   --debug=imports
-
-WORKDIR /dist
 
 WORKDIR /data
 COPY ./config/* ./config/
