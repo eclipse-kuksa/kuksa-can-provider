@@ -306,7 +306,9 @@ class Feeder:
                 )
                 sig_dict = self._mapper.get_value_dict(message_definition.frame_id)
                 data = message_definition.encode(sig_dict)
-                self._canclient.send(arbitration_id=message_definition.frame_id, data=data)
+                self._canclient.send(
+                    arbitration_id=message_definition.frame_id, data=data,
+                    is_extended_id=message_definition.is_extended_frame)
 
     async def _run_subscribe(self):
         """
