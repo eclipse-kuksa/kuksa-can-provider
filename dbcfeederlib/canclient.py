@@ -51,9 +51,9 @@ class CANClient:
             return canmsg
         return None
 
-    def send(self, arbitration_id, data):
+    def send(self, arbitration_id, data, is_extended_id):
         """Write message to CAN bus."""
-        msg = can.Message(arbitration_id=arbitration_id, data=data)
+        msg = can.Message(arbitration_id=arbitration_id, data=data, is_extended_id=is_extended_id)
         try:
             self._bus.send(msg)
             if log.isEnabledFor(logging.DEBUG):
