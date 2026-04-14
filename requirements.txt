@@ -56,7 +56,7 @@ pyperclip==1.9.0
     # via cmd2
 pyserial==3.5
     # via -r requirements.in
-pytest==8.4.1
+pytest==9.0.3
     # via can-j1939
 python-can==4.6.1
     # via
