@@ -96,7 +96,13 @@ vss-tools/vspec2json.py -e vss2dbc,dbc2vss,dbc -o dbc_overlay.vspec -u spec/unit
 ```
 
 An alternative approach is download the `*.yaml` files from an [official VSS release](https://github.com/COVESA/vehicle_signal_specification/releases)
-and use the included Yaml file as base.
+and use the included YAML file as base. For vss-tools 6.0+ use:
+
+```
+vspec export json -s vss.yaml -o vss_dbc.json -l dbc_overlay.vspec -e vss2dbc -e dbc2vss -e dbc -u units.yaml -q quantities.yaml --pretty
+```
+
+For older vss-tools versions:
 
 ```
 vss-tools/vspec2json.py -e vss2dbc,dbc2vss,dbc -o dbc_overlay.vspec -u units.yaml --json-pretty vss_rel_4.0.yaml vss_dbc.json
