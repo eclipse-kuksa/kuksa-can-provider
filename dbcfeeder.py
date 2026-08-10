@@ -543,7 +543,7 @@ def main(argv):
     elif os.environ.get("MAPPING_FILE"):
         mappingfile = os.environ.get("MAPPING_FILE")
     else:
-        mappingfile = config.get(CONFIG_SECTION_GENERAL, CONFIG_OPTION_MAPPING, fallback="mapping/vss_4.0/vss_dbc.json")
+        mappingfile = config.get(CONFIG_SECTION_GENERAL, CONFIG_OPTION_MAPPING, fallback="mapping/vss_5.1/vss_dbc.json")
 
     if args.use_j1939:
         use_j1939 = True
