@@ -36,10 +36,15 @@ class CANplayer:
     files suffix is one of the above (e.g. filename.asc.gz).
     """
 
-    def __init__(self, dumpfile: str, can_port: str):
+    def __init__(self, dumpfile: str, can_port: str, replay_once: bool = False):
         self._running = False
+        self._replay_once = replay_once
         # open the file for reading can messages
-        log.info("Starting repeated replay of CAN messages from log file %s", dumpfile)
+        log.info(
+            "Configured %s CAN log replay from file %s",
+            "single-pass" if replay_once else "repeated",
+            dumpfile,
+        )
         self._dumpfile = dumpfile
         self._can_port = can_port
         log.debug("Using virtual bus to replay CAN messages (channel: %s)", self._can_port)
@@ -67,6 +72,8 @@ class CANplayer:
 
         while self._running:
             self._process_log()
+            if self._replay_once:
+                self._running = False
 
         log.info("Stopped writing CAN messages to bus")
 

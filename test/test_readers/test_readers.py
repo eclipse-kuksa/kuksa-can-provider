@@ -26,6 +26,7 @@ from typing import Dict, List
 import pytest  # type: ignore # noqa: F401
 
 from cantools.database import Message, Signal
+from dbcfeederlib.canplayer import CANplayer
 from dbcfeederlib.canreader import CanReader
 from dbcfeederlib.dbc2vssmapper import Mapper, VSSObservation, VSSMapping
 from dbcfeederlib.j1939reader import J1939Reader
@@ -118,6 +119,37 @@ class TestCanReader():
         # THEN the reader ignores the message
         mapper.get_message_by_frame_id.assert_called_once_with(0x0102)
         queue.put.assert_not_called()
+
+
+class TestCANPlayer():
+
+    @mock.patch("dbcfeederlib.canplayer.VirtualBus")
+    def test_replay_once_stops_after_one_pass(self, _virtual_bus):
+        player = CANplayer("candump.log", "vcan0", replay_once=True)
+
+        with mock.patch.object(player, "_process_log") as process_log:
+            player._running = True
+            player._tx_worker()
+
+        process_log.assert_called_once_with()
+        assert player._running is False
+
+    @mock.patch("dbcfeederlib.canplayer.VirtualBus")
+    def test_default_replay_repeats(self, _virtual_bus):
+        player = CANplayer("candump.log", "vcan0")
+
+        with mock.patch.object(player, "_process_log") as process_log:
+
+            def stop_after_second_pass():
+                if process_log.call_count == 2:
+                    player._running = False
+
+            process_log.side_effect = stop_after_second_pass
+            player._running = True
+            player._tx_worker()
+
+        assert process_log.call_count == 2
+        assert player._running is False
 
 
 def get_dbc2vss_mappings(signal_name: str) -> List[VSSMapping]:

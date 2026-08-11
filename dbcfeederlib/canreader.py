@@ -34,7 +34,8 @@ class CanReader(ABC):
     Provides means to read messages from a CAN bus.
     """
     def __init__(self, rxqueue: Queue, mapper: Mapper, can_port: str,
-                 dump_file: Optional[str] = None, can_fd: bool = False):
+                 dump_file: Optional[str] = None, can_fd: bool = False,
+                 replay_once: bool = False):
         """
         This init method is only supposed to be called by subclass' __init__ functions.
         """
@@ -55,7 +56,7 @@ class CanReader(ABC):
         if dump_file is not None:
             self._can_kwargs["interface"] = "virtual"
             self._can_kwargs["bitrate"] = 500000
-            self._can_player = CANplayer(dump_file, can_port)
+            self._can_player = CANplayer(dump_file, can_port, replay_once=replay_once)
 
     def is_running(self) -> bool:
         return self._running
