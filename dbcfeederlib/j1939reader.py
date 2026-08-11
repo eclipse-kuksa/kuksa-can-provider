@@ -38,8 +38,15 @@ log = logging.getLogger(__name__)
 
 class J1939Reader(canreader.CanReader):
 
-    def __init__(self, rxqueue: Queue, mapper: dbc2vssmapper.Mapper, can_port: str, dump_file: Optional[str] = None):
-        super().__init__(rxqueue, mapper, can_port, dump_file)
+    def __init__(self, rxqueue: Queue, mapper: dbc2vssmapper.Mapper, can_port: str,
+                 dump_file: Optional[str] = None, replay_once: bool = False):
+        super().__init__(
+            rxqueue,
+            mapper,
+            can_port,
+            dump_file=dump_file,
+            replay_once=replay_once,
+        )
 
         self._ecu = j1939.ElectronicControlUnit()
         self._ecu.subscribe(self._on_message)

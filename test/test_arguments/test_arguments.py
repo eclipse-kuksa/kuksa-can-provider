@@ -14,11 +14,20 @@
 import pytest
 import os
 
+from dbcfeeder import _get_command_line_args_parser
+
 
 @pytest.fixture
 def change_test_dir(request, monkeypatch):
     # To make sure we run from test directory
     monkeypatch.chdir(request.fspath.dirname)
+
+
+def test_replay_once_argument():
+    parser = _get_command_line_args_parser()
+
+    assert parser.parse_args([]).replay_once is False
+    assert parser.parse_args(["--replay-once"]).replay_once is True
 
 
 @pytest.mark.parametrize("requested_server, ok_expected", [
