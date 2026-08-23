@@ -124,8 +124,8 @@ class TestCanReader():
 class TestCANPlayer():
 
     @mock.patch("dbcfeederlib.canplayer.VirtualBus")
-    def test_replay_once_stops_after_one_pass(self, _virtual_bus):
-        player = CANplayer("candump.log", "vcan0", replay_once=True)
+    def test_default_replay_stops_after_one_pass(self, _virtual_bus):
+        player = CANplayer("candump.log", "vcan0")
 
         with mock.patch.object(player, "_process_log") as process_log:
             player._running = True
@@ -135,8 +135,8 @@ class TestCANPlayer():
         assert player._running is False
 
     @mock.patch("dbcfeederlib.canplayer.VirtualBus")
-    def test_default_replay_repeats(self, _virtual_bus):
-        player = CANplayer("candump.log", "vcan0")
+    def test_infinite_replay_repeats(self, _virtual_bus):
+        player = CANplayer("candump.log", "vcan0", infinite=True)
 
         with mock.patch.object(player, "_process_log") as process_log:
 

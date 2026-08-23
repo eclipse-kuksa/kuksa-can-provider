@@ -36,13 +36,13 @@ class CANplayer:
     files suffix is one of the above (e.g. filename.asc.gz).
     """
 
-    def __init__(self, dumpfile: str, can_port: str, replay_once: bool = False):
+    def __init__(self, dumpfile: str, can_port: str, infinite: bool = False):
         self._running = False
-        self._replay_once = replay_once
+        self._infinite = infinite
         # open the file for reading can messages
         log.info(
             "Configured %s CAN log replay from file %s",
-            "single-pass" if replay_once else "repeated",
+            "repeated" if infinite else "single-pass",
             dumpfile,
         )
         self._dumpfile = dumpfile
@@ -72,7 +72,7 @@ class CANplayer:
 
         while self._running:
             self._process_log()
-            if self._replay_once:
+            if not self._infinite:
                 self._running = False
 
         log.info("Stopped writing CAN messages to bus")

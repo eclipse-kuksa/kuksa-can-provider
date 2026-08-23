@@ -34,14 +34,14 @@ log = logging.getLogger(__name__)
 class DBCReader(canreader.CanReader):
     def __init__(self, rxqueue: Queue, mapper: dbc2vssmapper.Mapper, can_port: str,
                  can_fd: bool, dump_file: Optional[str] = None,
-                 replay_once: bool = False):
+                 infinite: bool = False):
         super().__init__(
             rxqueue,
             mapper,
             can_port,
             dump_file=dump_file,
             can_fd=can_fd,
-            replay_once=replay_once,
+            infinite=infinite,
         )
 
     def _rx_worker(self):
