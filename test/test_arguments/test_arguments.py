@@ -23,11 +23,12 @@ def change_test_dir(request, monkeypatch):
     monkeypatch.chdir(request.fspath.dirname)
 
 
-def test_replay_once_argument():
+def test_infinite_argument():
     parser = _get_command_line_args_parser()
 
-    assert parser.parse_args([]).replay_once is False
-    assert parser.parse_args(["--replay-once"]).replay_once is True
+    assert parser.parse_args([]).infinite is None
+    assert parser.parse_args(["--infinite"]).infinite is True
+    assert parser.parse_args(["--no-infinite"]).infinite is False
 
 
 @pytest.mark.parametrize("requested_server, ok_expected", [

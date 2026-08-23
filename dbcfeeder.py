@@ -59,7 +59,7 @@ CONFIG_SECTION_ELMCAN = "elmcan"
 CONFIG_SECTION_GENERAL = "general"
 
 CONFIG_OPTION_CAN_DUMP_FILE = "candumpfile"
-CONFIG_OPTION_CAN_REPLAY_ONCE = "replay_once"
+CONFIG_OPTION_CAN_INFINITE = "infinite"
 CONFIG_OPTION_DBC_DEFAULT_FILE = "dbc_default_file"
 CONFIG_OPTION_IP = "ip"
 CONFIG_OPTION_J1939 = "j1939"
@@ -112,7 +112,7 @@ class Feeder:
         candumpfile: Optional[str],
         use_j1939: bool = False,
         use_strict_parsing: bool = False,
-        replay_once: bool = False
+        infinite: bool = False
     ):
 
         self._running = True
@@ -139,7 +139,7 @@ class Feeder:
                     self._mapper,
                     canport,
                     candumpfile,
-                    replay_once=replay_once,
+                    infinite=infinite,
                 )
             else:
                 log.info("Using DBC reader")
@@ -149,7 +149,7 @@ class Feeder:
                     canport,
                     can_fd,
                     candumpfile,
-                    replay_once=replay_once,
+                    infinite=infinite,
                 )
 
             if canport == 'elmcan':
@@ -437,9 +437,11 @@ def _get_command_line_args_parser() -> argparse.ArgumentParser:
         "--dumpfile", metavar="FILE", help="Replay recorded CAN traffic from dumpfile"
     )
     parser.add_argument(
-        "--replay-once",
-        action="store_true",
-        help="Replay the dump file once instead of repeatedly; the provider remains running",
+        "-i",
+        "--infinite",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Repeat CAN dump replay until the provider is stopped",
     )
     parser.add_argument("--canport", metavar="DEVICE", help="The name of the device representing the CAN bus")
     parser.add_argument("--use-j1939", action="store_true", help="Use j1939 messages on the CAN bus")
@@ -584,11 +586,14 @@ def main(argv):
         if args.val2dbc and candumpfile is not None:
             parser.error("Cannot use dumpfile and val2dbc at the same time!")
 
-    replay_once = args.replay_once or config.getboolean(
-        CONFIG_SECTION_CAN,
-        CONFIG_OPTION_CAN_REPLAY_ONCE,
-        fallback=False,
-    )
+    if args.infinite is not None:
+        infinite = args.infinite
+    else:
+        infinite = config.getboolean(
+            CONFIG_SECTION_CAN,
+            CONFIG_OPTION_CAN_INFINITE,
+            fallback=False,
+        )
 
     elmcan_config = []
     if canport == "elmcan":
@@ -624,7 +629,7 @@ def main(argv):
         use_j1939=use_j1939,
         use_strict_parsing=args.strict,
         can_fd=args.canfd,
-        replay_once=replay_once,
+        infinite=infinite,
     )
 
     return 0

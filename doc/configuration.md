@@ -23,7 +23,7 @@ to set in a configuration file.
 | *--config*            | -                               | -                       | *See below*                      | Configuration file  |
 | *--dbcfile*           | *DBC_FILE*                      | *[can].dbc*             |                                  | DBC file(s) used for parsing CAN traffic. You may specify multiple file names separated by comma. Supports parsing of [arbitrary DB file types](https://github.com/cantools/cantools#about). |
 | *--dumpfile*          | *CANDUMP_FILE*                  | *[can].candumpfile*     |                                  | Replay recorded CAN traffic from dumpfile |
-| *--replay-once*       | -                               | *[can].replay_once*     | `False`                          | Replay the configured dump file once instead of repeatedly. The provider remains running after reaching EOF. |
+| *-i / --infinite / --no-infinite* | -                       | *[can].infinite*        | `False`                          | Repeat the configured dump file until the provider is stopped. By default, the file is replayed once. |
 | *--canport*           | *CAN_PORT*                      | *[can].port*            |                                  | Read from this CAN interface |
 | *--use-j1939*         | *USE_J1939*                     | *[can].j1939*           | `False`                          | Use J1939 when decoding CAN frames. Setting the environment variable to any value is equivalent to activating the switch on the command line. |
 | *--use-socketcan*     | -                               | -                       | `False`                          | Use SocketCAN (overriding any use of --dumpfile) |
@@ -84,22 +84,23 @@ $ ./dbcfeeder.py
 $ ./dbcfeeder.py
 ```
 
-By default, dump-file replay repeats until the provider is stopped. To replay
-the file once, use:
+By default, the dump file is replayed once. To repeat it until the provider is
+stopped, use:
 
 ```console
-$ ./dbcfeeder.py --replay-once
+$ ./dbcfeeder.py --infinite
 ```
 
 The same behavior can be enabled in the configuration file:
 
 ```ini
 [can]
-replay_once = True
+infinite = True
 ```
 
-After reaching the end of the file, CAN replay stops but the provider remains
-running so queued values can be processed and queried. Stop it with `Ctrl+C`.
+The `--no-infinite` argument overrides an enabled `infinite` configuration.
+After a single pass, CAN replay stops but the provider remains running so
+queued values can be processed and queried. Stop it with `Ctrl+C`.
 
 ## Steps for val2dbc test with socketcan
 
