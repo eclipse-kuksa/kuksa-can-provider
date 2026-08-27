@@ -24,6 +24,6 @@ cantools ~= 40.5
 pyyaml ~= 6.0
 can-j1939 ~= 2.0
 py_expression_eval ~= 0.3
-kuksa-client ~= 0.5.0
+kuksa-client ~= 0.6.0
 types-PyYAML ~= 6.0
 types-protobuf ~= 6.30.0
