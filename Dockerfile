@@ -1,5 +1,5 @@
 # /********************************************************************************
-# * Copyright (c) 2022 Contributors to the Eclipse Foundation
+# * Copyright (c) 2022-2026 Contributors to the Eclipse Foundation
 # *
 # * See the NOTICE file(s) distributed with this work for additional
 # * information regarding copyright ownership.
@@ -12,22 +12,46 @@
 # ********************************************************************************/
 
 
-# Build stage, to create a Virtual Environent
-FROM --platform=$TARGETPLATFORM python:3.12-slim-bookworm as builder
+# Build stage
+ARG TARGETARCH
+
+FROM python:3.14-slim-trixie AS builder
+
+# In case arm64 builds via buildx/qemu are EXTREMELY slow, check these
+# https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1113951
+# https://www.linaro.org/blog/qemu-a-tale-of-performance-analysis/
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
+ARG TARGETARCH
 
 RUN echo "-- Running on $BUILDPLATFORM, building for $TARGETPLATFORM"
 
-# It seems 3.10-slim-bookworm shall have gcc, but for aarch64 where it is needed
-# it does not seem to be present, needed to build bitstruct
-# https://github.com/docker-library/python/blob/master/3.10/slim-bookworm/Dockerfile
+
+# pyinstaller needs binutils
 RUN apt update && apt -y install \
-    binutils \
-    git \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
+    binutils
+
+# RISCV
+# pyinstaller needs to build some components,
+# grpcio also needs to build as no wheels exist currently (08/2026)
+# so we need compilers and dependencies.
+RUN if [ "$TARGETARCH" = "riscv64" ]; then \
+        apt -y install gcc zlib1g-dev g++ cmake libatomic1; \
+    fi
+
+# Collect runtime .so files the final distroless stage needs but doesn't ship,
+# so the final stage can COPY them unconditionally regardless of TARGETARCH.
+# libz is always needed (pyinstaller doesn't pick up the transient dependency).
+# libstdc++ is only needed on riscv64, where grpcio is compiled from source
+# (no manylinux wheel available) and cygrpc*.so links against it dynamically;
+# without it you get "undefined symbol: _ZTVN10__cxxabiv117__class_type_infoE".
+RUN mkdir -p /rtlibs && \
+    cp /usr/lib/*-linux-gnu/libz.so.1 /rtlibs/ && \
+    if [ "$TARGETARCH" = "riscv64" ]; then \
+        cp /usr/lib/*-linux-gnu/libstdc++.so.6 /rtlibs/; \
+    fi
+
 
 RUN pip install --upgrade --no-cache-dir pip build pyinstaller
 
@@ -52,31 +76,42 @@ COPY ./config/* ./config/
 COPY ./mapping/ ./mapping/
 COPY ./*.dbc ./candump*.log ./*.json ./
 
-# Debian 12 is bookworm, so the glibc version matches. Distroless is a lot smaller than
-# Debian slim versions
-# For development add :debug like this
-# FROM gcr.io/distroless/base-debian12:debug  to get a busybox shell as well
-FROM gcr.io/distroless/base-debian12
+# Debian 13 is trixie, so the glibc version matches. 
+# Distroless is a lot smaller than Debian slim versions
+#
+# For development (to add a busybox shell) add :debug like this
+# FROM gcr.io/distroless/base-debian13:debug
+# riscv64 needs more libs at runtime (grpcio is built from source there, unlike
+# the prebuilt manylinux wheels used on other arches), which "base" doesn't ship
+FROM gcr.io/distroless/base-debian13 AS runtimeamd64
+FROM gcr.io/distroless/base-debian13 AS runtimearm64
+FROM gcr.io/distroless/cc-debian13:debug AS runtimeriscv64
+# grpcio's cygrpc*.so is built without a NEEDED entry for libstdc++.so.6 (even
+# though it references libstdc++ symbols), so the dynamic linker never loads
+# it on its own - preload it so its symbols are already globally available
+# when cygrpc.so is dlopen'd, avoiding
+# "undefined symbol: _ZTVN10__cxxabiv117__class_type_infoE".
+ENV LD_PRELOAD="/lib/libstdc++.so.6"
+
+# Buildkit quirk: Without explicitely setting platform targetarch is not
+# auto-populated outside of stages, so we will use the default options here. 
+FROM gcr.io/distroless/base-debian13 AS runtime
+
+FROM runtime${TARGETARCH}
 
 WORKDIR /dist
 
 COPY --from=builder /dist/* .
 COPY --from=builder /data/ ./
 
-# pyinstaller doesn't pick up transient libz dependency, so copying it manually
-COPY --from=builder /usr/lib/*-linux-gnu/libz.so.1 /lib/
+# see /rtlibs collection in builder stage above
+COPY --from=builder /rtlibs/ /lib/
 
 ENV PATH="/dist:$PATH"
 
 # useful dumps about feeding values
 ENV LOG_LEVEL="info"
 
-# Vehicle Data Broker host:port
-#ENV VDB_ADDRESS="localhost:55555"
-# Override VDB_ADDRESS port if set
-#ENV DAPR_GRPC_PORT="55555"
-# VDB DAPR APP ID
-ENV VEHICLEDATABROKER_DAPR_APP_ID=vehicledatabroker
 
 ENV PYTHONUNBUFFERED=yes
 
