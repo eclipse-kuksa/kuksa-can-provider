@@ -76,7 +76,7 @@ COPY ./config/* ./config/
 COPY ./mapping/ ./mapping/
 COPY ./*.dbc ./candump*.log ./*.json ./
 
-# Debian 13 is trixie, so the glibc version matches. 
+# Debian 13 is trixie, so the glibc version matches.
 # Distroless is a lot smaller than Debian slim versions
 #
 # For development (to add a busybox shell) add :debug like this
@@ -94,7 +94,7 @@ FROM gcr.io/distroless/cc-debian13:debug AS runtimeriscv64
 ENV LD_PRELOAD="/lib/libstdc++.so.6"
 
 # Buildkit quirk: Without explicitely setting platform targetarch is not
-# auto-populated outside of stages, so we will use the default options here. 
+# auto-populated outside of stages, so we will use the default options here.
 FROM gcr.io/distroless/base-debian13 AS runtime
 
 FROM runtime${TARGETARCH}
