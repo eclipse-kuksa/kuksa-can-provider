@@ -21,6 +21,7 @@ to set in a configuration file.
 | Command Line Argument | Environment Variable            | Config File Property    | Default Value                    | Description         |
 |:----------------------|:--------------------------------|:------------------------|:---------------------------------|---------------------|
 | *--config*            | -                               | -                       | *See below*                      | Configuration file  |
+| *ADDRESS*             | *KUKSA_ADDRESS*                 | *[general].address*     | `grpc://127.0.0.1:55555`         | Databroker address on URI format. The `grpc` scheme disables TLS, the `grpcs` scheme enables it. A bare `host` or `host:port` is accepted as `grpc`. |
 | *--dbcfile*           | *DBC_FILE*                      | *[can].dbc*             |                                  | DBC file(s) used for parsing CAN traffic. You may specify multiple file names separated by comma. Supports parsing of [arbitrary DB file types](https://github.com/cantools/cantools#about). |
 | *--dumpfile*          | *CANDUMP_FILE*                  | *[can].candumpfile*     |                                  | Replay recorded CAN traffic from dumpfile |
 | *-i / --infinite / --no-infinite* | -                       | *[can].infinite*        | `False`                          | Repeat the configured dump file until the provider is stopped. By default, the file is replayed once. |
@@ -28,10 +29,7 @@ to set in a configuration file.
 | *--use-j1939*         | *USE_J1939*                     | *[can].j1939*           | `False`                          | Use J1939 when decoding CAN frames. Setting the environment variable to any value is equivalent to activating the switch on the command line. |
 | *--use-socketcan*     | -                               | -                       | `False`                          | Use SocketCAN (overriding any use of --dumpfile) |
 | *--mapping*           | *MAPPING_FILE*                  | *[general].mapping*     | `mapping/vss_6.0/vss_dbc.json` | Mapping file used to map CAN signals to databroker datapoints. |
-| -                     | *KUKSA_ADDRESS*                 | *[general].ip*          | `127.0.0.1`                      | IP address for Databroker |
-| -                     | *KUKSA_PORT*                    | *[general].port*        | `55555`                          | Port for Databroker |
-| -                     | -                               | *[general].tls*         | `False`                          | Shall tls be used for Databroker connection? |
-| -                     | -                               | *[general].root_ca_path* | *Undefined*                      | Path to root CA: Only needed if using TLS |
+| -                     | -                               | *[general].root_ca_path* | *Undefined*                      | Path to root CA: Only needed if using the `grpcs` scheme |
 | -                     | -                               | *[general].tls_server_name* | *Undefined*                   | TLS server name, may be needed if addressing a server by IP-name |
 | -                     | -                               | *[general].token*       | *Undefined*                      | Token path. Only needed if Databroker requires authentication |
 | -                     | *VEHICLEDATABROKER_DAPR_APP_ID* | -                       | -                                | Add dapr-app-id metadata. Only relevant for KUKSA.val Databroker |
@@ -48,6 +46,10 @@ If `--config` is not given, the dbcfeeder will look for configuration files in t
 * `config/dbc_feeder.ini`
 
 The first one found will be used.
+
+*Note: Since the introduction of the `address` option the previously separate `ip`, `port` and `tls`
+options under `[general]` are no longer supported. Use `address = grpc://host:port` (or `grpcs://host:port`
+to enable TLS) instead.*
 
 
 ## Steps for a local dbc2val test with socket can or virtual socket can
@@ -240,8 +242,8 @@ must be set. The default config file include (commented) values to use if using 
 ### Using kuksa-client with a server requiring TLS
 
 The [default configuration file](../config/dbc_feeder.ini) does not specify that TLS shall be used.
-If the KUKSA.val Databroker requires authentication the `tls` attribute in the config file
-must be set to `True` and `root_ca_path` must be set.
+If the KUKSA.val Databroker requires TLS the `address` attribute in the config file must use the
+`grpcs` scheme and `root_ca_path` must be set.
 The default config file include (commented) values to use if using KUKSA.val example certificates.
 
 The provider verifies that the Databroker presents a certificate with a name matching the server.
@@ -250,8 +252,7 @@ name validation does not work when using gRPC and a numeric IP-address, so for t
 specify the `tls_server_name` to use in name validation, like in the example below.
 
 ```
-ip = 127.0.0.1
-tls = True
+address = grpcs://127.0.0.1:55555
 root_ca_path=../../kuksa.val/kuksa_certificates/CA.pem
 tls_server_name=localhost
 ```
