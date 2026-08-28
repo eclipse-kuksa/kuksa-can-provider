@@ -12,7 +12,7 @@ jobs:
     steps:
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # taken from here: https://github.com/eclipse/dash-licenses#example-python
       - name: Create Dash Dependency Report
@@ -36,7 +36,7 @@ jobs:
           > dependencies.txt
 
       - name: Dash license check
-        uses: eclipse-kuksa/kuksa-actions/check-dash@4
+        uses: eclipse-kuksa/kuksa-actions/check-dash@5
         with:
           dashinput: ${{github.workspace}}/dependencies.txt
           dashtoken: ${{ secrets.ECLIPSE_GITLAB_API_TOKEN}}
