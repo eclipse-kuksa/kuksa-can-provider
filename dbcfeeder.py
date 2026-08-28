@@ -32,9 +32,10 @@ import queue
 import sys
 import threading
 import time
+from urllib.parse import urlsplit
 
 from signal import SIGINT, SIGTERM, signal
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from cantools.database import Message
 from kuksa_client.grpc import EntryUpdate  # type: ignore
@@ -56,15 +57,14 @@ CONFIG_SECTION_CAN = "can"
 CONFIG_SECTION_ELMCAN = "elmcan"
 CONFIG_SECTION_GENERAL = "general"
 
+CONFIG_OPTION_ADDRESS = "address"
 CONFIG_OPTION_CAN_DUMP_FILE = "candumpfile"
 CONFIG_OPTION_CAN_INFINITE = "infinite"
 CONFIG_OPTION_DBC_DEFAULT_FILE = "dbc_default_file"
-CONFIG_OPTION_IP = "ip"
 CONFIG_OPTION_J1939 = "j1939"
 CONFIG_OPTION_MAPPING = "mapping"
 CONFIG_OPTION_PORT = "port"
 CONFIG_OPTION_ROOT_CA_PATH = "root_ca_path"
-CONFIG_OPTION_TLS_ENABLED = "tls"
 CONFIG_OPTION_TLS_SERVER_NAME = "tls_server_name"
 CONFIG_OPTION_TOKEN = "token"
 
@@ -363,29 +363,63 @@ def _parse_config(filename: str) -> configparser.ConfigParser:
     return config
 
 
-def _get_kuksa_client(config: configparser.ConfigParser) -> clientwrapper.ClientWrapper:
+def _parse_address(address: str) -> Tuple[str, int, bool]:
+    """
+    Parse a Databroker address given on URI format.
 
-    client: clientwrapper.ClientWrapper = databrokerclientwrapper.DatabrokerClientWrapper()
+    Supported schemes are grpc (no TLS) and grpcs (TLS). If no scheme is given
+    it defaults to grpc. If no port is given it defaults to 55555.
+    Returns a tuple of (host, port, tls).
+    """
+    if "://" not in address:
+        address = "grpc://" + address
+    parsed = urlsplit(address)
+    if parsed.scheme not in ("grpc", "grpcs"):
+        raise ValueError(f"Unsupported scheme '{parsed.scheme}', expected 'grpc' or 'grpcs'")
+    host = parsed.hostname
+    if not host:
+        raise ValueError(f"Missing host in address '{address}'")
+    return host, parsed.port or 55555, parsed.scheme == "grpcs"
 
-    kuksa_ip = os.environ.get("KUKSA_ADDRESS")
-    if kuksa_ip is not None:
-        client.set_ip(kuksa_ip)
-    elif config.has_option(CONFIG_SECTION_GENERAL, CONFIG_OPTION_IP):
-        client.set_ip(config.get(CONFIG_SECTION_GENERAL, CONFIG_OPTION_IP))
 
-    kuksa_port = os.environ.get("KUKSA_PORT")
-    if kuksa_port is not None:
-        client.set_port(int(kuksa_port))
-    elif config.has_option(CONFIG_SECTION_GENERAL, CONFIG_OPTION_PORT):
-        client.set_port(config.getint(CONFIG_SECTION_GENERAL, CONFIG_OPTION_PORT))
+def _resolve_databroker_address(
+        args: argparse.Namespace, config: configparser.ConfigParser) -> Tuple[str, int, bool]:
+    """
+    Resolve the Databroker address with the following priority:
+    1. command line argument
+    2. environment variable (KUKSA_ADDRESS, with KUKSA_PORT as fallback for the port)
+    3. configuration file ([general].address)
+    4. default value (grpc://127.0.0.1:55555)
+    """
+    if args.address:
+        return _parse_address(args.address)
 
-    if config.has_option(CONFIG_SECTION_GENERAL, CONFIG_OPTION_TLS_ENABLED):
-        client.set_tls(config.getboolean(CONFIG_SECTION_GENERAL, CONFIG_OPTION_TLS_ENABLED, fallback=False))
+    kuksa_address = os.environ.get("KUKSA_ADDRESS")
+    if kuksa_address is not None:
+        host, port, tls = _parse_address(kuksa_address)
+        if "://" not in kuksa_address:
+            kuksa_port = os.environ.get("KUKSA_PORT")
+            if kuksa_port is not None:
+                port = int(kuksa_port)
+        return host, port, tls
+
+    if config.has_option(CONFIG_SECTION_GENERAL, CONFIG_OPTION_ADDRESS):
+        return _parse_address(config.get(CONFIG_SECTION_GENERAL, CONFIG_OPTION_ADDRESS))
+
+    return "127.0.0.1", 55555, False
+
+
+def _get_kuksa_client(config: configparser.ConfigParser,
+                      host: str, port: int, tls: bool) -> clientwrapper.ClientWrapper:
+
+    client: clientwrapper.ClientWrapper = databrokerclientwrapper.DatabrokerClientWrapper(
+        ip=host, port=port, tls=tls
+    )
 
     if config.has_option(CONFIG_SECTION_GENERAL, CONFIG_OPTION_ROOT_CA_PATH):
         path = config.get(CONFIG_SECTION_GENERAL, CONFIG_OPTION_ROOT_CA_PATH)
         client.set_root_ca_path(path)
-    elif client.get_tls():
+    elif tls:
         # We do not want to rely on kuksa-client default
         log.error("Root CA must be given when using TLS")
 
@@ -405,6 +439,12 @@ def _get_kuksa_client(config: configparser.ConfigParser) -> clientwrapper.Client
 def _get_command_line_args_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="dbcfeeder")
     parser.add_argument("--config", metavar="FILE", help="The file to read configuration properties from")
+    parser.add_argument(
+        "address",
+        nargs="?",
+        metavar="ADDRESS",
+        help="Databroker address on URI format, e.g. grpc://127.0.0.1:55555 or grpcs://localhost:55555",
+    )
     parser.add_argument(
         "--dbcfile", metavar="FILE", help="A (comma sparated) list of DBC files to read message definitions from."
     )
@@ -573,7 +613,8 @@ def main(argv):
             parser.error("Cannot use elmcan without configuration in [elmcan] section!")
         elmcan_config = config[CONFIG_SECTION_ELMCAN]
 
-    kuksa_client = _get_kuksa_client(config)
+    kuksa_host, kuksa_port, kuksa_tls = _resolve_databroker_address(args, config)
+    kuksa_client = _get_kuksa_client(config, kuksa_host, kuksa_port, kuksa_tls)
     feeder = Feeder(kuksa_client, elmcan_config, dbc2vss=use_dbc2val, vss2dbc=use_val2dbc)
 
     def signal_handler(signal_received, *_):
