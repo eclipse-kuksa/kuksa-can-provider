@@ -28,19 +28,18 @@ to set in a configuration file.
 | *--use-j1939*         | *USE_J1939*                     | *[can].j1939*           | `False`                          | Use J1939 when decoding CAN frames. Setting the environment variable to any value is equivalent to activating the switch on the command line. |
 | *--use-socketcan*     | -                               | -                       | `False`                          | Use SocketCAN (overriding any use of --dumpfile) |
 | *--mapping*           | *MAPPING_FILE*                  | *[general].mapping*     | `mapping/vss_6.0/vss_dbc.json` | Mapping file used to map CAN signals to databroker datapoints. |
-| *--server-type*       | *SERVER_TYPE*                   | *[general].server_type* | `kuksa_databroker`               | Which type of server the provider should connect to (`kuksa_val_server` or `kuksa_databroker`) |
-| -                     | *KUKSA_ADDRESS*                 | *[general].ip*          | `127.0.0.1`                      | IP address for Server/Databroker |
-| -                     | *KUKSA_PORT*                    | *[general].port*        | `55555`                          | Port for Server/Databroker |
-| -                     | -                               | *[general].tls*         | `False`                          | Shall tls be used for Server/Databroker connection? |
+| -                     | *KUKSA_ADDRESS*                 | *[general].ip*          | `127.0.0.1`                      | IP address for Databroker |
+| -                     | *KUKSA_PORT*                    | *[general].port*        | `55555`                          | Port for Databroker |
+| -                     | -                               | *[general].tls*         | `False`                          | Shall tls be used for Databroker connection? |
 | -                     | -                               | *[general].root_ca_path* | *Undefined*                      | Path to root CA: Only needed if using TLS |
 | -                     | -                               | *[general].tls_server_name* | *Undefined*                   | TLS server name, may be needed if addressing a server by IP-name |
-| -                     | -                               | *[general].token*       | *Undefined*                      | Token path. Only needed if Databroker/Server requires authentication |
+| -                     | -                               | *[general].token*       | *Undefined*                      | Token path. Only needed if Databroker requires authentication |
 | -                     | *VEHICLEDATABROKER_DAPR_APP_ID* | -                       | -                                | Add dapr-app-id metadata. Only relevant for KUKSA.val Databroker |
 | *--dbc2val /--no-dbc2val* | *USE_DBC2VAL* / *NO_USE_DBC2VAL* | *[can].dbc2val*    | dbc2val enabled                  | Specifies if sending data from CAN to KUKSA.val is enabled. Setting the environment variable to any value is equivalent to activating the switch on the command line.|
 | *--val2dbc /--no-val2dbc* | *USE_VAL2DBC* / *NO_USE_VAL2DBC* | *[can].val2dbc*    | val2dbc nor enabled              | Specifies if sending data from KUKSA.val to CAN is enabled. Setting the environment variable to any value is equivalent to activating the switch on the command line. |
 | *--dbc_default <file_path>* | -                         | -                       | dbc_default_values.json          | Default values for val2dbc. Needed for all DBCs in sent CAN signals |
 
-*Note that the [default config file](../config/dbc_feeder.ini) include default Databroker settings and must be modified if you intend to use it for KUKSA.val Server*
+*Note that the [default config file](../config/dbc_feeder.ini) include default Databroker settings*
 
 If `--config` is not given, the dbcfeeder will look for configuration files in the following locations:
 
@@ -64,7 +63,7 @@ $ ./createvcan.sh vcan0
 $ canplayer vcan0=elmcan -v -I candump.log -l i -g 1
 ```
 
-3. Start the kuksa val server or the databroker, for further infomation see [Using kuksa-val-server](#using-kuksa-val-server) or [Using kuksa-databroker](#using-kuksa-databroker).
+3. Start the databroker, for further information see [Using kuksa-databroker](#using-kuksa-databroker).
 
 4. Run the dbcfeeder.py
 
@@ -76,7 +75,7 @@ $ ./dbcfeeder.py
 
 1. Set the a path to a dumpfile e.g. candump.log in the config file `config/dbc_feeder.ini` or use the argument --dumpfile to use a different dumpfile
 
-2. Start the kuksa val server or the databroker, for further infomation see [Using kuksa-val-server](#using-kuksa-val-server) or [Using kuksa-databroker](#using-kuksa-databroker).
+2. Start the databroker, for further information see [Using kuksa-databroker](#using-kuksa-databroker).
 
 3. Run the dbcfeeder.py
 
@@ -110,7 +109,7 @@ Make sure socketcan is started
 $ ./createvcan.sh vcan0
 ```
 
-Make also sure KUKSA.val Databroker is started. You cannot user val2dbc together with KUKSA.val Server.
+Make also sure KUKSA.val Databroker is started.
 
 Start dbcfeeder. Consider using debug-printouts to be able to verify that KUKSA.val updates reaches the dbcfeeder.
 If KUKSA.val Databroker already has values for some of the signals expect something like below
@@ -233,7 +232,7 @@ dbcfile = test/test_dbc/test1_1.dbc, test/test_dbc/test1_2.dbc
 ### Using kuksa-client with a server requiring Authorization
 
 The [default configuration file](../config/dbc_feeder.ini) does not specify any token to use.
-If the KUKSA.val Databroker or KUKSA.val Server requires authorization the `token` attribute in the config file
+If the KUKSA.val Databroker requires authorization the `token` attribute in the config file
 must be set. The default config file include (commented) values to use if using KUKSA.val example tokens.
 
 *Note: Production deployments are strongly recommend to use Authorization but must NOT use the example tokens available in the KUKSA.val repository!*
@@ -241,11 +240,11 @@ must be set. The default config file include (commented) values to use if using 
 ### Using kuksa-client with a server requiring TLS
 
 The [default configuration file](../config/dbc_feeder.ini) does not specify that TLS shall be used.
-If the KUKSA.val Databroker or KUKSA.val Server requires authentication the `tls` attribute in the config file
+If the KUKSA.val Databroker requires authentication the `tls` attribute in the config file
 must be set to `True` and `root_ca_path` must be set.
 The default config file include (commented) values to use if using KUKSA.val example certificates.
 
-The provider verifies that the Databroker/Server presents a certificate with a name matching the server.
+The provider verifies that the Databroker presents a certificate with a name matching the server.
 The KUKSA.val default server certificate include `Server`, `localhost` and `127.0.0.1` as names, but due to a limitation
 name validation does not work when using gRPC and a numeric IP-address, so for that combination you must as a work around
 specify the `tls_server_name` to use in name validation, like in the example below.
@@ -259,37 +258,11 @@ tls_server_name=localhost
 
 *Note: Production deployments are strongly recommend to use TLS but must NOT use the example certificates available in the KUKSA.val repository!*
 
-## Using kuksa-val-server
-
-1. To make the provider communicate with this server, use the `--server-type kuksa_val_server` CLI option or refer to [Configuration](#configuration) for `server-type`.
-
-2. Use the latest release from here:
-https://github.com/eclipse/kuksa.val/tree/master/kuksa-val-server
-
-After you download for example the release 0.2.1 you can run it with this command, this is also described in the [KUKSA Server readme](https://github.com/eclipse/kuksa.val/blob/master/kuksa-val-server/README.md):
-
-```console
-$ docker run -it --rm -v $HOME/kuksaval.config:/config  -p 127.0.0.1:8090:8090 -e LOG_LEVEL=ALL ghcr.io/eclipse/kuksa.val/kuksa-val:0.2.1-amd64
-```
-
-3. After server is started also start the dbcfeeder you should got some similar output in the KUKSA Server terminal
-
-```console
-VERBOSE: Receive action: set
-VERBOSE: Set request with id 05dd9d59-c9a7-4073-9d86-69c8cee85d4c for path: Vehicle.OBD.EngineLoad
-VERBOSE: SubscriptionHandler::publishForVSSPath: set value "0" for path Vehicle.OBD.EngineLoad
-VERBOSE: Receive action: set
-VERBOSE: Set request with id cbde247f-944a-4335-ad87-1062a6d7f28b for path: Vehicle.Chassis.ParkingBrake.IsEngaged
-VERBOSE: SubscriptionHandler::publishForVSSPath: set value true for path Vehicle.Chassis.ParkingBrake.IsEngaged
-```
-
 ## Using kuksa-databroker
 
-1. To make the provider communicate with this server, use the `--server-type kuksa_databroker` CLI option or refer to [Configuration](#configuration) for `server-type`.
-
-2. Start KUKSA Databroker according to the [Quickstart](https://github.com/eclipse/kuksa.val/blob/master/doc/quickstart.md).
+1. Start KUKSA Databroker according to the [Quickstart](https://github.com/eclipse/kuksa.val/blob/master/doc/quickstart.md).
    Automatic data entry registration is not yet supported so you **do need** to specify a metadata path using `--metadata`.
-3. To control that values are fed as expected to KUKSA Databroker you can use the [KUKSA.val Python Client](https://github.com/eclipse/kuksa.val/tree/master/kuksa-client)
+2. To control that values are fed as expected to KUKSA Databroker you can use the [KUKSA.val Python Client](https://github.com/eclipse/kuksa.val/tree/master/kuksa-client)
    or the  [KUKSA Databroker CLI](https://github.com/eclipse/kuksa.val/tree/master/kuksa_databroker#test-the-databroker-using-cli)
    to connect to the Databroker.
 

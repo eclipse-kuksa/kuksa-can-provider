@@ -2,19 +2,16 @@
 
 ![KUKSA Logo](./doc/img/logo.png)
 
-This is a DBC CAN provider for the
-[KUKSA.val](https://raw.githubusercontent.com/eclipse-kuksa/kuksa-can-provider/main/doc/img/logo.png) Server and Databroker.
-For [KUKSA Server](https://github.com/boschglobal/kuksa.val/tree/master/kuksa-val-server)
-it supports receiving data from CAN and sending to Server.
-For [KUKSA Databroker](https://github.com/boschglobal/kuksa.val/tree/master/kuksa_databroker)
-it supports both receiving data from CAN and sending to Databroker as well as subscribing to VSS signals in Databroker
+This is a DBC CAN provider for
+[KUKSA Databroker](https://github.com/boschglobal/kuksa.val/tree/master/kuksa_databroker).
+It supports both receiving data from CAN and sending to Databroker as well as subscribing to VSS signals in Databroker
 and sending to CAN.
 
 The basic operation is as follows:
 
 The provider connects to a socket CAN interface. In dbc2val-mode it reads raw CAN data, that will be parsed based on a DBC file.
 The mapping file (called `vss_dbc.json` in the picture) describes mappings between VSS signals and DBC signals.
-The respective data point is then sent to KUKSA Databroker or Server.
+The respective data point is then sent to KUKSA Databroker.
 It is also possible to replay CAN dumpfiles without the SocketCAN interface being available, e.g. in a CI test environment.
 See "Steps for a local dbc2val test with replaying a can dump file"
 
@@ -30,21 +27,21 @@ Default values shall be provided by a JSON file, an example file exists in [dbc_
                              +-------------+
                              |   DBCFile   |
                              +-------------+            +------------------+
-                                    |                   |                  |
-                                    |              |--->| KUKSA Server     |
-                                    |              |    |                  |
-                                    |              |    +------------------+
-+-----------------+                 |              |
-|                 |         +-------|------+       |
-|  CAN Interface  |         |              |       |
-|       or        |<------ >| CAN Provider |<--OR--|
-| dumpfile replay |         |              |       |
-|                 |         +--------------+       |
-+-----------------+                 |              |    +------------------+
-                                    |              |    |                  |
-                            +--------------+       |--->| KUKSA Databroker |
-                            | vss_dbc.json |            |                  |
-                            +--------------+            +------------------+
+                                     |                   |                  |
+                                     |                   |                  |
+                                     |                   |                  |
+                                     |                   |                  |
++-----------------+                 |                   |                  |
+|                 |         +-------|------+            |                  |
+|  CAN Interface  |         |              |            |                  |
+|       or        |<------ >| CAN Provider |<---------->| KUKSA Databroker |
+| dumpfile replay |         |              |            |                  |
+|                 |         +--------------+            |                  |
++-----------------+                 |                   |                  |
+                                     |                   |                  |
+                             +--------------+           |                  |
+                             | vss_dbc.json |           |                  |
+                             +--------------+           +------------------+
 
 ```
 

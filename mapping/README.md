@@ -4,8 +4,7 @@
 
 The DBC feeder use JSON for configuring how DBC data shall be mapped to/from VSS signals.
 The JSON file is supposed to contain valid VSS JSON, so that it theoretically also could be
-used as configuration file for [KUKSA.val](https://github.com/eclipse/kuksa.val)
-(kuksa-val-server or kuksa-databroker).
+used as configuration file for [kuksa databroker](https://github.com/eclipse-kuksa/kuksa-databroker).
 In addition to this DBC-specific information is needed for those signals that are of interest
 for the DBC feeder, like in the example below.
 
@@ -50,7 +49,7 @@ by the same DBC signal, they are not even part of the same CAN-frame.
 
 Example mapping files for various VSS versions can be found in this folder.
 By default dbc2val uses the `vss_dbc.json` file for the newest available VSS release.
-If your KUKSA.val Server or Databroker use a different VSS-version then you should select a mapping file matching
+If your KUKSA Databroker uses a different VSS-version then you should select a mapping file matching
 that version.
 
 ## Creating a mapping file
@@ -58,7 +57,7 @@ that version.
 There are two methods for creating a mapping file. The first method is to manually add DBC
 information to an existing VSS file in JSON format. It is important that the VSS file is compatible
 with the VSS file used by KUKSA.val. One way to ensure this is to use the same JSON file for both
-KUKSA.val and DBC Feeder. If for example your KUKSA.val (kuksa-val-server or kuksa-databroker)
+KUKSA.val and DBC Feeder. If for example your KUKSA.val (kuksa-databroker)
 instance uses one of the JSON files in the [KUKSA.val repository](https://github.com/eclipse/kuksa.val/tree/master/data/vss-core)
 then you can annotate that file and use the annotated file in both KUKSA.val and the feeder.
 

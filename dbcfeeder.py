@@ -25,7 +25,6 @@ Feeder parsing CAN data and sending to KUKSA.val
 import argparse
 import asyncio
 import configparser
-import enum
 import errno
 import logging
 import os
@@ -46,7 +45,6 @@ from dbcfeederlib import dbc2vssmapper
 from dbcfeederlib import dbcreader
 from dbcfeederlib import j1939reader
 from dbcfeederlib import databrokerclientwrapper
-from dbcfeederlib import serverclientwrapper
 from dbcfeederlib import clientwrapper
 from dbcfeederlib import elm2canbridge
 
@@ -71,12 +69,6 @@ CONFIG_OPTION_TLS_SERVER_NAME = "tls_server_name"
 CONFIG_OPTION_TOKEN = "token"
 
 
-class ServerType(str, enum.Enum):
-    """Enum class to indicate type of server dbcfeeder is connecting to"""
-    KUKSA_VAL_SERVER = 'kuksa_val_server'
-    KUKSA_DATABROKER = 'kuksa_databroker'
-
-
 class Feeder:
     """
     The feeder is responsible for setting up a queue.
@@ -84,7 +76,7 @@ class Feeder:
     Start a DBCReader that extracts interesting CAN messages and adds to the queue.
     Start a CANplayer if you run with a CAN dump file as input.
     Start listening to the queue and transform CAN messages to VSS data and if conditions
-    are fulfilled send them to the client wrapper which in turn send it to the bckend supported by the wrapper.
+    are fulfilled send them to the client wrapper which in turn sends them to the backend.
     """
 
     def __init__(self, kuksa_client: clientwrapper.ClientWrapper,
@@ -371,26 +363,9 @@ def _parse_config(filename: str) -> configparser.ConfigParser:
     return config
 
 
-def _get_kuksa_val_client(command_line_parser: argparse.Namespace,
-                          config: configparser.ConfigParser) -> clientwrapper.ClientWrapper:
+def _get_kuksa_client(config: configparser.ConfigParser) -> clientwrapper.ClientWrapper:
 
-    if command_line_parser.server_type:
-        server_type_name = command_line_parser.server_type
-    elif os.environ.get("SERVER_TYPE"):
-        server_type_name = os.environ.get("SERVER_TYPE")
-    else:
-        server_type_name = config.get(CONFIG_SECTION_GENERAL, "server_type", fallback=ServerType.KUKSA_VAL_SERVER.name)
-
-    server_type = ServerType(server_type_name)
-
-    # The wrappers contain default settings, so we only need to change settings
-    # if given by dbcfeeder configs/arguments/env-variables
-    if server_type is ServerType.KUKSA_VAL_SERVER:
-        client: clientwrapper.ClientWrapper = serverclientwrapper.ServerClientWrapper()
-    elif server_type is ServerType.KUKSA_DATABROKER:
-        client = databrokerclientwrapper.DatabrokerClientWrapper()
-    else:
-        raise ValueError(f"Unsupported server type: {server_type}")
+    client: clientwrapper.ClientWrapper = databrokerclientwrapper.DatabrokerClientWrapper()
 
     kuksa_ip = os.environ.get("KUKSA_ADDRESS")
     if kuksa_ip is not None:
@@ -465,11 +440,6 @@ def _get_command_line_args_parser() -> argparse.ArgumentParser:
         "--dbc-default",
         metavar="FILE",
         help="A file containing default values for DBC signals. Needed for all CAN signals used if using val2dbc",
-    )
-    parser.add_argument(
-        "--server-type",
-        help="The type of KUKSA.val server to write/read VSS signal to/from",
-        choices=[server_type.value for server_type in ServerType]
     )
     parser.add_argument(
         "--lax-dbc-parsing",
@@ -603,8 +573,8 @@ def main(argv):
             parser.error("Cannot use elmcan without configuration in [elmcan] section!")
         elmcan_config = config[CONFIG_SECTION_ELMCAN]
 
-    kuksa_val_client = _get_kuksa_val_client(args, config)
-    feeder = Feeder(kuksa_val_client, elmcan_config, dbc2vss=use_dbc2val, vss2dbc=use_val2dbc)
+    kuksa_client = _get_kuksa_client(config)
+    feeder = Feeder(kuksa_client, elmcan_config, dbc2vss=use_dbc2val, vss2dbc=use_val2dbc)
 
     def signal_handler(signal_received, *_):
         log.info("Received signal %s, stopping...", signal_received)
