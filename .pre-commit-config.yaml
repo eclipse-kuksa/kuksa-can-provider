@@ -17,3 +17,9 @@ repos:
     rev: '7.0.0'
     hooks:
     -   id: flake8
+
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: 'v2.3.1'
+    hooks:
+    -   id: mypy
+        args: [--config-file=mypy.ini]

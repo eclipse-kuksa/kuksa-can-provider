@@ -124,7 +124,7 @@ class VSSMapping:
     parser: Parser = Parser()
 
     def __init__(self, vss_name: str, dbc_name: str, transform: dict, interval_ms: int,
-                 on_change: bool, datatype: str, description: str, multiplexer: VSSMultiplexer = None):
+                 on_change: bool, datatype: str, description: str, multiplexer: VSSMultiplexer | None = None):
         self.vss_name = vss_name
         self.dbc_name = dbc_name
         self.transform = transform
