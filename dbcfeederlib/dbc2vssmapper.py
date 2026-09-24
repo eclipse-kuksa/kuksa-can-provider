@@ -54,6 +54,60 @@ class VSSObservation:
     time: float
 
 
+class VSSMultiplexer:
+    """
+    The definition of a multiplexer entry for a VSSMapping.
+
+    This multiplexer can be used to support mappings for multiplexed signals.
+    """
+
+    def __init__(self):
+        self.length = 0
+        self.signals = []
+        self.values = []
+
+    def append(self, signal: str, value: int):
+        """
+        Appends a signal to a multiplexer
+        """
+        self.signals.append(signal)
+        self.values.append(value)
+        self.length += 1
+
+    def size(self) -> int:
+        """
+        Getter for the multiplexers size
+        Returns:
+            int: number of multiplexer signals
+        """
+        return self.length
+
+    def get_signal(self, index: int) -> str:
+        """
+        Getter for the multiplexers signal name
+        Returns:
+            str: the signal of the multiplexer
+        """
+        if index < self.length:
+            return self.signals[index]
+        else:
+            log.error("Access to multiplexer exceeds size")
+            return ''
+
+    def get_value(self, index: int) -> int:
+        """
+        Getter for the multiplexers signal value
+        Returns:
+            int: the value of the multiplexer
+        """
+
+        if index < self.length:
+            return self.values[index]
+        else:
+            log.error("Access to multiplexer exceeds size")
+        return -1
+
+
 class VSSMapping:
     """
     The definition of how a particular VSS data entry is mapped to/from a particular
@@ -70,7 +124,7 @@ class VSSMapping:
     parser: Parser = Parser()
 
     def __init__(self, vss_name: str, dbc_name: str, transform: dict, interval_ms: int,
-                 on_change: bool, datatype: str, description: str):
+                 on_change: bool, datatype: str, description: str, multiplexer: VSSMultiplexer = None):
         self.vss_name = vss_name
         self.dbc_name = dbc_name
         self.transform = transform
@@ -78,6 +132,7 @@ class VSSMapping:
         self.on_change = on_change
         self.datatype = datatype
         self.description = description
+        self.multiplexer = multiplexer
         # For time comparison (interval_ms) we store last value used for comparison. Unit seconds.
         self.last_time: float = 0.0
         # For value comparison (on_changes) we store last value used for comparison
@@ -364,10 +419,41 @@ class Mapper(DBCParser):
                 log.info("Using default interval 1000 ms for mapping definition of %s", expanded_name)
                 interval = 1000
 
+        if "multiplexer" in dbc2vss:
+            multiplexer_signal_name = ""
+            multiplexer_signal_value = ""
+            multiplexer = VSSMultiplexer()
+
+            for multiplexer_item in dbc2vss["multiplexer"]:
+                if "signal" in multiplexer_item:
+                    multiplexer_signal_name = multiplexer_item["signal"]
+                else:
+                    log.error("No signal provided in multiplexer for %s", can_signal_name)
+                    sys.exit(-1)
+                if "value" in multiplexer_item:
+                    multiplexer_signal_value = multiplexer_item["value"]
+                    if not isinstance(multiplexer_signal_value, int):
+                        log.error("Value for multiplexer in signal %s is not an integer", can_signal_name)
+                        sys.exit(-1)
+                else:
+                    log.error("No value provided in multiplexer for %s", can_signal_name)
+                    sys.exit(-1)
+
+                msg_filter_def = self.get_messages_for_signal(multiplexer_signal_name)
+                msg_signal_def = self.get_messages_for_signal(can_signal_name)
+
+                if msg_filter_def != msg_signal_def:
+                    log.error("CAN signal name %s and multiplexer signal name %s does no apply to the same CAN frames",
+                              can_signal_name, multiplexer_signal_name)
+                    sys.exit(-1)
+                multiplexer.append(multiplexer_signal_name, multiplexer_signal_value)
+        else:
+            multiplexer = None
+
         if can_signal_name not in self._dbc2vss_mapping:
             self._dbc2vss_mapping[can_signal_name] = []
         mapping_entry = VSSMapping(expanded_name, can_signal_name, transformation_definition, interval, on_change,
-                                   node["datatype"], node["description"])
+                                   node["datatype"], node["description"], multiplexer=multiplexer)
         self._dbc2vss_mapping[can_signal_name].append(mapping_entry)
 
         for msg_def in self.get_messages_for_signal(can_signal_name):

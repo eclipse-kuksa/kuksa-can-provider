@@ -1,0 +1,22 @@
+{
+  "A": {
+    "children": {
+      "MissingMultiplexerSignal": {
+        "datatype": "uint8",
+        "dbc": {
+          "on_change": true,
+          "signal": "AlwaysPresent",
+          "multiplexer": [
+            {
+              "value": 0
+            }
+          ]
+        },
+        "description": "Multiplexer entry without a \"signal\" property.",
+        "type": "sensor"
+      }
+    },
+    "description": "Branch A.",
+    "type": "branch"
+  }
+}

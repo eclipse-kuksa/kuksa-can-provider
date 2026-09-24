@@ -1,0 +1,47 @@
+{
+  "A": {
+    "children": {
+      "AlwaysPresentModeA": {
+        "datatype": "uint8",
+        "dbc": {
+          "on_change": true,
+          "signal": "AlwaysPresent",
+          "multiplexer": [
+            {
+              "signal": "MuxSelector",
+              "value": 0
+            }
+          ]
+        },
+        "description": "AlwaysPresent interpreted for MuxSelector 0.",
+        "type": "sensor"
+      },
+      "AlwaysPresentModeB": {
+        "datatype": "uint8",
+        "dbc": {
+          "on_change": true,
+          "signal": "AlwaysPresent",
+          "multiplexer": [
+            {
+              "signal": "MuxSelector",
+              "value": 1
+            }
+          ]
+        },
+        "description": "AlwaysPresent interpreted for MuxSelector 1.",
+        "type": "sensor"
+      },
+      "NoMultiplexer": {
+        "datatype": "uint8",
+        "dbc": {
+          "on_change": true,
+          "signal": "AlwaysPresent"
+        },
+        "description": "Plain mapping without multiplexer condition.",
+        "type": "sensor"
+      }
+    },
+    "description": "Branch A.",
+    "type": "branch"
+  }
+}

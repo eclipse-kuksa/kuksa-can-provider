@@ -132,6 +132,9 @@ Syntax
     [interval_ms: <interval in milliseconds>]
     [on_change: {true|false}]
     [transform: ...]
+    [multiplexer:
+      - signal: <DBC multiplexer signal name>
+        value: <multiplexer signal value>]
 ```
 
 (`dbc` can be used as synonym for `dbc2vss`)
@@ -245,6 +248,47 @@ If using Yaml (*.vspec) as source format quoting string values is optional.
 Quotes may however be needed if the value otherwise could be misinterpreted as a [Yaml 1.1](https://yaml.org/type/bool.html)
 literal. Typical examples are values like `yes` which is a considered as a synonym to `true`.
 If using JSON all strings must be quoted.
+
+### Signal multiplexer
+
+The `multiplexer` property can be used to restrict a `dbc2vss` mapping to a
+specific variant of a multiplexed CAN frame. `cantools` handles multiplexing
+defined in the DBC file. The mapping property is useful when the DBC file does
+not define the multiplexing or when an additional filter is needed.
+
+Each entry in `multiplexer` must contain the DBC signal name (`signal`) and the
+integer value (`value`) that selects the variant. The data signal and every
+multiplexer signal must be part of the same CAN frame. Otherwise the mapping
+file is rejected.
+
+If several multiplexer entries are configured, all of them must match before
+the data signal is evaluated. They therefore form an AND filter. A mismatch
+causes the received data signal to be ignored for that mapping; other mappings
+for the same data signal can still be evaluated.
+
+For example, the following frame contains tire pressure together with the
+location selectors:
+
+```
+BO_ 2566845694 TIRE1: 8 Vector__XXX
+ SG_ Pressure : 8|8@1+ (4,0) [0|1000] "kPa" Vector__XXX
+ SG_ TireLocation : 0|4@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ AxleLocation : 4|4@1+ (1,0) [0|255] "" Vector__XXX
+```
+
+```yaml
+Vehicle.Chassis.Axle.Row2.Wheel.Pos1.Tire.Pressure:
+  type: sensor
+  datatype: float
+  dbc2vss:
+    signal: Pressure
+    interval_ms: 10000
+    multiplexer:
+      - signal: TireLocation
+        value: 0
+      - signal: AxleLocation
+        value: 1
+```
 
 ## Evaluation Logics
 

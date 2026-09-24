@@ -138,8 +138,23 @@ class CanReader(ABC):
                         "Queueing %s, triggered by %s, raw value %s",
                         signal_mapping.vss_name, signal_name, raw_value
                     )
-                    self._queue.put(VSSObservation(
-                        signal_name, signal_mapping.vss_name, raw_value, rx_time))
+
+                    filter_mismatch = False
+                    if signal_mapping.multiplexer is not None:
+                        multiplexer_idx = 0
+                        multiplexer_len = signal_mapping.multiplexer.size()
+                        while multiplexer_idx < multiplexer_len:
+                            multiplex_name = signal_mapping.multiplexer.signals[multiplexer_idx]
+                            multiplex_value = signal_mapping.multiplexer.values[multiplexer_idx]
+
+                            if decoded[multiplex_name] != multiplex_value:
+                                filter_mismatch = True
+
+                            multiplexer_idx += 1
+
+                    if not filter_mismatch:
+                        self._queue.put(VSSObservation(
+                            signal_name, signal_mapping.vss_name, raw_value, rx_time))
                 else:
                     log.debug(
                         "Ignoring %s, triggered by %s, raw value %s",

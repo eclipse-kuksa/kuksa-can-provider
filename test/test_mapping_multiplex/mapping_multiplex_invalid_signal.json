@@ -1,0 +1,23 @@
+{
+  "A": {
+    "children": {
+      "InvalidMultiplexerSignal": {
+        "datatype": "uint8",
+        "dbc": {
+          "on_change": true,
+          "signal": "AlwaysPresent",
+          "multiplexer": [
+            {
+              "signal": "NonExistentSignal",
+              "value": 0
+            }
+          ]
+        },
+        "description": "Multiplexer signal does not exist in the DBC file.",
+        "type": "sensor"
+      }
+    },
+    "description": "Branch A.",
+    "type": "branch"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "A": {
+    "children": {
+      "MismatchedValue": {
+        "datatype": "uint8",
+        "dbc": {
+          "on_change": true,
+          "signal": "OtherSignal",
+          "multiplexer": [
+            {
+              "signal": "MuxSelector",
+              "value": 0
+            }
+          ]
+        },
+        "description": "OtherSignal and MuxSelector belong to different CAN frames.",
+        "type": "sensor"
+      }
+    },
+    "description": "Branch A.",
+    "type": "branch"
+  }
+}

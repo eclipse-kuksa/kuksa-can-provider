@@ -27,10 +27,10 @@ Default values shall be provided by a JSON file, an example file exists in [dbc_
                              +-------------+
                              |   DBCFile   |
                              +-------------+            +------------------+
-                                     |                   |                  |
-                                     |                   |                  |
-                                     |                   |                  |
-                                     |                   |                  |
+                                    |                   |                  |
+                                    |                   |                  |
+                                    |                   |                  |
+                                    |                   |                  |
 +-----------------+                 |                   |                  |
 |                 |         +-------|------+            |                  |
 |  CAN Interface  |         |              |            |                  |
@@ -38,7 +38,7 @@ Default values shall be provided by a JSON file, an example file exists in [dbc_
 | dumpfile replay |         |              |            |                  |
 |                 |         +--------------+            |                  |
 +-----------------+                 |                   |                  |
-                                     |                   |                  |
+                                    |                   |                  |
                              +--------------+           |                  |
                              | vss_dbc.json |           |                  |
                              +--------------+           +------------------+

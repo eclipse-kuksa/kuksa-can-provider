@@ -1,0 +1,23 @@
+{
+  "A": {
+    "children": {
+      "InvalidMultiplexerValue": {
+        "datatype": "uint8",
+        "dbc": {
+          "on_change": true,
+          "signal": "AlwaysPresent",
+          "multiplexer": [
+            {
+              "signal": "MuxSelector",
+              "value": "0"
+            }
+          ]
+        },
+        "description": "Multiplexer value is a string instead of an integer.",
+        "type": "sensor"
+      }
+    },
+    "description": "Branch A.",
+    "type": "branch"
+  }
+}
