@@ -70,7 +70,7 @@ class TestCanReader():
         reader = TestCanReader.NoopCanReader(queue, mapper)
 
         # WHEN a message with a known frame ID is received
-        reader._process_can_message(0x0102, bytes())
+        reader._process_can_message(0x0102, bytearray())
 
         # THEN its signals are mapped to VSS data entries
         mapper.get_dbc2vss_mappings.assert_called_once_with("UnboundedSignal")
@@ -210,7 +210,8 @@ class TestJ1939Reader():
         j1939reader = J1939Reader(queue, mapper, "vcan0")
 
         # WHEN a message is received from the CAN bus for which a mapping gas been defined
-        j1939reader._on_message(priority=1, pgn=0x1FFFF, source_address=0x45, timestamp=0, data=[0x10, 0x32, 0x54])
+        j1939reader._on_message(priority=1, pgn=0x1FFFF, source_address=0x45, timestamp=0,
+                                data=bytearray([0x10, 0x32, 0x54]))
 
         # THEN the reader determines both VSS Data Entries that the CAN signals are mapped to
         assert queue.put.call_count == 2

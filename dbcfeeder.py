@@ -132,6 +132,7 @@ class Feeder:
                     canport,
                     candumpfile,
                     infinite=infinite,
+                    use_j1939=use_j1939
                 )
             else:
                 log.info("Using DBC reader")
@@ -147,7 +148,7 @@ class Feeder:
             if canport == 'elmcan':
                 log.info("Using elmcan. Trying to set up elm2can bridge")
                 whitelisted_frame_ids: List[int] = []
-                for filter in self._mapper.can_frame_id_whitelist():
+                for filter in self._mapper.can_frame_id_whitelist(use_j1939):  # type: ignore
                     whitelisted_frame_ids.append(filter.can_id)  # type: ignore
                 elm2canbridge.elm2canbridge(canport, self._elmcan_config, whitelisted_frame_ids)
 

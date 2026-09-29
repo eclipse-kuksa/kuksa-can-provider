@@ -62,6 +62,11 @@ the DBC file does not contain any native DBC multiplexer syntax
    `append()`/`size()`/`get_signal()`/`get_value()` for valid indices, and a
    logged error plus a safe fallback return value (`''` / `-1`) for indices
    that exceed the configured size.
+10. A single CAN-frame payload may be provided as `bytes` or `bytearray`. The
+  reader must normalize these payloads before decoding the DBC message.
+11. A list payload must not be interpreted as a single CAN-frame payload.
+    J1939 list payloads must be routed explicitly to the multipacket handler,
+    which processes the payload as a signal value.
 
 ## Test cases and expected results
 
@@ -78,9 +83,11 @@ the DBC file does not contain any native DBC multiplexer syntax
 | `test_vss_multiplexer_append_and_size` | Appends multiple signal/value pairs directly to a `VSSMultiplexer` instance. | `size()` and the getters return the appended signals/values for valid indices. |
 | `test_vss_multiplexer_get_signal_out_of_range` | Calls `get_signal()` with an index beyond the configured size. | Returns `''` and logs "Access to multiplexer exceeds size". |
 | `test_vss_multiplexer_get_value_out_of_range` | Calls `get_value()` with an index beyond the configured size. | Returns `-1` and logs "Access to multiplexer exceeds size". |
-| `test_reader_queues_signal_matching_multiplexer_value` | Simulates receiving a message with `MuxSelector == 0` for a mapping that is only valid for `MuxSelector == 0`. | The signal is queued (`queue.put` called once), with the correct `dbc_name` and `vss_name`. |
+| `test_reader_queues_signal_matching_multiplexer_value` (parameterized) | Sends an empty `bytes` or `bytearray` payload with a decoded selector value of `0`. | Both payload types are accepted; the matching `AlwaysPresent` mapping is queued with the expected DBC and VSS names. |
+| `test_reader_processes_multipacket_list_as_signal_value` | Calls the multipacket handler with frame ID `0x100` and list payload `[65, 66]` for `ListSignal`. | One observation is queued for `ListSignal`, and its `raw_value` remains `[65, 66]`. |
+| `test_j1939_reader_routes_list_payload_to_multipacket_handler` | Sends list payload `[65, 66]` through the J1939 callback with PGN `0x1FFFF` and source address `0x45`. | The callback calls the multipacket handler with extended frame ID `0x1FFFF45` and the unchanged payload. |
 | `test_reader_discards_signal_not_matching_multiplexer_value` | Simulates receiving a message with `MuxSelector == 0` for a mapping that is only valid for `MuxSelector == 1`. | The signal is discarded, `queue.put` is not called. |
-| `test_reader_queues_signal_without_multiplexer_regardless_of_selector` | Simulates receiving a message for a mapping without a `multiplexer` property. | The signal is queued regardless of the value of `MuxSelector`. |
+| `test_reader_queues_signal_without_multiplexer_regardless_of_selector` | Simulates receiving a message using a `bytearray` payload for a mapping without a `multiplexer` property. | The signal is queued regardless of the value of `MuxSelector`. |
 
 ## Running the tests
 

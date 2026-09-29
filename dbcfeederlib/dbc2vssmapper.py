@@ -54,6 +54,47 @@ class VSSObservation:
     time: float
 
 
+class VSSDelimitedList:
+    """
+    The definition of a delimited list for a VSSMapping.
+
+    This delimited list can be used to support mappings for signals
+    that are part of a delimited list.
+    """
+
+    def __init__(self, delimiter: str, index: int):
+        self.delimiter = delimiter
+        self.index = index
+
+    def get_delimiter(self) -> str:
+        """
+        Getter for the delimited lists delimiter
+        Returns:
+            str: the delimiter of the list
+        """
+        return self.delimiter
+
+    def get_index(self) -> int:
+        """
+        Getter for the delimited lists index
+        Returns:
+            int: the index of the list
+        """
+        return self.index
+
+    def get_item(self, input_str: str) -> tuple[bool, str]:
+        """
+        Getter for the delimited lists item at the index
+        Returns:
+            tuple: (bool, str) where bool indicates if the item was found, and str is the item
+        """
+        items = input_str.split(self.delimiter)
+        if self.index < len(items):
+            return True, items[self.index]
+
+        return False, ''
+
+
 class VSSMultiplexer:
     """
     The definition of a multiplexer entry for a VSSMapping.
@@ -124,7 +165,8 @@ class VSSMapping:
     parser: Parser = Parser()
 
     def __init__(self, vss_name: str, dbc_name: str, transform: dict, interval_ms: int,
-                 on_change: bool, datatype: str, description: str, multiplexer: VSSMultiplexer | None = None):
+                 on_change: bool, datatype: str, description: str,
+                 multiplexer: VSSMultiplexer | None = None, delimited_list: VSSDelimitedList | None = None):
         self.vss_name = vss_name
         self.dbc_name = dbc_name
         self.transform = transform
@@ -133,6 +175,7 @@ class VSSMapping:
         self.datatype = datatype
         self.description = description
         self.multiplexer = multiplexer
+        self.delimited_list = delimited_list
         # For time comparison (interval_ms) we store last value used for comparison. Unit seconds.
         self.last_time: float = 0.0
         # For value comparison (on_changes) we store last value used for comparison
@@ -210,6 +253,26 @@ class VSSMapping:
             elif isinstance(value, (int, float)):
                 vss_value = value
                 log.debug("Using int/float value %s for %s", vss_value, self.vss_name)
+            elif isinstance(value, str):
+                vss_value = value
+                log.debug("Using string value %s for %s", vss_value, self.vss_name)
+            elif isinstance(value, list):
+                if self.datatype == "string":
+                    vss_value = ''.join(chr(x) for x in value if isinstance(x, int))
+
+                    if self.delimited_list is not None:
+                        found, vss_value = self.delimited_list.get_item(vss_value)
+                        if not found:
+                            log.warning(
+                                "Delimited list value for %s is out of range, using empty string",
+                                self.vss_name
+                            )
+                            vss_value = ''
+
+                    log.debug("Using delimited list value %s for %s", vss_value, self.vss_name)
+                else:
+                    vss_value = value
+                    log.debug("Using list value %s for %s", vss_value, self.vss_name)
             else:
                 vss_value = value
                 # It is not expected to end up here, if we find a use-case we should better handle that
@@ -311,7 +374,7 @@ class Mapper(DBCParser):
         self._fail_on_duplicate_signal_definitions = fail_on_duplicate_signal_definitions
         self._traverse_vss_node("", jsonmapping)
 
-    def can_frame_id_whitelist(self) -> List[CanFilter]:
+    def can_frame_id_whitelist(self, use_j1939: bool) -> List[CanFilter]:
         """
         Get all frame IDs of CAN messages that contain signals for which a mapping to VSS exists.
         """
@@ -320,6 +383,11 @@ class Mapper(DBCParser):
                 for frame_id in self._mapped_can_frame_ids:
                     self._can_filters.append(CanFilter(can_id=frame_id, can_mask=self._frame_id_mask))
 
+        if use_j1939:
+            # J1939 Broadcast Announce Message (BAM) for transport protocol
+            self._can_filters.append(CanFilter(can_id=0x00ECFF00, can_mask=self._frame_id_mask))
+            # J1939 TP Message
+            self._can_filters.append(CanFilter(can_id=0x00EBFF00, can_mask=self._frame_id_mask))
         return self._can_filters
 
     def transform_dbc_value(self, vss_observation: VSSObservation) -> Any:
@@ -419,6 +487,34 @@ class Mapper(DBCParser):
                 log.info("Using default interval 1000 ms for mapping definition of %s", expanded_name)
                 interval = 1000
 
+        if "delimited_list" in dbc2vss:
+            if "delimiter" in dbc2vss["delimited_list"]:
+                delimiter = dbc2vss["delimited_list"]["delimiter"]
+                if not isinstance(delimiter, str):
+                    log.error(
+                        "Delimiter of delimited list for mapping definition of %s is not a string",
+                        expanded_name
+                    )
+                    sys.exit(-1)
+            else:
+                log.error("No delimiter provided in delimited list for %s", can_signal_name)
+                sys.exit(-1)
+            if "index" in dbc2vss["delimited_list"]:
+                index = dbc2vss["delimited_list"]["index"]
+                if not isinstance(index, int) or index < 0:
+                    log.error(
+                        "Index of delimited list for mapping definition of %s is not a non-negative integer",
+                        expanded_name
+                    )
+                    sys.exit(-1)
+            else:
+                log.error("No index provided for delimited list in signal %s", can_signal_name)
+                sys.exit(-1)
+
+            delimited_list = VSSDelimitedList(delimiter, index)
+        else:
+            delimited_list = None
+
         if "multiplexer" in dbc2vss:
             multiplexer_signal_name = ""
             multiplexer_signal_value = ""
@@ -453,7 +549,8 @@ class Mapper(DBCParser):
         if can_signal_name not in self._dbc2vss_mapping:
             self._dbc2vss_mapping[can_signal_name] = []
         mapping_entry = VSSMapping(expanded_name, can_signal_name, transformation_definition, interval, on_change,
-                                   node["datatype"], node["description"], multiplexer=multiplexer)
+                                   node["datatype"], node["description"], multiplexer=multiplexer,
+                                   delimited_list=delimited_list)
         self._dbc2vss_mapping[can_signal_name].append(mapping_entry)
 
         for msg_def in self.get_messages_for_signal(can_signal_name):

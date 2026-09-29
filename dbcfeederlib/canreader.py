@@ -35,7 +35,7 @@ class CanReader(ABC):
     """
     def __init__(self, rxqueue: Queue, mapper: Mapper, can_port: str,
                  dump_file: Optional[str] = None, can_fd: bool = False,
-                 infinite: bool = False):
+                 infinite: bool = False, use_j1939: bool = False):
         """
         This init method is only supposed to be called by subclass' __init__ functions.
         """
@@ -45,7 +45,7 @@ class CanReader(ABC):
         self._running = False
         self._can_player: Optional[CANplayer] = None
 
-        can_filters = mapper.can_frame_id_whitelist()
+        can_filters = mapper.can_frame_id_whitelist(use_j1939)
         log.info("Using CAN frame ID whitelist=%s", can_filters)
         self._can_kwargs: Dict[str, Any] = {
             "interface": "socketcan",
@@ -90,8 +90,11 @@ class CanReader(ABC):
         self._running = False
         self._stop_can_bus_listener()
 
-    def _process_can_message(self, frame_id: int, data: Any):
+    def _process_can_message(self, frame_id: int, data: bytes | bytearray):
         try:
+            if not isinstance(data, (bytes, bytearray)):
+                raise TypeError(f"Expected bytes or bytearray CAN payload, got {type(data).__name__}")
+
             message_def = self._mapper.get_message_by_frame_id(frame_id)
             if message_def is not None:
                 decode = message_def.decode(bytes(data), allow_truncated=True, decode_containers=True)
@@ -111,6 +114,15 @@ class CanReader(ABC):
 
         except Exception:
             log.warning("Error processing CAN message with frame ID: %#x", frame_id, exc_info=True)
+
+    def _process_multipacket_message(self, frame_id: int, data: list[int]):
+        try:
+            message_def = self._mapper.get_message_by_frame_id(frame_id)
+            if message_def is not None:
+                signal = message_def.signals[0].name
+                self._handle_decoded_frame(message_def, {signal: data}, time.time())
+        except Exception:
+            log.warning("Error processing multipacket CAN message with frame ID: %#x", frame_id, exc_info=True)
 
     def _handle_decoded_frame(self, message_def: cantools.database.Message, decoded: SignalMappingType, rx_time: float):
         for signal_name, raw_value in decoded.items():  # type: ignore

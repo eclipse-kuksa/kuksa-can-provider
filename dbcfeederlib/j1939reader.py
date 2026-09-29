@@ -35,27 +35,36 @@ from dbcfeederlib import dbc2vssmapper
 
 log = logging.getLogger(__name__)
 
+# Set log level of j1939 package to WARNING
+# otherwise each received multipackage message is logged as INFO
+logging.getLogger("j1939").setLevel(logging.WARNING)
+
 
 class J1939Reader(canreader.CanReader):
 
     def __init__(self, rxqueue: Queue, mapper: dbc2vssmapper.Mapper, can_port: str,
-                 dump_file: Optional[str] = None, infinite: bool = False):
+                 dump_file: Optional[str] = None, infinite: bool = False, use_j1939: bool = False):
         super().__init__(
             rxqueue,
             mapper,
             can_port,
             dump_file=dump_file,
             infinite=infinite,
+            use_j1939=use_j1939,
         )
 
         self._ecu = j1939.ElectronicControlUnit()
         self._ecu.subscribe(self._on_message)
 
-    def _on_message(self, priority: int, pgn: int, source_address: int, timestamp: int, data):
+    def _on_message(self, priority: int, pgn: int, source_address: int, timestamp: int,
+                    data: bytes | bytearray | list[int]):
         # create an extended CAN frame ID from PGN and source address
         extended_frame_id: int = pgn << 8 | source_address
         log.debug("Processing j1939 message [frame_id: %d, PGN %#x]", extended_frame_id, pgn)
-        self._process_can_message(extended_frame_id, data)
+        if isinstance(data, list):
+            self._process_multipacket_message(extended_frame_id, data)
+        else:
+            self._process_can_message(extended_frame_id, data)
 
     def _start_can_bus_listener(self):
         self._ecu.connect(**self._can_kwargs)

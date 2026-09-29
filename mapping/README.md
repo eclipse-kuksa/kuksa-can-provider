@@ -132,6 +132,9 @@ Syntax
     [interval_ms: <interval in milliseconds>]
     [on_change: {true|false}]
     [transform: ...]
+    [delimited_list:
+      delimiter: <string>
+      index: <zero-based non-negative integer>]
     [multiplexer:
       - signal: <DBC multiplexer signal name>
         value: <multiplexer signal value>]
@@ -248,6 +251,38 @@ If using Yaml (*.vspec) as source format quoting string values is optional.
 Quotes may however be needed if the value otherwise could be misinterpreted as a [Yaml 1.1](https://yaml.org/type/bool.html)
 literal. Typical examples are values like `yes` which is a considered as a synonym to `true`.
 If using JSON all strings must be quoted.
+
+### Delimited list values
+
+The `delimited_list` option can be used for a `dbc2vss` mapping when a DBC
+signal is decoded as a list of integer character codes, but the corresponding
+VSS signal has datatype `string`. The feeder converts the integer values to
+characters, joins them into a string, splits that string using `delimiter`,
+and selects the item at `index`. The index is zero-based.
+
+For example, if the decoded list represents `front|rear|left`, the mapping
+below selects `rear`:
+
+```yaml
+Vehicle.Example.Position:
+  type: sensor
+  datatype: string
+  dbc2vss:
+    signal: PositionList
+    delimited_list:
+      delimiter: "|"
+      index: 1
+```
+
+`delimiter` is required and must be a string. `index` is required and must be
+a non-negative integer. An invalid or missing property rejects the mapping
+when the mapping file is loaded. If the decoded list does not contain the
+configured index, the feeder logs a warning and uses an empty string for the
+VSS value.
+
+Without `delimited_list`, list-valued signals mapped to a VSS `string` are
+converted to a string but are not split into individual items. This option
+does not affect numeric or other non-string VSS datatypes.
 
 ### Signal multiplexer
 

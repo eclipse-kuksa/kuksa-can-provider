@@ -31,6 +31,7 @@ import pytest  # type: ignore
 from dbcfeederlib import dbc2vssmapper
 from dbcfeederlib.canreader import CanReader
 from dbcfeederlib.dbc2vssmapper import Mapper, VSSMapping, VSSMultiplexer
+from dbcfeederlib.j1939reader import J1939Reader
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 dbc_file_names = [test_path + "/test_mux.dbc"]
@@ -206,7 +207,8 @@ def _mapping_for(vss_name: str, dbc_name: str, multiplexer_value: int) -> VSSMap
         multiplexer=multiplexer)
 
 
-def test_reader_queues_signal_matching_multiplexer_value():
+@pytest.mark.parametrize("payload", [bytes(), bytearray()])
+def test_reader_queues_signal_matching_multiplexer_value(payload):
     # GIVEN a mapping which is only valid when MuxSelector equals 0
     mapping = _mapping_for("A.AlwaysPresentModeA", "AlwaysPresent", 0)
     message_def = mock.Mock()
@@ -220,12 +222,49 @@ def test_reader_queues_signal_matching_multiplexer_value():
     reader = NoopCanReader(queue, mapper)
 
     # WHEN a CAN message is received with a MuxSelector value that matches the mapping
-    reader._process_can_message(0x100, bytes())
+    reader._process_can_message(0x100, payload)
 
     # THEN the signal is queued
     queue.put.assert_called_once()
     assert queue.put.call_args.args[0].dbc_name == "AlwaysPresent"
     assert queue.put.call_args.args[0].vss_name == "A.AlwaysPresentModeA"
+
+
+def test_reader_processes_multipacket_list_as_signal_value():
+    mapping = VSSMapping(
+        vss_name="A.ListSignal",
+        dbc_name="ListSignal",
+        transform={},
+        interval_ms=0,
+        on_change=True,
+        datatype="string",
+        description="some signal")
+    message_def = mock.Mock()
+    message_def.signals = [mock.Mock(name="signal definition")]
+    message_def.signals[0].name = "ListSignal"
+    message_def.get_signal_by_name.return_value = mock.Mock(minimum=None, maximum=None)
+
+    mapper = mock.create_autospec(spec=dbc2vssmapper.Mapper)
+    mapper.get_message_by_frame_id.return_value = message_def
+    mapper.get_dbc2vss_mappings.side_effect = lambda name: [mapping] if name == "ListSignal" else []
+    queue = mock.create_autospec(spec=Queue)
+    reader = NoopCanReader(queue, mapper)
+
+    reader._process_multipacket_message(0x100, [65, 66])
+
+    queue.put.assert_called_once()
+    assert queue.put.call_args.args[0].raw_value == [65, 66]
+
+
+def test_j1939_reader_routes_list_payload_to_multipacket_handler():
+    mapper = mock.create_autospec(spec=dbc2vssmapper.Mapper)
+    reader = J1939Reader(mock.create_autospec(spec=Queue), mapper, "vcan0")
+
+    with mock.patch.object(reader, "_process_multipacket_message") as process_multipacket:
+        reader._on_message(priority=1, pgn=0x1FFFF, source_address=0x45,
+                           timestamp=0, data=[65, 66])
+
+    process_multipacket.assert_called_once_with(0x1FFFF45, [65, 66])
 
 
 def test_reader_discards_signal_not_matching_multiplexer_value():
@@ -270,7 +309,7 @@ def test_reader_queues_signal_without_multiplexer_regardless_of_selector():
     reader = NoopCanReader(queue, mapper)
 
     # WHEN a CAN message is received
-    reader._process_can_message(0x100, bytes())
+    reader._process_can_message(0x100, bytearray())
 
     # THEN the signal is queued regardless of the MuxSelector value
     queue.put.assert_called_once()
