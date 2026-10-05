@@ -274,11 +274,11 @@ Vehicle.Example.Position:
       index: 1
 ```
 
-`delimiter` is required and must be a string. `index` is required and must be
-a non-negative integer. An invalid or missing property rejects the mapping
-when the mapping file is loaded. If the decoded list does not contain the
-configured index, the feeder logs a warning and uses an empty string for the
-VSS value.
+`delimited_list` must be an object containing a non-empty string `delimiter`
+and a non-negative integer `index`. Boolean values are not valid indices.
+Missing or invalid properties reject the mapping when the mapping file is
+loaded. If the decoded list does not contain the configured index, the feeder
+logs a warning and uses an empty string for the VSS value.
 
 Without `delimited_list`, list-valued signals mapped to a VSS `string` are
 converted to a string but are not split into individual items. This option

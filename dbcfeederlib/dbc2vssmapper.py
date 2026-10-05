@@ -488,20 +488,24 @@ class Mapper(DBCParser):
                 interval = 1000
 
         if "delimited_list" in dbc2vss:
-            if "delimiter" in dbc2vss["delimited_list"]:
-                delimiter = dbc2vss["delimited_list"]["delimiter"]
-                if not isinstance(delimiter, str):
+            delimited_list_definition = dbc2vss["delimited_list"]
+            if not isinstance(delimited_list_definition, dict):
+                log.error("Delimited list definition for %s is not a dict", expanded_name)
+                sys.exit(-1)
+            if "delimiter" in delimited_list_definition:
+                delimiter = delimited_list_definition["delimiter"]
+                if not isinstance(delimiter, str) or delimiter == "":
                     log.error(
-                        "Delimiter of delimited list for mapping definition of %s is not a string",
+                        "Delimiter of delimited list for mapping definition of %s is not a non-empty string",
                         expanded_name
                     )
                     sys.exit(-1)
             else:
                 log.error("No delimiter provided in delimited list for %s", can_signal_name)
                 sys.exit(-1)
-            if "index" in dbc2vss["delimited_list"]:
-                index = dbc2vss["delimited_list"]["index"]
-                if not isinstance(index, int) or index < 0:
+            if "index" in delimited_list_definition:
+                index = delimited_list_definition["index"]
+                if type(index) is not int or index < 0:
                     log.error(
                         "Index of delimited list for mapping definition of %s is not a non-negative integer",
                         expanded_name

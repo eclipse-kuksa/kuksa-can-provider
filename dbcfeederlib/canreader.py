@@ -124,7 +124,12 @@ class CanReader(ABC):
         except Exception:
             log.warning("Error processing multipacket CAN message with frame ID: %#x", frame_id, exc_info=True)
 
-    def _handle_decoded_frame(self, message_def: cantools.database.Message, decoded: SignalMappingType, rx_time: float):
+    def _handle_decoded_frame(
+        self,
+        message_def: cantools.database.Message,
+        decoded: SignalMappingType | dict[str, list[int]],
+        rx_time: float
+    ):
         for signal_name, raw_value in decoded.items():  # type: ignore
             signal: cantools.database.Signal = message_def.get_signal_by_name(signal_name)
             if isinstance(raw_value, (int, float)):
