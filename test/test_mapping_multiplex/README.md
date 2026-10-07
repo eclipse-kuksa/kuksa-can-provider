@@ -67,6 +67,15 @@ the DBC file does not contain any native DBC multiplexer syntax
 11. A list payload must not be interpreted as a single CAN-frame payload.
     J1939 list payloads must be routed explicitly to the multipacket handler,
     which processes the payload as a signal value.
+12. A multipacket payload must only be assigned to a signal with a
+  `delimited_list` mapping, independent of the signal's order in the DBC
+  message. Signals without such a mapping must not receive that payload.
+13. A multipacket message with no matching `delimited_list` signal, or with
+  multiple candidate signals, must be rejected and logged rather than being
+  assigned arbitrarily.
+14. J1939 transport-protocol filters must be added to a returned copy of the
+  cached regular filters. Repeated J1939 requests must not accumulate
+  duplicates, and a later regular request must not retain J1939 filters.
 
 ## Test cases and expected results
 
@@ -84,7 +93,10 @@ the DBC file does not contain any native DBC multiplexer syntax
 | `test_vss_multiplexer_get_signal_out_of_range` | Calls `get_signal()` with an index beyond the configured size. | Returns `''` and logs "Access to multiplexer exceeds size". |
 | `test_vss_multiplexer_get_value_out_of_range` | Calls `get_value()` with an index beyond the configured size. | Returns `-1` and logs "Access to multiplexer exceeds size". |
 | `test_reader_queues_signal_matching_multiplexer_value` (parameterized) | Sends an empty `bytes` or `bytearray` payload with a decoded selector value of `0`. | Both payload types are accepted; the matching `AlwaysPresent` mapping is queued with the expected DBC and VSS names. |
-| `test_reader_processes_multipacket_list_as_signal_value` | Calls the multipacket handler with frame ID `0x100` and list payload `[65, 66]` for `ListSignal`. | One observation is queued for `ListSignal`, and its `raw_value` remains `[65, 66]`. |
+| `test_can_frame_id_whitelist_does_not_accumulate_j1939_filters` | Requests regular filters, requests J1939 filters twice, then requests regular filters again. | Both J1939 results have exactly the same two added transport filters; the later regular result equals the original and contains no J1939 additions. |
+| `test_reader_selects_delimited_multipacket_signal_by_name` | Places an ordinary mapped signal before `ListSignal` in the DBC message and sends one multipacket payload. | Only `ListSignal` is selected; `_handle_decoded_frame` is called once with the delimited-list filter enabled, and one observation retains the list payload. |
+| `test_reader_discards_multipacket_signal_without_delimited_list` | Sends a multipacket payload for a mapped signal without a `delimited_list` option. | No observation is queued and a warning reports that no candidate mapping exists. |
+| `test_reader_discards_ambiguous_multipacket_signal_mappings` | Provides two message signals, each with a `delimited_list` mapping. | The handler rejects the ambiguous message, logs both candidate names, and queues no observations. |
 | `test_j1939_reader_routes_list_payload_to_multipacket_handler` | Sends list payload `[65, 66]` through the J1939 callback with PGN `0x1FFFF` and source address `0x45`. | The callback calls the multipacket handler with extended frame ID `0x1FFFF45` and the unchanged payload. |
 | `test_reader_discards_signal_not_matching_multiplexer_value` | Simulates receiving a message with `MuxSelector == 0` for a mapping that is only valid for `MuxSelector == 1`. | The signal is discarded, `queue.put` is not called. |
 | `test_reader_queues_signal_without_multiplexer_regardless_of_selector` | Simulates receiving a message using a `bytearray` payload for a mapping without a `multiplexer` property. | The signal is queued regardless of the value of `MuxSelector`. |

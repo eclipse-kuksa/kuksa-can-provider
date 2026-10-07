@@ -383,12 +383,13 @@ class Mapper(DBCParser):
                 for frame_id in self._mapped_can_frame_ids:
                     self._can_filters.append(CanFilter(can_id=frame_id, can_mask=self._frame_id_mask))
 
+        can_filters = list(self._can_filters)
         if use_j1939:
             # J1939 Broadcast Announce Message (BAM) for transport protocol
-            self._can_filters.append(CanFilter(can_id=0x00ECFF00, can_mask=self._frame_id_mask))
+            can_filters.append(CanFilter(can_id=0x00ECFF00, can_mask=self._frame_id_mask))
             # J1939 TP Message
-            self._can_filters.append(CanFilter(can_id=0x00EBFF00, can_mask=self._frame_id_mask))
-        return self._can_filters
+            can_filters.append(CanFilter(can_id=0x00EBFF00, can_mask=self._frame_id_mask))
+        return can_filters
 
     def transform_dbc_value(self, vss_observation: VSSObservation) -> Any:
         """
