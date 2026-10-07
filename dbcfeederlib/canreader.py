@@ -119,8 +119,43 @@ class CanReader(ABC):
         try:
             message_def = self._mapper.get_message_by_frame_id(frame_id)
             if message_def is not None:
-                signal = message_def.signals[0].name
-                self._handle_decoded_frame(message_def, {signal: data}, time.time())
+                # create set comprehension to avoid duplicates
+                # and to filter out signals without delimited-list mapping
+                candidates = {
+                    signal.name
+                    for signal in message_def.signals
+                    if any(
+                        mapping.dbc_name == signal.name
+                        and mapping.delimited_list is not None
+                        for mapping in self._mapper.get_dbc2vss_mappings(signal.name)
+                    )
+                }
+
+                if not candidates:
+                    log.warning(
+                        "No delimited-list mapping found for multipacket CAN message with frame ID %#x",
+                        frame_id,
+                    )
+                    return
+
+                if len(candidates) > 1:
+                    log.error(
+                        "Ambiguous delimited-list mappings for multipacket CAN message "
+                        "with frame ID %#x: %s",
+                        frame_id,
+                        sorted(candidates),
+                    )
+                    return
+
+                # candidates is guaranteed to have exactly one element at this point
+                signal_name = next(iter(candidates))
+                self._handle_decoded_frame(
+                    message_def,
+                    {signal_name: data},
+                    time.time(),
+                    only_delimited_list=True,
+                )
+
         except Exception:
             log.warning("Error processing multipacket CAN message with frame ID: %#x", frame_id, exc_info=True)
 
@@ -128,7 +163,8 @@ class CanReader(ABC):
         self,
         message_def: cantools.database.Message,
         decoded: SignalMappingType | dict[str, list[int]],
-        rx_time: float
+        rx_time: float,
+        only_delimited_list: bool = False
     ):
         for signal_name, raw_value in decoded.items():  # type: ignore
             signal: cantools.database.Signal = message_def.get_signal_by_name(signal_name)
@@ -149,6 +185,8 @@ class CanReader(ABC):
                     )
                     continue
             for signal_mapping in self._mapper.get_dbc2vss_mappings(signal_name):
+                if only_delimited_list and signal_mapping.delimited_list is None:
+                    continue
 
                 if signal_mapping.time_condition_fulfilled(rx_time):
                     log.debug(

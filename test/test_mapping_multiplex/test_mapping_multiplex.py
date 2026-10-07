@@ -30,7 +30,7 @@ import pytest  # type: ignore
 
 from dbcfeederlib import dbc2vssmapper
 from dbcfeederlib.canreader import CanReader
-from dbcfeederlib.dbc2vssmapper import Mapper, VSSMapping, VSSMultiplexer
+from dbcfeederlib.dbc2vssmapper import Mapper, VSSDelimitedList, VSSMapping, VSSMultiplexer
 from dbcfeederlib.j1939reader import J1939Reader
 
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -140,6 +140,20 @@ def test_multiplexer_fails_when_value_is_missing(caplog: pytest.LogCaptureFixtur
     assert error_msg in caplog.record_tuples
 
 
+def test_can_frame_id_whitelist_does_not_accumulate_j1939_filters():
+    mapper = Mapper(test_path + "/mapping_multiplex.json", dbc_file_names)
+
+    regular_filters = mapper.can_frame_id_whitelist(False)
+    j1939_filters_first = mapper.can_frame_id_whitelist(True)
+    j1939_filters_second = mapper.can_frame_id_whitelist(True)
+    regular_filters_after_j1939 = mapper.can_frame_id_whitelist(False)
+
+    assert len(j1939_filters_first) == len(regular_filters) + 2
+    assert j1939_filters_first == j1939_filters_second
+    assert [can_filter["can_id"] for can_filter in j1939_filters_first[-2:]] == [0x00ECFF00, 0x00EBFF00]
+    assert regular_filters_after_j1939 == regular_filters
+
+
 # ---------------------------------------------------------------------------
 # dbc2vssmapper.py: VSSMultiplexer class in isolation (full branch coverage)
 # ---------------------------------------------------------------------------
@@ -230,7 +244,51 @@ def test_reader_queues_signal_matching_multiplexer_value(payload):
     assert queue.put.call_args.args[0].vss_name == "A.AlwaysPresentModeA"
 
 
-def test_reader_processes_multipacket_list_as_signal_value():
+def test_reader_selects_delimited_multipacket_signal_by_name():
+    delimited_mapping = VSSMapping(
+        vss_name="A.ListSignal",
+        dbc_name="ListSignal",
+        transform={},
+        interval_ms=0,
+        on_change=True,
+        datatype="string",
+        description="some signal",
+        delimited_list=VSSDelimitedList("|", 0))
+    regular_mapping = VSSMapping(
+        vss_name="A.OtherSignal",
+        dbc_name="OtherSignal",
+        transform={},
+        interval_ms=0,
+        on_change=True,
+        datatype="string",
+        description="some other signal")
+    message_def = mock.Mock()
+    message_def.signals = [mock.Mock(), mock.Mock()]
+    message_def.signals[0].name = "OtherSignal"
+    message_def.signals[1].name = "ListSignal"
+    message_def.get_signal_by_name.return_value = mock.Mock(minimum=None, maximum=None)
+
+    mapper = mock.create_autospec(spec=dbc2vssmapper.Mapper)
+    mapper.get_message_by_frame_id.return_value = message_def
+    mapper.get_dbc2vss_mappings.side_effect = lambda name: {
+        "OtherSignal": [regular_mapping],
+        "ListSignal": [delimited_mapping],
+    }.get(name, [])
+    queue = mock.create_autospec(spec=Queue)
+    reader = NoopCanReader(queue, mapper)
+
+    with mock.patch.object(reader, "_handle_decoded_frame", wraps=reader._handle_decoded_frame) as handle_frame:
+        reader._process_multipacket_message(0x100, [65, 66])
+
+    handle_frame.assert_called_once()
+    assert handle_frame.call_args.args[1] == {"ListSignal": [65, 66]}
+    assert handle_frame.call_args.kwargs["only_delimited_list"] is True
+    queue.put.assert_called_once()
+    assert queue.put.call_args.args[0].dbc_name == "ListSignal"
+    assert queue.put.call_args.args[0].raw_value == [65, 66]
+
+
+def test_reader_discards_multipacket_signal_without_delimited_list(caplog: pytest.LogCaptureFixture):
     mapping = VSSMapping(
         vss_name="A.ListSignal",
         dbc_name="ListSignal",
@@ -240,20 +298,63 @@ def test_reader_processes_multipacket_list_as_signal_value():
         datatype="string",
         description="some signal")
     message_def = mock.Mock()
-    message_def.signals = [mock.Mock(name="signal definition")]
+    message_def.signals = [mock.Mock()]
     message_def.signals[0].name = "ListSignal"
-    message_def.get_signal_by_name.return_value = mock.Mock(minimum=None, maximum=None)
 
     mapper = mock.create_autospec(spec=dbc2vssmapper.Mapper)
     mapper.get_message_by_frame_id.return_value = message_def
-    mapper.get_dbc2vss_mappings.side_effect = lambda name: [mapping] if name == "ListSignal" else []
+    mapper.get_dbc2vss_mappings.return_value = [mapping]
     queue = mock.create_autospec(spec=Queue)
     reader = NoopCanReader(queue, mapper)
 
     reader._process_multipacket_message(0x100, [65, 66])
 
-    queue.put.assert_called_once()
-    assert queue.put.call_args.args[0].raw_value == [65, 66]
+    queue.put.assert_not_called()
+    assert (
+        "dbcfeederlib.canreader",
+        logging.WARNING,
+        "No delimited-list mapping found for multipacket CAN message with frame ID 0x100",
+    ) in caplog.record_tuples
+
+
+def test_reader_discards_ambiguous_multipacket_signal_mappings(caplog: pytest.LogCaptureFixture):
+    mappings = [
+        VSSMapping(
+            vss_name=f"A.{signal_name}",
+            dbc_name=signal_name,
+            transform={},
+            interval_ms=0,
+            on_change=True,
+            datatype="string",
+            description="some signal",
+            delimited_list=VSSDelimitedList("|", 0),
+        )
+        for signal_name in ("FirstListSignal", "SecondListSignal")
+    ]
+    message_def = mock.Mock()
+    message_def.signals = [mock.Mock(), mock.Mock()]
+    message_def.signals[0].name = "FirstListSignal"
+    message_def.signals[1].name = "SecondListSignal"
+
+    mapper = mock.create_autospec(spec=dbc2vssmapper.Mapper)
+    mapper.get_message_by_frame_id.return_value = message_def
+    mapper.get_dbc2vss_mappings.side_effect = lambda name: [
+        mapping for mapping in mappings if mapping.dbc_name == name
+    ]
+    queue = mock.create_autospec(spec=Queue)
+    reader = NoopCanReader(queue, mapper)
+
+    with mock.patch.object(reader, "_handle_decoded_frame", wraps=reader._handle_decoded_frame) as handle_frame:
+        reader._process_multipacket_message(0x100, [65, 66])
+
+    handle_frame.assert_not_called()
+    queue.put.assert_not_called()
+    assert (
+        "dbcfeederlib.canreader",
+        logging.ERROR,
+        "Ambiguous delimited-list mappings for multipacket CAN message with frame ID 0x100: "
+        "['FirstListSignal', 'SecondListSignal']",
+    ) in caplog.record_tuples
 
 
 def test_j1939_reader_routes_list_payload_to_multipacket_handler():
