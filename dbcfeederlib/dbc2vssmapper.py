@@ -31,6 +31,7 @@ import cantools
 
 from dataclasses import dataclass
 from typing import Any, Dict, List, Set, Optional, KeysView
+from datetime import datetime, timedelta, timezone
 
 from can.typechecking import CanFilter
 from py_expression_eval import Parser  # type: ignore[import]
@@ -52,6 +53,22 @@ class VSSObservation:
     vss_name: str
     raw_value: Any
     time: float
+    observation: str
+
+    def __init__(self,
+                 dbc_name: str,
+                 vss_name: str,
+                 raw_value: Any,
+                 time: float,
+                 observation: str | None = "signal"):
+        self.dbc_name = dbc_name
+        self.vss_name = vss_name
+        self.raw_value = raw_value
+        self.time = time
+        if observation is None:
+            self.observation = "signal"
+        else:
+            self.observation = observation
 
 
 class VSSDelimitedList:
@@ -231,6 +248,62 @@ class VSSMapping:
             self.last_vss_value = vss_value
         return fulfilled
 
+    def transform_frame(self, frame: Any) -> Any:
+        """
+        Transforms the given "raw" DBC frame to the wanted VSS value.
+        For now does not make any type checks
+        """
+        if self.transform is not None:
+            if "datetime" in self.transform:
+                dt_details = self.transform["datetime"]
+                dt_inputs = dt_details["inputs"]
+
+                try:
+                    seconds = int(round(frame.raw_value[dt_inputs["second"]], 0))
+                    minutes = int(frame.raw_value[dt_inputs["minute"]])
+                    hours = int(frame.raw_value[dt_inputs["hour"]])
+                    day = frame.raw_value[dt_inputs["day"]]
+                    day_frac = day % 1
+                    day = int(day)
+                    month = int(frame.raw_value[dt_inputs["month"]])
+                    year = int(frame.raw_value[dt_inputs["year"]])
+
+                    tz_info = None
+                    if "local_hour_offset" in dt_inputs or "local_minute_offset" in dt_inputs:
+                        hour_offset = 0
+                        minute_offset = 0
+                        if "local_hour_offset" in dt_inputs:
+                            hour_offset = int(frame.raw_value[dt_inputs["local_hour_offset"]])
+                        if "local_minute_offset" in dt_inputs:
+                            minute_offset = int(frame.raw_value[dt_inputs["local_minute_offset"]])
+                        tz_info = timezone(timedelta(hours=hour_offset, minutes=minute_offset))
+                except (KeyError, ValueError, TypeError):
+                    log.error("Error extracting datetime inputs from frame %s", frame, exc_info=True)
+                    return None
+
+                try:
+                    dt = datetime(
+                        year=year,
+                        month=month,
+                        day=day,
+                        hour=hours,
+                        minute=minutes,
+                        second=seconds,
+                        tzinfo=tz_info)
+                    if day_frac != 0:
+                        dt += timedelta(seconds=round(day_frac * 24 * 60 * 60))
+                    iso = dt.isoformat()
+                except ValueError as v:
+                    log.error("Error creating datetime from frame %s: %s", frame, v)
+                    return None
+                except TypeError as t:
+                    log.error("Error creating datetime from frame %s: %s", frame, t)
+                    return None
+                return iso
+
+        log.error("Transformation for frame %s without datetime not implemented", frame)
+        return None
+
     def transform_value(self, value: Any) -> Any:
         """
         Transforms the given "raw" DBC value to the wanted VSS value.
@@ -301,6 +374,17 @@ class VSSMapping:
                         "Transformation failed for value %s for VSS signal %s, signal ignored!",
                         value, self.vss_name, exc_info=True
                     )
+            elif "datetime" in self.transform:
+                dt_details = self.transform["datetime"]
+                if "format" in dt_details:
+                    fmt = dt_details["format"]
+                    try:
+                        vss_value = value.strftime(fmt)
+                    except Exception:
+                        log.warning(
+                            "Transformation failed for value %s for VSS signal %s, signal ignored!",
+                            value, self.vss_name, exc_info=True
+                        )
             else:
                 # It is supposed that "extract_verify_transform" already have checked that
                 # we have a valid transform, so we shall never end up here
@@ -420,7 +504,7 @@ class Mapper(DBCParser):
             return None
         transform = node["transform"]
 
-        has_mapping = False
+        transformation_type = ""
 
         if not isinstance(transform, dict):
             log.error("Transformation definition for %s is not a dict", expanded_name)
@@ -437,16 +521,92 @@ class Mapper(DBCParser):
                         item, expanded_name
                     )
                     sys.exit(-1)
-            has_mapping = True
+            transformation_type = "mapping"
 
         if "math" in transform:
-            if has_mapping:
-                log.error("Can not have both \"mapping\" and \"math\" transformation defined for %s", expanded_name)
+            if transformation_type:
+                log.error(
+                    "Can not have both \"%s\" and \"math\" transformation defined for %s",
+                    transformation_type, expanded_name
+                    )
                 sys.exit(-1)
             if not isinstance(transform["math"], str):
                 log.error("Math transformation definition for %s must be a str", expanded_name)
                 sys.exit(-1)
-        elif not has_mapping:
+            transformation_type = "math"
+
+        if "datetime" in transform:
+            if transformation_type:
+                log.error(
+                    "Can not have both \"%s\" and \"datetime\" transformation defined for %s",
+                    transformation_type, expanded_name
+                    )
+                sys.exit(-1)
+
+            dt_transform = transform["datetime"]
+            if not isinstance(dt_transform, dict):
+                log.error("Transformation definition for %s has a \"datetime\" property that is not a dict",
+                          expanded_name)
+                sys.exit(-1)
+            if "format" not in dt_transform:
+                log.error("Transformation definition for %s has no \"format\" property", expanded_name)
+                sys.exit(-1)
+
+            dt_format = dt_transform["format"]
+            if not isinstance(dt_format, str):
+                log.error(
+                    "Transformation definition for %s has a \"format\" property that is not a str",
+                    expanded_name
+                    )
+                sys.exit(-1)
+            if dt_format == "iso8601":
+                if "inputs" not in dt_transform:
+                    log.error("Transformation definition for %s has no \"inputs\" property", expanded_name)
+                    sys.exit(-1)
+                dt_inputs = dt_transform["inputs"]
+                if not isinstance(dt_inputs, dict):
+                    log.error(
+                        "Transformation definition for %s has a \"inputs\" property that is not a dict",
+                        expanded_name
+                    )
+                    sys.exit(-1)
+
+                required_inputs = {"year", "month", "day", "hour", "minute", "second"}
+                optional_inputs = {"local_hour_offset", "local_minute_offset"}
+                missing_inputs = required_inputs - dt_inputs.keys()
+
+                if missing_inputs:
+                    log.error(
+                        "Transformation definition for %s has missing required \"inputs\": %s",
+                        expanded_name, missing_inputs
+                    )
+                    sys.exit(-1)
+
+                allowed_inputs = required_inputs | optional_inputs
+                unsupported_inputs = dt_inputs.keys() - allowed_inputs
+                if unsupported_inputs:
+                    log.error(
+                        "Transformation definition for %s has a \"inputs\" property with unsupported inputs: %s",
+                        expanded_name, unsupported_inputs
+                    )
+                    sys.exit(-1)
+
+                for dt_input_name, dt_input_signal in dt_inputs.items():
+                    if not isinstance(dt_input_signal, str):
+                        log.error(
+                            "Transformation definition for %s has input \"%s\" that is not mapped to a str",
+                            expanded_name, dt_input_name
+                        )
+                        sys.exit(-1)
+
+            else:
+                log.error(
+                    "Transformation definition for %s has a \"format\" property that is not supported yet: %s",
+                    expanded_name, dt_format
+                )
+                sys.exit(-1)
+
+        elif not transformation_type:
             log.error("Unsupported transformation definition for %s", expanded_name)
             sys.exit(-1)
         return transform
