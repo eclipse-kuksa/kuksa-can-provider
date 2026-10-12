@@ -247,8 +247,27 @@ class Feeder:
                 if queue_size > queue_max_size:
                     queue_max_size = queue_size
                 vss_observation = self._dbc2vss_queue.get(timeout=1)
-                vss_mapping = self._mapper.get_dbc2vss_mapping(vss_observation.dbc_name, vss_observation.vss_name)
-                value = vss_mapping.transform_value(vss_observation.raw_value)
+                if vss_observation.observation == "signal":
+                    log.debug("Processing raw_value %s for signal %s",
+                              vss_observation.raw_value, vss_observation.vss_name
+                              )
+                    vss_mapping = self._mapper.get_dbc2vss_mapping(
+                        vss_observation.dbc_name, vss_observation.vss_name
+                        )
+                    value = vss_mapping.transform_value(vss_observation.raw_value)
+                else:
+                    log.debug("Processing raw_frame %s for signal %s",
+                              vss_observation.raw_value, vss_observation.vss_name)
+                    vss_mapping = self._mapper.get_dbc2vss_mapping(
+                        vss_observation.dbc_name, vss_observation.vss_name)
+                    value = vss_mapping.transform_frame(vss_observation)
+                    if value is None:
+                        log.warning(
+                            "Value ignored for dbc %s to VSS %s, from raw frame %s of type %s",
+                            vss_observation.dbc_name, vss_observation.vss_name, value, type(value)
+                        )
+                        continue
+
                 if value is None:
                     log.warning(
                         "Value ignored for dbc %s to VSS %s, from raw value %s of type %s",
