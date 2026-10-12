@@ -1,26 +1,37 @@
 # Test case: delimiter-separated list support in `dbc2vssmapper.py`
 
-This test case verifies parsing and transformation of a list-valued DBC signal
-into one VSS string value. The mapper receives the DBC signal as a list of
-integer character codes, joins those characters, splits the resulting string
-at the configured delimiter, and selects an item by its zero-based index.
+This test case verifies parsing of `delimited_list` mapping definitions and
+transformation of character-code lists into one VSS string value. It calls
+`VSSMapping.transform_value()` directly with synthetic values; it does not
+decode a CAN frame or a signal from the DBC file. The transformation joins the
+character codes, splits the resulting string at the configured delimiter, and
+selects an item by its zero-based index.
 
 ## Test data
 
-- `Model3CAN.dbc` supplies the existing `S1` signal used to construct mappings.
-- The test module writes small JSON mapping files into pytest's temporary
-  directory. This allows valid and invalid `delimited_list` definitions to be
-  tested without adding redundant static mapping fixtures.
-- Test values are encoded as lists of character codes to match the value shape
-  produced by the J1939 multipacket reader.
+- `Model3CAN.dbc` is passed to `Mapper` and loaded by its `DBCParser` base class,
+   because constructing a mapper requires at least one CAN database. It does not
+   provide the test signal: there is no signal named `S1` in this DBC. The
+   mapping parser accepts the configured `S1` anyway; its lookup in the database
+   finds no messages, which is not an error for these tests.
+- For each test, the test module writes a small JSON mapping to pytest's
+   temporary directory. That mapping associates the synthetic signal name `S1`
+   with `A.DelimitedValue`, optionally including a `delimited_list` definition.
+- Tests retrieve that mapping with `get_dbc2vss_mapping()` and call
+   `transform_value()` directly. They do not decode CAN frames or obtain the
+   values from `Model3CAN.dbc`.
+- Input values are built in the test as lists of `ord(character)` values. This
+   simulates the character-code list shape handled for J1939 multipacket data;
+   the configured delimiter and index are then checked against those values.
 
 ## Requirements
 
 1. A valid `delimited_list` object must be parsed and attached to its
    `VSSMapping` with the configured delimiter and index.
-2. `delimited_list` is supported for `dbc2vss` string mappings without an
-   explicit transformation, when the decoded DBC value is a list of integer
-   character codes.
+2. For `dbc2vss` string mappings without an explicit transformation,
+   `transform_value()` must handle an input list of integer character codes.
+   This unit test supplies that list directly; it does not test DBC decoding or
+   the J1939 reader path.
 3. The list of character codes must be joined into a string, split using the
    configured delimiter, and selected using a zero-based index.
 4. Multi-character delimiters and empty list items must be preserved during
