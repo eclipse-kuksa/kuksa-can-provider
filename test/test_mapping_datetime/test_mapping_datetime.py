@@ -107,6 +107,33 @@ def test_datetime_transform_frame_to_iso8601(tmp_path):
 
 
 @pytest.mark.parametrize(
+    ("month", "day", "hours", "minutes", "expected"),
+    [
+        (10, 5, 14, 7, "2026-10-05T14:08:00"),
+        (10, 5, 23, 59, "2026-10-06T00:00:00"),
+        (10, 31, 23, 59, "2026-11-01T00:00:00"),
+        (12, 31, 23, 59, "2027-01-01T00:00:00"),
+    ],
+)
+def test_datetime_transform_normalizes_rounded_seconds(
+    tmp_path, month, day, hours, minutes, expected
+):
+    mapper = _load_mapper(tmp_path, _datetime_transform(_default_inputs()))
+    mapping = mapper.get_dbc2vss_mapping("S1", "A.DateTimeValue")
+
+    assert mapping is not None
+    result = mapping.transform_frame(_observation({
+        "Year": 2026,
+        "Month": month,
+        "Day": day,
+        "Hours": hours,
+        "Minutes": minutes,
+        "Seconds": 59.75,
+    }))
+    assert result == expected
+
+
+@pytest.mark.parametrize(
     ("day_value", "expected"),
     [
         (5.5, "2026-10-05T12:30:13"),
@@ -271,3 +298,35 @@ def test_invalid_datetime_definitions_are_rejected(tmp_path, caplog, transform, 
 
     assert excinfo.value.code == -1
     assert ("dbcfeederlib.dbc2vssmapper", logging.ERROR, error_message) in caplog.record_tuples
+
+
+def test_datetime_transform_is_rejected_for_vss2dbc(tmp_path, caplog):
+    mapping = {
+        "A": {
+            "type": "branch",
+            "description": "Branch A.",
+            "children": {
+                "DateTimeValue": {
+                    "type": "actuator",
+                    "datatype": "string",
+                    "description": "Datetime test signal.",
+                    "vss2dbc": {
+                        "signal": "UI_audioActive",
+                        "transform": _datetime_transform(_default_inputs()),
+                    },
+                }
+            },
+        }
+    }
+    mapping_path = tmp_path / "mapping_datetime.json"
+    mapping_path.write_text(json.dumps(mapping), encoding="utf-8")
+
+    with pytest.raises(SystemExit) as excinfo:
+        Mapper(str(mapping_path), dbc_file_names)
+
+    assert excinfo.value.code == -1
+    assert (
+        "dbcfeederlib.dbc2vssmapper",
+        logging.ERROR,
+        "Datetime transformation is not supported for vss2dbc mapping A.DateTimeValue",
+    ) in caplog.record_tuples

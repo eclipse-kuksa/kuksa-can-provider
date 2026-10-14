@@ -264,7 +264,8 @@ class Feeder:
                     if value is None:
                         log.warning(
                             "Value ignored for dbc %s to VSS %s, from raw frame %s of type %s",
-                            vss_observation.dbc_name, vss_observation.vss_name, value, type(value)
+                            vss_observation.dbc_name, vss_observation.vss_name,
+                            vss_observation.raw_value, type(vss_observation.raw_value)
                         )
                         continue
 
