@@ -288,8 +288,9 @@ class VSSMapping:
                         day=day,
                         hour=hours,
                         minute=minutes,
-                        second=seconds,
+                        second=0,
                         tzinfo=tz_info)
+                    dt += timedelta(seconds=seconds)
                     if day_frac != 0:
                         dt += timedelta(seconds=round(day_frac * 24 * 60 * 60))
                     iso = dt.isoformat()
@@ -494,7 +495,7 @@ class Mapper(DBCParser):
             value = None
         return value
 
-    def _extract_verify_transform(self, expanded_name: str, node: dict):
+    def _extract_verify_transform(self, expanded_name: str, node: dict, mapping_direction: str = "dbc2vss"):
         """
         Extract transformation definition and check syntax.
         """
@@ -541,6 +542,13 @@ class Mapper(DBCParser):
                     "Can not have both \"%s\" and \"datetime\" transformation defined for %s",
                     transformation_type, expanded_name
                     )
+                sys.exit(-1)
+
+            if mapping_direction == "vss2dbc":
+                log.error(
+                    "Datetime transformation is not supported for vss2dbc mapping %s",
+                    expanded_name
+                )
                 sys.exit(-1)
 
             dt_transform = transform["datetime"]
@@ -756,7 +764,7 @@ class Mapper(DBCParser):
                     is being set.""",
                     expanded_name, can_signal_name, message_names, can_signal_name)
 
-        transform = self._extract_verify_transform(expanded_name, vss2dbc)
+        transform = self._extract_verify_transform(expanded_name, vss2dbc, mapping_direction="vss2dbc")
         # For now we only support on_change, and we actually do not use the values
         on_change: bool = True
         interval = 0
