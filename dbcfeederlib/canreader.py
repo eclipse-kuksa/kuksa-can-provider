@@ -208,8 +208,18 @@ class CanReader(ABC):
                             multiplexer_idx += 1
 
                     if not filter_mismatch:
-                        self._queue.put(VSSObservation(
-                            signal_name, signal_mapping.vss_name, raw_value, rx_time))
+                        if (
+                            signal_mapping.transform is not None
+                            and isinstance(signal_mapping.transform, dict)
+                            and "datetime" in signal_mapping.transform
+                        ):
+                            # handle datetime transformation
+                            self._queue.put(VSSObservation(
+                                signal_name, signal_mapping.vss_name, decoded, rx_time, "frame"))
+                        else:
+                            self._queue.put(VSSObservation(
+                                signal_name, signal_mapping.vss_name, raw_value, rx_time))
+
                 else:
                     log.debug(
                         "Ignoring %s, triggered by %s, raw value %s",

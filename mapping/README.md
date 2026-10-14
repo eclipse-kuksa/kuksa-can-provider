@@ -252,6 +252,53 @@ Quotes may however be needed if the value otherwise could be misinterpreted as a
 literal. Typical examples are values like `yes` which is a considered as a synonym to `true`.
 If using JSON all strings must be quoted.
 
+### Datetime Transformation
+
+A Datetime transformation can be specified with the `datetime` attribute.
+This is currently supported for `dbc2vss` mappings with `format: iso8601`.
+
+The transformation expects a CAN frame that carries date/time components as
+separate decoded signals. The `inputs` object maps each required datetime
+component to the corresponding DBC signal name in that frame.
+
+```yaml
+Vehicle.Example.CurrentDateTime:
+  type: sensor
+  datatype: string
+  dbc2vss:
+    signal: Seconds
+    transform:
+      datetime:
+        format: iso8601
+        inputs:
+          year: Year
+          month: Month
+          day: Day
+          hour: Hours
+          minute: Minutes
+          second: Seconds
+```
+
+For `format: iso8601`, the required input keys are:
+`year`, `month`, `day`, `hour`, `minute`, `second`.
+
+Optional keys are:
+`local_hour_offset`, `local_minute_offset`.
+
+Rules:
+
+- `transform.datetime` must be an object.
+- `format` is required and must be a string.
+- only `iso8601` is currently supported as format.
+- `inputs` is required for `iso8601` and must be an object.
+- all required input keys must be present.
+- only required and optional input keys are allowed.
+- each input value must be a string naming a DBC signal in the decoded frame.
+
+At runtime the feeder builds a datetime value from the configured inputs and
+publishes it as an ISO-8601 string. If datetime construction fails (for example
+invalid month/day values), the signal is ignored.
+
 ### Delimited list values
 
 The `delimited_list` option can be used for a `dbc2vss` mapping when a DBC

@@ -78,6 +78,60 @@ class TestCanReader():
         assert queue.put.call_args.args[0].dbc_name == "UnboundedSignal"
         assert queue.put.call_args.args[0].vss_name == "Vehicle.Custom"
 
+    def test_process_can_message_queues_datetime_frame(self) -> None:
+        decoded_message = {
+            "Year": 2026,
+            "Month": 10,
+            "Day": 14,
+            "Hours": 23,
+            "Minutes": 59,
+            "Seconds": 59.75,
+        }
+        message_def = Message(
+            frame_id=0x0102,
+            name="DateTimeMessage",
+            length=8,
+            signals=[
+                Signal(name=signal_name, start=index * 8, length=8)
+                for index, signal_name in enumerate(decoded_message)
+            ])
+        message_def.decode = mock.Mock(return_value=decoded_message)  # type: ignore
+        mapping = VSSMapping(
+            vss_name="Vehicle.CurrentDateTime",
+            dbc_name="Seconds",
+            transform={
+                "datetime": {
+                    "format": "iso8601",
+                    "inputs": {
+                        "year": "Year",
+                        "month": "Month",
+                        "day": "Day",
+                        "hour": "Hours",
+                        "minute": "Minutes",
+                        "second": "Seconds",
+                    },
+                },
+            },
+            interval_ms=0,
+            on_change=True,
+            datatype="string",
+            description="Current date and time")
+        mapper = mock.create_autospec(spec=Mapper)
+        mapper.get_message_by_frame_id.return_value = message_def
+        mapper.get_dbc2vss_mappings.side_effect = (
+            lambda signal_name: [mapping] if signal_name == "Seconds" else [])
+        queue = mock.create_autospec(spec=Queue)
+        reader = TestCanReader.NoopCanReader(queue, mapper)
+
+        reader._process_can_message(0x0102, bytearray())
+
+        queue.put.assert_called_once()
+        observation = queue.put.call_args.args[0]
+        assert observation.dbc_name == "Seconds"
+        assert observation.vss_name == "Vehicle.CurrentDateTime"
+        assert observation.raw_value == decoded_message
+        assert observation.observation == "frame"
+
     def test_process_can_message_ignores_out_of_range_values(self) -> None:
 
         # GIVEN a reader based on a CAN message definition that defines signals
