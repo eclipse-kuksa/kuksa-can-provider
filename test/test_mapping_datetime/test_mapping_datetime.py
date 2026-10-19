@@ -156,7 +156,14 @@ def test_datetime_transform_supports_fractional_day(tmp_path, day_value, expecte
     assert result == expected
 
 
-def test_datetime_transform_supports_timezone_offset_inputs(tmp_path):
+@pytest.mark.parametrize(
+    ("hour_offset", "minute_offset", "expected_offset"),
+    [(2, 30, "+02:30"), (-2, -30, "-02:30"), (0, 0, "+00:00"),
+     (23, 59, "+23:59"), (-23, -59, "-23:59")],
+)
+def test_datetime_transform_supports_timezone_offset_inputs(
+    tmp_path, hour_offset, minute_offset, expected_offset
+):
     inputs = _default_inputs()
     inputs["local_hour_offset"] = "HourOffset"
     inputs["local_minute_offset"] = "MinuteOffset"
@@ -171,25 +178,37 @@ def test_datetime_transform_supports_timezone_offset_inputs(tmp_path):
         "Hours": 14,
         "Minutes": 7,
         "Seconds": 9,
-        "HourOffset": 2,
-        "MinuteOffset": 30,
+        "HourOffset": hour_offset,
+        "MinuteOffset": minute_offset,
     }))
-    assert result == "2026-10-05T14:07:09+02:30"
+    assert result == "2026-10-05T14:07:09" + expected_offset
 
 
-def test_datetime_transform_invalid_frame_values_return_none(tmp_path, caplog):
+@pytest.mark.parametrize("invalid_values", [
+    {"Year": 0}, {"Year": 10000},
+    {"Month": 0}, {"Month": 13},
+    {"Day": 0}, {"Day": 32},
+    {"Month": 4, "Day": 31},
+    {"Month": 2, "Day": 29},
+    {"Year": 2024, "Month": 2, "Day": 30},
+    {"Hours": -1}, {"Hours": 24},
+    {"Minutes": -1}, {"Minutes": 60},
+])
+def test_datetime_transform_invalid_frame_values_return_none(tmp_path, caplog, invalid_values):
     mapper = _load_mapper(tmp_path, _datetime_transform(_default_inputs()))
     mapping = mapper.get_dbc2vss_mapping("S1", "A.DateTimeValue")
 
     assert mapping is not None
-    result = mapping.transform_frame(_observation({
+    frame_values = {
         "Year": 2026,
-        "Month": 13,
+        "Month": 10,
         "Day": 5,
         "Hours": 14,
         "Minutes": 7,
         "Seconds": 9,
-    }))
+    }
+    frame_values.update(invalid_values)
+    result = mapping.transform_frame(_observation(frame_values))
 
     assert result is None
     assert any(
@@ -200,18 +219,27 @@ def test_datetime_transform_invalid_frame_values_return_none(tmp_path, caplog):
     )
 
 
-def test_datetime_transform_missing_frame_input_returns_none(tmp_path, caplog):
-    mapper = _load_mapper(tmp_path, _datetime_transform(_default_inputs()))
+@pytest.mark.parametrize("missing_signal", [
+    "Year", "Month", "Day", "Hours", "Minutes", "Seconds", "HourOffset", "MinuteOffset",
+])
+def test_datetime_transform_missing_frame_input_returns_none(tmp_path, caplog, missing_signal):
+    inputs = {**_default_inputs(), "local_hour_offset": "HourOffset", "local_minute_offset": "MinuteOffset"}
+    mapper = _load_mapper(tmp_path, _datetime_transform(inputs))
     mapping = mapper.get_dbc2vss_mapping("S1", "A.DateTimeValue")
 
     assert mapping is not None
-    result = mapping.transform_frame(_observation({
+    frame_values = {
         "Year": 2026,
         "Month": 10,
         "Day": 5,
         "Hours": 14,
         "Minutes": 7,
-    }))
+        "Seconds": 9,
+        "HourOffset": 2,
+        "MinuteOffset": 30,
+    }
+    del frame_values[missing_signal]
+    result = mapping.transform_frame(_observation(frame_values))
 
     assert result is None
     assert any(
@@ -220,6 +248,44 @@ def test_datetime_transform_missing_frame_input_returns_none(tmp_path, caplog):
         and message.startswith("Error extracting datetime inputs from frame")
         for logger, level, message in caplog.record_tuples
     )
+
+
+@pytest.mark.parametrize("signal_name", [
+    "Year", "Month", "Day", "Hours", "Minutes", "Seconds", "HourOffset", "MinuteOffset",
+])
+@pytest.mark.parametrize("invalid_value", [None, "invalid", []], ids=["none", "text", "list"])
+def test_datetime_transform_invalid_input_types_return_none(
+    tmp_path, caplog, signal_name, invalid_value
+):
+    inputs = {**_default_inputs(), "local_hour_offset": "HourOffset", "local_minute_offset": "MinuteOffset"}
+    mapper = _load_mapper(tmp_path, _datetime_transform(inputs))
+    mapping = mapper.get_dbc2vss_mapping("S1", "A.DateTimeValue")
+    frame_values = {
+        "Year": 2026, "Month": 10, "Day": 5, "Hours": 14,
+        "Minutes": 7, "Seconds": 9, "HourOffset": 2, "MinuteOffset": 30,
+    }
+    frame_values[signal_name] = invalid_value
+
+    assert mapping is not None
+    assert mapping.transform_frame(_observation(frame_values)) is None
+    assert "Error extracting datetime inputs from frame" in caplog.text
+
+
+@pytest.mark.parametrize(("hour_offset", "minute_offset"), [
+    (24, 0), (-24, 0), (23, 60), (-23, -60), (130, 0), (-125, 0),
+])
+def test_datetime_transform_invalid_timezone_returns_none(tmp_path, caplog, hour_offset, minute_offset):
+    inputs = {**_default_inputs(), "local_hour_offset": "HourOffset", "local_minute_offset": "MinuteOffset"}
+    mapper = _load_mapper(tmp_path, _datetime_transform(inputs))
+    mapping = mapper.get_dbc2vss_mapping("S1", "A.DateTimeValue")
+
+    assert mapping is not None
+    assert mapping.transform_frame(_observation({
+        "Year": 2026, "Month": 10, "Day": 5, "Hours": 14,
+        "Minutes": 7, "Seconds": 9,
+        "HourOffset": hour_offset, "MinuteOffset": minute_offset,
+    })) is None
+    assert "Error extracting datetime inputs from frame" in caplog.text
 
 
 @pytest.mark.parametrize(

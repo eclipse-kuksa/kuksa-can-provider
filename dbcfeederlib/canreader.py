@@ -22,7 +22,7 @@ import cantools.database  # type: ignore
 
 from cantools.typechecking import SignalMappingType
 from dbcfeederlib.canplayer import CANplayer
-from dbcfeederlib.dbc2vssmapper import Mapper, VSSObservation
+from dbcfeederlib.dbc2vssmapper import Mapper, VSSMapping, VSSObservation
 from typing import Any, Dict, Optional
 from queue import Queue
 
@@ -168,22 +168,11 @@ class CanReader(ABC):
     ):
         for signal_name, raw_value in decoded.items():  # type: ignore
             signal: cantools.database.Signal = message_def.get_signal_by_name(signal_name)
-            if isinstance(raw_value, (int, float)):
-                # filter out signals with values out of defined range
-                # which is usually because the signal's value is unavailable
-                # (represented as e.g. "all bits set")
-                if signal.minimum is not None and raw_value < signal.minimum:
-                    log.debug(
-                        "discarding out-of-range value [signal: %s, min: %s, value: %s]",
-                        signal_name, signal.minimum, raw_value
-                    )
-                    continue
-                if signal.maximum is not None and raw_value > signal.maximum:
-                    log.debug(
-                        "discarding out-of-range value [signal: %s, max: %s, value: %s]",
-                        signal_name, signal.maximum, raw_value
-                    )
-                    continue
+            # filter out signals with values out of defined range
+            # which is usually because the signal's value is unavailable
+            # (represented as e.g. "all bits set")
+            if not self._is_signal_value_in_range(signal_name, signal, raw_value):
+                continue
             for signal_mapping in self._mapper.get_dbc2vss_mappings(signal_name):
                 if only_delimited_list and signal_mapping.delimited_list is None:
                     continue
@@ -214,6 +203,8 @@ class CanReader(ABC):
                             and "datetime" in signal_mapping.transform
                         ):
                             # handle datetime transformation
+                            if not self._datetime_inputs_are_valid(message_def, decoded, signal_mapping):
+                                continue
                             self._queue.put(VSSObservation(
                                 signal_name, signal_mapping.vss_name, decoded, rx_time, "frame"))
                         else:
@@ -225,3 +216,71 @@ class CanReader(ABC):
                         "Ignoring %s, triggered by %s, raw value %s",
                         signal_mapping.vss_name, signal_name, raw_value
                     )
+
+    def _is_signal_value_in_range(
+        self,
+        signal_name: str,
+        signal: cantools.database.Signal,
+        raw_value: Any,
+    ) -> bool:
+        if not isinstance(raw_value, (int, float)):
+            return True
+
+        if signal.minimum is not None and raw_value < signal.minimum:
+            log.debug(
+                "discarding out-of-range value [signal: %s, min: %s, value: %s]",
+                signal_name, signal.minimum, raw_value
+            )
+            return False
+
+        if signal.maximum is not None and raw_value > signal.maximum:
+            log.debug(
+                "discarding out-of-range value [signal: %s, max: %s, value: %s]",
+                signal_name, signal.maximum, raw_value
+            )
+            return False
+
+        return True
+
+    def _datetime_inputs_are_valid(
+        self,
+        message_def: cantools.database.Message,
+        decoded: SignalMappingType | dict[str, list[int]],
+        signal_mapping: VSSMapping,
+    ) -> bool:
+        dt_details = signal_mapping.transform["datetime"]
+        dt_inputs = dt_details.get("inputs", {})
+
+        for input_name, input_signal_name in dt_inputs.items():
+            if input_signal_name not in decoded:  # type: ignore
+                log.debug(
+                    "discarding datetime observation [vss: %s, input: %s, signal: %s, reason: missing input]",
+                    signal_mapping.vss_name,
+                    input_name,
+                    input_signal_name,
+                )
+                return False
+            raw_value = decoded[input_signal_name]  # type: ignore
+
+            try:
+                signal = message_def.get_signal_by_name(input_signal_name)
+            except KeyError:
+                log.debug(
+                    "discarding datetime observation [vss: %s, input: %s, signal: %s, "
+                    "reason: signal missing in DBC message]",
+                    signal_mapping.vss_name,
+                    input_name,
+                    input_signal_name,
+                )
+                return False
+
+            if not self._is_signal_value_in_range(input_signal_name, signal, raw_value):
+                log.debug(
+                    "discarding datetime observation [vss: %s, input: %s, signal: %s]",
+                    signal_mapping.vss_name,
+                    input_name,
+                    input_signal_name,
+                )
+                return False
+
+        return True

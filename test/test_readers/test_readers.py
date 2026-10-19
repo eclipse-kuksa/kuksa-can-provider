@@ -132,6 +132,115 @@ class TestCanReader():
         assert observation.raw_value == decoded_message
         assert observation.observation == "frame"
 
+    @pytest.fixture
+    def datetime_frame(self):
+        decoded_message = {
+            "Year": 2026,
+            "Month": 10,
+            "Day": 14,
+            "Hours": 23,
+            "Minutes": 59,
+            "Seconds": 30,
+            "LocalHourOffset": 2,
+            "LocalMinuteOffset": 30,
+        }
+        message_def = Message(
+            frame_id=0x0102,
+            name="DateTimeMessage",
+            length=8,
+            signals=[
+                Signal(name="Year", start=0, length=8, minimum=1985, maximum=2235),
+                Signal(name="Month", start=8, length=8, minimum=1, maximum=12),
+                Signal(name="Day", start=16, length=8, minimum=0.25, maximum=31.75),
+                Signal(name="Hours", start=24, length=8, minimum=0, maximum=23),
+                Signal(name="Minutes", start=32, length=8, minimum=0, maximum=59),
+                Signal(name="Seconds", start=40, length=8, minimum=0, maximum=59.75),
+                Signal(name="LocalHourOffset", start=48, length=8, minimum=-23, maximum=23),
+                Signal(name="LocalMinuteOffset", start=56, length=8, minimum=-59, maximum=59),
+            ])
+        mapping = VSSMapping(
+            vss_name="Vehicle.CurrentDateTime",
+            dbc_name="Seconds",
+            transform={
+                "datetime": {
+                    "format": "iso8601",
+                    "inputs": {
+                        "year": "Year",
+                        "month": "Month",
+                        "day": "Day",
+                        "hour": "Hours",
+                        "minute": "Minutes",
+                        "second": "Seconds",
+                        "local_hour_offset": "LocalHourOffset",
+                        "local_minute_offset": "LocalMinuteOffset",
+                    },
+                },
+            },
+            interval_ms=0,
+            on_change=True,
+            datatype="string",
+            description="Current date and time")
+        mapper = mock.create_autospec(spec=Mapper)
+        mapper.get_message_by_frame_id.return_value = message_def
+        mapper.get_dbc2vss_mappings.side_effect = (
+            lambda signal_name: [mapping] if signal_name == "Seconds" else [])
+        queue = mock.create_autospec(spec=Queue)
+        reader = TestCanReader.NoopCanReader(queue, mapper)
+
+        return reader, message_def, decoded_message, queue
+
+    @pytest.mark.parametrize(
+        ("signal_name", "raw_value"),
+        [
+            ("Year", 1984), ("Year", 2236), ("Year", 2240),
+            ("Month", 0), ("Month", 13), ("Month", 255),
+            ("Day", 0), ("Day", 32), ("Day", 63.75),
+            ("Hours", -1), ("Hours", 24), ("Hours", 255),
+            ("Minutes", -1), ("Minutes", 60), ("Minutes", 255),
+            ("Seconds", -0.25), ("Seconds", 60), ("Seconds", 63.75),
+            ("LocalHourOffset", -24), ("LocalHourOffset", 24), ("LocalHourOffset", 130),
+            ("LocalMinuteOffset", -60), ("LocalMinuteOffset", 60),
+            ("LocalMinuteOffset", 130),
+        ],
+    )
+    def test_datetime_frame_rejects_out_of_range_input(
+        self, datetime_frame, signal_name, raw_value
+    ):
+        reader, message_def, decoded_message, queue = datetime_frame
+        decoded_message[signal_name] = raw_value
+
+        reader._handle_decoded_frame(message_def, decoded_message, 1.0)
+
+        queue.put.assert_not_called()
+
+    @pytest.mark.parametrize("signal_name", [
+        "Year", "Month", "Day", "Hours", "Minutes", "Seconds",
+        "LocalHourOffset", "LocalMinuteOffset",
+    ])
+    def test_datetime_frame_rejects_missing_input(self, datetime_frame, signal_name):
+        reader, message_def, decoded_message, queue = datetime_frame
+        del decoded_message[signal_name]
+
+        reader._handle_decoded_frame(message_def, decoded_message, 1.0)
+
+        queue.put.assert_not_called()
+
+    @pytest.mark.parametrize("signal_name", [
+        "Year", "Month", "Day", "Hours", "Minutes", "Seconds",
+        "LocalHourOffset", "LocalMinuteOffset",
+    ])
+    @pytest.mark.parametrize("bound", ["minimum", "maximum"])
+    def test_datetime_frame_accepts_dbc_boundary(self, datetime_frame, signal_name, bound):
+        reader, message_def, decoded_message, queue = datetime_frame
+        decoded_message[signal_name] = getattr(message_def.get_signal_by_name(signal_name), bound)
+
+        reader._handle_decoded_frame(message_def, decoded_message, 1.0)
+
+        queue.put.assert_called_once()
+        observation = queue.put.call_args.args[0]
+        assert observation.raw_value == decoded_message
+        assert observation.observation == "frame"
+
     def test_process_can_message_ignores_out_of_range_values(self) -> None:
 
         # GIVEN a reader based on a CAN message definition that defines signals
