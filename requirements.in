@@ -18,9 +18,9 @@
 #
 # pip-compile --pre --upgrade requirements.in
 
-python-can ~= 4.1
+python-can ~= 4.6
 pyserial ~= 3.5
-cantools ~= 40.5
+cantools ~= 45.1
 pyyaml ~= 6.0
 can-j1939 ~= 2.0
 py_expression_eval ~= 0.3

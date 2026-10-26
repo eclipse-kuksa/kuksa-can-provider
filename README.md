@@ -56,7 +56,7 @@ sudo apt update
 sudo apt install can-utils
 ```
 
-Check that at least Python version 3.9 is installed
+Check that at least Python version 3.11 is installed
 
 ```console
 python -V

@@ -312,7 +312,7 @@ class VSSMapping:
         """
         vss_value = None
         if self.transform is None:
-            if isinstance(value, cantools.database.can.signal.NamedSignalValue):
+            if isinstance(value, cantools.database.namedsignalvalue.NamedSignalValue):
                 # We try to be "smart" when doing implicit mapping for NamedSignalValues like
                 # VAL_ 599 DI_uiSpeedUnits 1 "DI_SPEED_KPH" 0 "DI_SPEED_MPH" ;
                 if self.datatype == "string":
